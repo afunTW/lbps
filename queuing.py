@@ -11,14 +11,14 @@ def show_queuing_result(Customers):
 	mean_service_time = sum(service_times)/len(service_times);
 	total_times = [waits[i] + service_times[i] for i in range(0, len(Customers))];
 	mean_time = sum(total_times)/len(total_times);
-	#utilization = sum(service_times)/t;	# t = real simulation time
+	utilization = sum(service_times)/Customers[-1].arrival_time;
 
 	print "\nSummary results:\n";
-	print "Number of customers: ",len(Customers);
-	print "Mean Service Time: ",mean_service_time;
-	print "Mean Wait: ",mean_wait;
-	print "Mean Time in System: ",mean_time;
-	#print "Utilisation: ",utilization;
+	print "Number of served customers: ", len(Customers);
+	print "Mean Service Time: ", mean_service_time;
+	print "Mean Wait: ", mean_wait;
+	print "Mean Time in System: ", mean_time;
+	print "Utilisation: ", utilization;
 
 """
 	# output as csv file

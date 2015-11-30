@@ -19,9 +19,9 @@
 
 ## Note
 
-Try to use plotly for ploting the chart
+Using matplotlib for ploting the chart
 
 ```
 sudo apt-get install python-pipe
-sudo pip install plotly
+sudo pip install matplotlib
 ```
