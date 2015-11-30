@@ -3,62 +3,24 @@ import random
 import csv
 from component import Customer
 
-def MM1(lambd=False, mu=False, simulation_time=False):
+def show_queuing_result(Customers):
 
-	# input prompt
-	if not lambd:
-		lambd = input("Inter arrival rate: ");
-	if not mu:
-		mu = input("Service rate: ");
-	if not simulation_time:
-		simulation_time = input("Total simulation time: ");
-
-	# Init clock, customer queue to hold data
-	t=0;
-	Customers=[];
-
-	# run
-	while t < simulation_time:
-		# calc arrival rate for new customer
-		if len(Customers) == 0:
-			arrival_time = random.expovariate(lambd);
-			service_start_time = arrival_time;
-		else:
-			arrival_time += random.expovariate(lambd);
-			service_start_time = max(arrival_time, Customers[-1].service_end_time)
-
-		# calc service rate for new customer
-		service_time = random.expovariate(mu);
-
-		# create new customer
-		Customers.append(Customer(arrival_time, service_start_time, service_time));
-
-		# increase clock until next end of service 
-		t = arrival_time;
-
-	# summary statistics
 	waits = [a.wait for a in Customers];
 	mean_wait = sum(waits)/len(waits);
-
 	service_times = [a.service_time for a in Customers];
 	mean_service_time = sum(service_times)/len(service_times);
-
 	total_times = [waits[i] + service_times[i] for i in range(0, len(Customers))];
 	mean_time = sum(total_times)/len(total_times);
+	#utilization = sum(service_times)/t;	# t = real simulation time
 
-	utilization = sum(service_times)/t;
-
-	# output in terminal
-	print "";
-	print "Summary results:";
-	print "";
+	print "\nSummary results:\n";
 	print "Number of customers: ",len(Customers);
 	print "Mean Service Time: ",mean_service_time;
 	print "Mean Wait: ",mean_wait;
 	print "Mean Time in System: ",mean_time;
-	print "Utilisation: ",utilization;
-	print "";
+	#print "Utilisation: ",utilization;
 
+"""
 	# output as csv file
 	if input("Output data to csv (True/False)? "):
 		outfile = open("MM1(%s, %s, %s).csv" % (lambd, mu, simulation_time), "wb");
@@ -71,3 +33,63 @@ def MM1(lambd=False, mu=False, simulation_time=False):
 		outfile.close();
 	print ""
 	return;
+"""
+
+def MM1(lambd=False, mu=False, simulation_time=False):
+	
+	if not lambd:
+		lambd = input("Inter arrival rate: ");
+	if not mu:
+		mu = input("Service rate: ");
+	if not simulation_time:
+		simulation_time = input("Total simulation time: ");
+
+	t=0;
+	Customers=[];
+
+	# run
+	while t < simulation_time:
+		if len(Customers) == 0:
+			arrival_time = random.expovariate(lambd);
+			service_start_time = arrival_time;
+		else:
+			arrival_time += random.expovariate(lambd);
+			service_start_time = max(arrival_time, Customers[-1].service_end_time)
+
+		service_time = random.expovariate(mu);
+		Customers.append(Customer(arrival_time, service_start_time, service_time));
+		t = arrival_time;
+	
+	show_queuing_result(Customers);
+
+def MM2(lambd=False, mu=False, simulation_time=False):
+	
+	if not lambd:
+		lambd = input("Inter arrival rate: ");
+	if not mu:
+		mu = input("Service rate: ");
+	if not simulation_time:
+		simulation_time = input("Total simulation time: ");
+
+	t=0;
+	arrival_time = 0;
+	Customers=[];
+
+	# run
+	while t < simulation_time:
+		arrival_time += random.expovariate(lambd);
+
+		if len(Customers) == 0 or len(Customers) == 1:
+			service_start_time = arrival_time;
+		else:
+			service_start_time = max(arrival_time, Customers[-1].service_end_time, Customers[-2].service_end_time)
+
+		service_time = random.expovariate(mu);
+		Customers.append(Customer(arrival_time, service_start_time, service_time));
+		t = arrival_time;
+	
+	show_queuing_result(Customers);
+
+if __name__ == "__main__":
+	lambd = [ i/10. for i in xrange(1, 10, 1)];
+	lambd.append(0.95);
