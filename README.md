@@ -1,17 +1,6 @@
-# Principle
-
-## M/M/1 queuing
-
-reference by [drvinceknight](https://github.com/drvinceknight/Simulating_Queues)
-When the customer comes, it should get two of random variable:
-
-1. arrival time
-2. service time
-
-=======
-
 # LTE_Simulation
-LTE_LBPS_RN in TDD, including:
+
+## LTE_LBPS_RN in TDD
 
 * LBPS-Aggr
 * LBPS-Split
@@ -23,6 +12,16 @@ LTE_LBPS_RN in TDD, including:
 > * continuous mapping
 > * one-to-one first mapping
 
-## Queueing
-* MM1
+## queueing
+
+* MM1, reference by [drvinceknight](https://github.com/drvinceknight/Simulating_Queues)
 * MM2
+
+## Note
+
+Try to use plotly for ploting the chart
+
+```
+sudo apt-get install python-pipe
+sudo pip install plotly
+```
