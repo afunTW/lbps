@@ -24,5 +24,5 @@ Using matplotlib for ploting the chart
 ```
 sudo apt-get install python-pipe
 sudo apt-get install libfreetype6-dev libxft-dev
-sudo pip install matplotlib
+sudo pip install numpy scipy matplotlib
 ```
