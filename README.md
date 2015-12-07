@@ -12,14 +12,30 @@
 > * continuous mapping
 > * one-to-one first mapping
 
-## queueing
+## queuing
 
 * MM1, reference by [drvinceknight](https://github.com/drvinceknight/Simulating_Queues)
 * MM2
 
+```
+# Unitest for MM1 and MM2
+python queuing.py
+```
+```
+# import as module
+>> import queuing
+>> tmp = queuing(1,1,1000000)
+>> tmp.MM1()  # You can get the needed info after that
+>> tmp.MM2()
+>> tmp.mean_wait
+>> tmp.mean_service_time
+>> tmp.mean_time
+>> tmp.utilization
+```
+
 ## Note
 
-Using matplotlib for ploting the chart
+Using matplotlib.pyplot for ploting the chart
 
 ```
 sudo apt-get install python-pipe

@@ -119,20 +119,24 @@ if __name__ == "__main__":
 
 	plt.xlabel(u"\u03C1");
 	plt.ylabel("T");
-	plt.title("MM1 simulation result");
+	plt.title("MM1 and MM2 simulation result");
 	plt.xlim(0,1);
+	plt.ylim(0,25);
 
-	ana_x = [i/50. for i in xrange(1, 50, 1)];
+	ana_x = [i/100. for i in xrange(1, 100, 1)];
 	ana_y = [1/(1.0-i) for i in ana_x]
-	plt.plot(ana_x, ana_y, color="red");
+	plt.plot(ana_x, ana_y, color='black');
 
 	# MM1
-	test_MM1 = queuing(1,1,10);
-	test_MM1.MM1();
-	test_MM1_y = [(1/test_MM1.mean_service_time) / (1-i) for i in lambd]
-	#test_MM1_x = [queuing(i,1,1000000).MM1().mean_service_time for i in lambd];
-	#test_MM1_y = (1/)
-	plt.plot(lambd, test_MM1_y, color="blue");
+	test = queuing(1,1,1000000);
+	test.MM1();
+	test_MM1_y = [(1/test.mean_service_time) / (1-i) for i in lambd];
+	plt.plot(lambd, test_MM1_y, color='red', ls='dashed', label='$MM1$');
+
+	# MM2
+	test.MM2();
+	test_MM2_y = [(1/test.mean_service_time) / (2.0*(1-i)) for i in lambd];
+	plt.plot(lambd, test_MM2_y, color='blue', ls='dotted', label='$MM2$');
 
 	# show
 	plt.legend();
