@@ -18,10 +18,6 @@
 * MM2
 
 ```
-# Unitest for MM1 and MM2
-python queuing.py
-```
-```
 # import as module
 >> import queuing
 >> tmp = queuing(1,1,1000000)
@@ -32,6 +28,12 @@ python queuing.py
 >> tmp.mean_time
 >> tmp.utilization
 ```
+```
+# Unitest for MM1 and MM2
+python queuing.py
+```
+It should show the figure like that
+![figure_1](https://cloud.githubusercontent.com/assets/4820492/11636616/f7307ad6-9d57-11e5-9a3c-9c5cfc57333a.png)
 
 ## Note
 
