@@ -33,7 +33,7 @@
 python queuing.py
 ```
 It should show the figure like that
-![figure_1](https://cloud.githubusercontent.com/assets/4820492/11636616/f7307ad6-9d57-11e5-9a3c-9c5cfc57333a.png)
+![simresult](https://cloud.githubusercontent.com/assets/4820492/11652655/e074d3b0-9dd3-11e5-9a22-5b4e16de57a8.png)
 
 ## Note
 
