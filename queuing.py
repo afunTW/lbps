@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
 	ana_x = [i/100. for i in xrange(1, 100, 1)];
 	ana_y = [1/(1.0-i) for i in ana_x]
-	plt.plot(ana_x, ana_y, color='black');
+	plt.plot(ana_x, ana_y, color='black', label='$Analytic$');
 
 	# MM1
 	test = queuing(1,1,1000000);
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
 	# MM2
 	test.MM2();
-	test_MM2_y = [(1/test.mean_service_time) / (2.0*(1-i)) for i in lambd];
+	test_MM2_y = [(1/test.mean_service_time) / (1-(i*i)) for i in lambd];
 	plt.plot(lambd, test_MM2_y, color='blue', ls='dotted', label='$MM2$');
 
 	# show
