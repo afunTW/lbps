@@ -1,33 +1,46 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from math import exp, pow, factorial
 
 class Poisson:
-	def __init__(self, lambd, T, bufSize=1000):
+	"""
+	@property
+	lambd: data rate
+	timeInterval: how long would the process take?
+
+	@classmethod
+	Prob_AccDataUnderTH: 
+		calculate the probability that i-th packet accumulate in T ms under threshold
+	Prob_AccDataUnderTH:
+		calculate the probability that i-th packet accumulate in T ms over threshold
+
+	@method
+	LengthAwkSlpCyl: calc awake-sleep-cycle, K (TTI)
+	DataAcc: calc data accumulation, DataAcc (#packet)
+	"""
+	def __init__(self, lambd, T=0):
 		self.__lambd = lambd;
 		self.__timeInterval = T;
+		print(self.__str__());
 	
-	# property
+	def __str__(self):
+		return "create Poisson(lambd= "+self.__lambd+", timeInterval= "+self.__timeInterval+" )";
+
 	@property
 	def lambd(self):
 		return self.__lambd;
-	
-	@property
-	def timeInterval(self):
-		return self.__timeInterval;
-	
-	# setter
 	@lambd.setter
 	def lambd(self, lambd):
 		self.__lambd = lambd;
 	
+	@property
+	def timeInterval(self):
+		return self.__timeInterval;
 	@timeInterval.setter
 	def timeInterval(self, T):
 		self.__timeInterval = T;
 	
-	# classmethod
-	# calc the prob that i-th packet accumulate in T ms under/over threshold
 	@classmethod
 	def Prob_AccDataUnderTH(cls, threshold, lambd, time):
 		p_accumulate = 0;
