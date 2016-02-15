@@ -7,7 +7,6 @@ class Poisson:
 	def __init__(self, lambd, T, bufSize=1000):
 		self.__lambd = lambd;
 		self.__timeInterval = T;
-		self.__bufSize = bufSize;	# represent as the number of packet 
 	
 	# property
 	@property
@@ -18,10 +17,6 @@ class Poisson:
 	def timeInterval(self):
 		return self.__timeInterval;
 	
-	@property
-	def bufSize(self):
-		return self.__bufSize;
-	
 	# setter
 	@lambd.setter
 	def lambd(self, lambd):
@@ -30,10 +25,6 @@ class Poisson:
 	@timeInterval.setter
 	def timeInterval(self, T):
 		self.__timeInterval = T;
-	
-	@bufSize.setter
-	def bufSize(self, bufSize):
-		self.__bufSize = bufSize;
 	
 	# classmethod
 	# calc the prob that i-th packet accumulate in T ms under/over threshold
@@ -51,10 +42,10 @@ class Poisson:
 
 	# normal function
 	# given lambd, DATA_TH, PROB_TH -> calc awake-sleep-cycle, K (TTI)
-	def LengthAwkSlpCyl(self, DATA_TH=0.8, PROB_TH=0.8):
+	def LengthAwkSlpCyl(self, DATA_TH, PROB_TH=0.8):
 		K = 1;
 		while(1):
-			p_acc = Prob_AccDataOverTH(self.__bufSize*DATA_TH, self.__lambd, K);
+			p_acc = Prob_AccDataOverTH(DATA_TH, self.__lambd, K);
 			if(p_acc > PROB_TH): break;
 			else: K+=1;
 		return K
