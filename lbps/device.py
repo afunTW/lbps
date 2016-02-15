@@ -3,4 +3,9 @@
 from Poisson import poisson
 
 class Device:
-	def __init__(self, 
+	"""
+		property:
+		stream: point out the device is on upstream downstream by 'U' or 'D'
+		buf: buffer size
+	"""
+	def __init__(self, stream, buf,  
