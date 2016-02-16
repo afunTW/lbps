@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from poisson import Poisson
 
@@ -10,26 +10,31 @@ class Device:
 		status: point out the device is on upstream downstream by 'U' or 'D'
 		process: using poisson only in this project
 	"""
+	def __init__(self):
+		self._buf = 0;
+		self._status = 'D';
+		self._process = None;
+
 	@property
 	def buf(self):
-		return self.__buf;
+		return self._buf;
 	@buf.setter
 	def buf(self, buf):
-		self.__buf = buf;
+		self._buf = buf;
 	
 	@property
 	def status(self):
-		return self.__status;
+		return self._status;
 	@status.setter
 	def status(self, status):
-		return self.__status = status;
+		self._status = status;
 	
 	@property
 	def process(self):
-		return self.__process;
+		return self._process;
 	@process.setter
 	def process(self, proc):
-		self.__process = proc;
+		self._process = proc;
 	
 	"""
 	@property
@@ -63,9 +68,9 @@ class UE(Device):
 	"""
 	def __init__(self, lambd, buf=[0,0], status='D'):
 		self.__lambd = lambd;
-		self.__process = Poisson(self.__lambd);
-		self.__buf = buf;
-		self.__status = status;
+		self._process = Poisson(self.__lambd);
+		self._buf = buf;
+		self._status = status;
 	
 	@property
 	def lambd(self):
@@ -85,6 +90,7 @@ class RN(Device):
 	"""
 	def __init__(self, l_UE=None, buf=[0,0], status='D'):
 		self.__RUE = l_UE;
+		self.__lambd = None;
 	
 	@property
 	def RUE(self):
