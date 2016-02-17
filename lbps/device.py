@@ -3,7 +3,7 @@
 
 from poisson import Poisson
 
-class Device:
+class Device(object):
 	"""
 		property:
 		buf: buffer size
@@ -11,7 +11,7 @@ class Device:
 		process: using poisson only in this project
 	"""
 	def __init__(self):
-		self._buf = 0;
+		self._buf = {'U':0, 'D':0};
 		self._status = 'D';
 		self._process = None;
 
@@ -20,6 +20,8 @@ class Device:
 		return self._buf;
 	@buf.setter
 	def buf(self, buf):
+		if dict.get('D') is None or dict.get('U') is None:
+			raise Exception("Buffer shold be a dict with pair ('D': [int]) and ('U': [int])");
 		self._buf = buf;
 	
 	@property
@@ -27,6 +29,8 @@ class Device:
 		return self._status;
 	@status.setter
 	def status(self, status):
+		if status not 'D' or atatus not 'U':
+			raise Exception("status value sould be 'D' or 'U'");
 		self._status = status;
 	
 	@property
@@ -37,10 +41,6 @@ class Device:
 		self._process = proc;
 	
 	"""
-	@property
-	def CQI(self):
-		return self.__CQI;
-	
 	@property
 	def totalAwkTime(self):
 		return self.__totalAwkTime;
@@ -66,11 +66,13 @@ class UE(Device):
 	status: upstream/downstream (from Device)
 	process: binding Poisson (from Device)
 	"""
+	# FIXME
 	def __init__(self, lambd, buf=[0,0], status='D'):
 		self.__lambd = lambd;
 		self._process = Poisson(self.__lambd);
 		self._buf = buf;
 		self._status = status;
+		self.targetDevice = None;
 	
 	@property
 	def lambd(self):
@@ -88,29 +90,38 @@ class RN(Device):
 	status: upstream/downstream, could be different from UE (from Device)
 	process: binding Poisson (from Device)
 	"""
-	def __init__(self, l_UE=None, buf=[0,0], status='D'):
-		self.__RUE = l_UE;
+	# FIXME
+	def __init__(self, l_UE=None, buf={'D':0, 'U':0}, status='D'):
+		self.__l_UE = l_UE;
 		self.__lambd = None;
-	
+		self._buf = buf;
+		self._status = status;
+
 	@property
-	def RUE(self):
-		return self.__RUE;
-	@RUE.setter
-	def RUE(self, l_UE):
-		self.__RUE = l_UE;
-	
+	def l_UE(self):
+		return self.__l_UE;
+	@l_UE.setter
+	def l_UE(self, l_UE):
+		if type(l_UE) != list or type(l_UE[0]) != UE:
+			raise Exception("Wrong type: " + str(l_UE));
+		self.__l_UE = l_UE;
+		setattr(self, '__lambd')
+
 	@property
 	def lambd(self):
-		if self.__RUE is None:
+		return self.__lambd;
+	@lambd.setter
+	def lambd(self):
+		if self.__l_UE is None:
 			print("There's no served UEs for aggregate lambd");
-			return None;
-		else:
-			return sum(ue.lambd for ue in self.__RUE);
+		self.__lambd = sum(ue.lambd for ue in self.__l_UE);
+		setattr(self, '_process')
 	
 	@property
 	def process(self):
+		return self._process;
+	@process.setter
+	def process(self):
 		if self.__lambd is None:
 			print("There's no lambd for Poisson process");
-			return None;
-		else:
-			return Poisson(self.__lambd);
+		self._process = Poisson(self.__lambd);
