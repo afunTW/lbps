@@ -19,9 +19,10 @@ class Device(object):
 		return self._buf;
 	@buf.setter
 	def buf(self, buf):
-		if dict.get('D') is None or dict.get('U') is None:
-			raise Exception("Buffer shold be a dict with pair ('D': [int]) and ('U': [int])");
-		self._buf = buf;
+		# pick the right key and value
+		buf = {k:v for k,v in buf.items() if k is 'U' or k is 'D'}
+		buf = {k:v for k,v in buf.items() if type(v) is type(1)}
+		self._buf.update(buf);
 
 	@property
 	def status(self):
@@ -58,7 +59,8 @@ class UE(Device):
 	@property
 	def parentDevice(self):
 		return self.__parentDevice;
-	@parentDevice.setter(self, pD):	# should parent RN changable? or init in begining?
+	# should parent RN changable? or init in begining?
+	@parentDevice.setter(self, pD):
 		self.__parentDevice = pD;
 
 class RN(Device):
