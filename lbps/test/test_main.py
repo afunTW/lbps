@@ -1,21 +1,33 @@
-# -*- coding: utf-8 -*-                                                                                                                       
+# -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
 import __init__
 from poisson import Poisson
 from device import Device, UE
 
-Xlambd = 3	# bit
-Llambd = 10		# kbps
-Mlambd = 50		# kbps
-Hlambd = 250	# kbps
+"""
+	@class init
+	UE(buf={'U':0, 'D':0}, status='D', lambd=None, parentDevice = None)
+	RN(buf={'U':0, 'D':0}, status='D', lambd=None, l_UE=None)
 
-XBufSize = 30	# bit
-SBufSize = 0.8	# kbit
-LBufSize = 8		# kbit
+	@simulation para
+	[int]	lambd: bps
+	[int]	buffer size: bit
+	[int]	packet size: bit
+	[float]	DATA_TH: number of packet
+	[float]	PROB_TH: probability threshold
+"""
+Xlambd = 3
+Llambd = 10
+Mlambd = 50
+Hlambd = 250
+
+XBufSize = 30
+SBufSize = 800
+LBufSize = 8000
 
 if __name__ == '__main__':
-	
+
 	"""
 		target: using const lambda to discuss the relation between K and DataAcc
 	"""
