@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	"""
 		target: using const lambda to discuss the relation between K and DataAcc
 	"""
-	testUE = UE(Xlambd, [0, XBufSize], 'D');
+	testUE = UE(buf, [0, XBufSize], 'D');
 	testUE.process.timeInterval = 100	;
 
 	K1 = testUE.process.LengthAwkSlpCyl(0.8 * testUE.buf[1], 0.8);
