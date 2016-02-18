@@ -60,7 +60,8 @@ class UE(Device):
 	def parentDevice(self):
 		return self.__parentDevice;
 	# should parent RN changable? or init in begining?
-	@parentDevice.setter(self, pD):
+	@parentDevice.setter
+	def parentDevice(self, pD):
 		self.__parentDevice = pD;
 
 class RN(Device):
