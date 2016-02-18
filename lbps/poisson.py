@@ -3,7 +3,7 @@
 
 from math import exp, pow, factorial
 
-class Poisson:
+class Poisson(object):
 	"""
 	@classmethod
 	Prob_AccDataUnderTH:
