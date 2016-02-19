@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-from poisson import Poisson
+from poisson import *
 
 class Device(object):
 	"""
@@ -29,7 +29,7 @@ class Device(object):
 		return self._status;
 	@status.setter
 	def status(self, status):
-		if status not 'D' or status not 'U':
+		if status is not 'D' and status is not 'U':
 			raise Exception("status value sould be 'D' or 'U'");
 		self._status = status;
 
