@@ -19,18 +19,19 @@ def Prob_AccDataUnderTH(lambd, threshold, simTime):
 		for i in range(1, threshold): tmp_p *= lambd*simTime/i;
 		p_accumulate += tmp_p;
 		threshold -= 1;
+	# print("Call	Prob_AccDataUnderTH, return %f" % p_accumulate)
 	return p_accumulate;
 
 def Prob_AccDataOverTH(lambd, threshold, simTime):
-	# print("Call	Prob_AccDataOverTH");
+	print("Call	Prob_AccDataOverTH");
 	return 1-Prob_AccDataUnderTH(lambd, threshold, simTime);
 
 def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH=0.8):
 	print("Calculating awake-sleep-cycle with DATA_TH(%d), PROB_TH(%.2f)" % (DATA_TH, PROB_TH));
-	K = 1;
+	K = 1;	# ms
 	while(1):
 		p_acc= Prob_AccDataOverTH(lambd, DATA_TH, K);
-		# print("Get	prob: %f" % p_acc)
+		print("Get	prob: %f" % p_acc)
 		if(p_acc > PROB_TH): break;
 		else: K+=1;
 	return K
