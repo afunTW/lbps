@@ -16,14 +16,13 @@ def Prob_AccDataUnderTH(lambd, threshold, simTime):
 	while(threshold >= 0):
 		# p_accumulate += exp(-1*lambd*time)*pow(lambd*time, threshold)/factorial(threshold);
 		tmp_p = exp(-1*lambd*simTime);
-		for i in range(1, threshold): tmp_p *= lambd*simTime/i;
+		for i in range(1, threshold+1): tmp_p *= lambd*simTime/i;
 		p_accumulate += tmp_p;
 		threshold -= 1;
-	# print("Call	Prob_AccDataUnderTH, return %f" % p_accumulate)
+	# print("-	p_accumulate: %g" % p_accumulate)
 	return p_accumulate;
 
 def Prob_AccDataOverTH(lambd, threshold, simTime):
-	print("Call	Prob_AccDataOverTH");
 	return 1-Prob_AccDataUnderTH(lambd, threshold, simTime);
 
 def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH=0.8):
@@ -31,7 +30,7 @@ def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH=0.8):
 	K = 1;	# ms
 	while(1):
 		p_acc= Prob_AccDataOverTH(lambd, DATA_TH, K);
-		print("Get	prob: %f" % p_acc)
+		# print("Get	prob: %f in %d TTI" % (p_acc, K))
 		if(p_acc > PROB_TH): break;
 		else: K+=1;
 	return K
@@ -40,6 +39,7 @@ def DataAcc(lambd, K, PROB_TH=0.8):
 	pkt=0;
 	while(1):
 		p_acc= Prob_AccDataUnderTH(lambd, pkt, K);
+		# pkt+= pkt*p_acc
 		if(p_acc > PROB_TH): break;
 		else: pkt+=1;
-	return pkt;
+		return pkt;
