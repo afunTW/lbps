@@ -2,7 +2,8 @@
 #!/usr/bin/python3
 
 import __init__
-from poisson import *
+from poisson import LengthAwkSlpCyl, DataAcc
+from viewer import *
 from device import Device, UE
 
 """
@@ -38,13 +39,24 @@ if __name__ == '__main__':
 	DATA_TH= int(testUE.buf[testUE.status] * 0.8 / pktSize);
 	PROB_TH = 0.8;
 
-	print("#	init")
-	print(">	lambd means arrival rate: %g(bit/ ms), needs %d TTI to transmit 1 packet" % (testUE.lambd, pktSize/testUE.lambd))
-	print(">	DATA_TH is accumulate %d packet by buffer size %d packet\n" % (DATA_TH, testUE.buf[testUE.status]/pktSize))
+	print("#	init");
+	print(">	lambd means arrival rate: %g(bit/ ms), needs %d TTI to transmit 1 packet" % (testUE.lambd, pktSize/testUE.lambd));
+	print(">	DATA_TH is accumulate %d packet by buffer size %d packet\n" % (DATA_TH, testUE.buf[testUE.status]/pktSize));
 
-	d_K1= LengthAwkSlpCyl(testUE.lambd/pktSize , DATA_TH, PROB_TH, view= True)
+	d_K1= LengthAwkSlpCyl(testUE.lambd/pktSize , DATA_TH, PROB_TH, view= True);
 	print(">	Get the K1= %d" % sorted(d_K1.keys())[-1]);
 
-	K2= sorted(d_K1.keys())[-1]
-	d_K2= DataAcc(testUE.lambd/pktSize, K2, PROB_TH, view= True)
-	print(">	Accumulate Data in %d TTI: %d packet" % (K2, sorted(d_K2.keys())[-1]))
+	K2= sorted(d_K1.keys())[-1];
+	d_K2= DataAcc(testUE.lambd/pktSize, K2, PROB_TH, view= True);
+	print(">	Accumulate Data in %d TTI: %d packet" % (K2, sorted(d_K2.keys())[-1]));
+
+	"""
+		Plotting the result
+	"""
+	plt.figure(1);
+	plt.title("Calculating sleep cycle length");
+	plt.xlabel("K(TTI)");
+	plt.ylabel("P");
+	plt.plot(sorted(d_K1.keys()), sorted(d_K1.values()), color= 'red');
+
+	plt.show();
