@@ -37,13 +37,14 @@ if __name__ == '__main__':
 	testUE= UE(LBufSize, 'D', Mlambd);	# buffer can store 10 pkt, need 16 TTI to transmit 1 pkt
 	DATA_TH= int(testUE.buf[testUE.status] * 0.8 / pktSize);
 	PROB_TH = 0.8;
+
 	print("#	init")
 	print(">	lambd means arrival rate: %g(bit/ ms), needs %d TTI to transmit 1 packet" % (testUE.lambd, pktSize/testUE.lambd))
 	print(">	DATA_TH is accumulate %d packet by buffer size %d packet\n" % (DATA_TH, testUE.buf[testUE.status]/pktSize))
 
-	K1= LengthAwkSlpCyl(testUE.lambd/pktSize , DATA_TH, PROB_TH)
-	print(">	Get the K1= %d" % K1);
+	d_K1= LengthAwkSlpCyl(testUE.lambd/pktSize , DATA_TH, PROB_TH, view= True)
+	print(">	Get the K1= %d" % sorted(d_K1.keys())[-1]);
 
-	# K2= K1
-	# K2_DataAcc= DataAcc(testUE.lambd, K2, PROB_TH)
-	# print(">	Accumulate Data in %d TTI: %d packet" % (K2, K2_DataAcc))
+	K2= sorted(d_K1.keys())[-1]
+	d_K2= DataAcc(testUE.lambd/pktSize, K2, PROB_TH, view= True)
+	print(">	Accumulate Data in %d TTI: %d packet" % (K2, sorted(d_K2.keys())[-1]))
