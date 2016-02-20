@@ -1,46 +1,25 @@
-# LTE_Simulation
+# Simulate Load-Based-Power-Saving mechanism
 
-## LTE_LBPS_RN in TDD
+## Intro
 
-* LBPS-Aggr
-* LBPS-Split
-* LBPS-Merge
-* LBPS with RN (RN 1st)
-* LBPS with RN (UE 1st)
-* LBPS in TDD (virtual timeline)
-> * one-to-all mapping
-> * continuous mapping
-> * one-to-one first mapping
+LBPS was invented for WiMax, the core concept is to accumulate data until it reach the threshold rather than transmit right after receive data. By LBPS, receiver could extend the sleep cycle and improve its power efficiency. As time goes by, our lab get involved in LTE research and decided to modify the LBPS for adapting LTE architecture.
 
-## queuing
+* First generation - LTE-LBPS: one-hop in FDD,  LBPS-Aggr/LBPS-Split/LBPS-Merge
+* Second generation - LTE-LBPS-RN: two-hop in FDD, UE-1st/RN-1st
+* Third generation - LTE-LBPS: one-hop in TDD, virtual-timeline/mapping
 
-* MM1, reference by [drvinceknight](https://github.com/drvinceknight/Simulating_Queues)
-* MM2
+And my research is for fourth generation of LBPS which is two-hop in TDD.
 
-```
-# import as module
->> import queuing
->> tmp = queuing(1,1,1000000)
->> tmp.MM1()  # You can get the needed info after that
->> tmp.MM2()
->> tmp.mean_wait
->> tmp.mean_service_time
->> tmp.mean_time
->> tmp.utilization
-```
-```
-# Unitest for MM1 and MM2
-python queuing.py
-```
-It should show the figure like that
-![simresult](https://cloud.githubusercontent.com/assets/4820492/11652655/e074d3b0-9dd3-11e5-9a22-5b4e16de57a8.png)
+So far, the basic idea include TopDown/BottomUp and MinCycle/MergeCycle.
 
-## Note
+## System model
 
-Using matplotlib.pyplot for ploting the chart
+**Device**
 
-```
-sudo apt-get install python-pipe
-sudo apt-get install libfreetype6-dev libxft-dev
-sudo pip install numpy scipy matplotlib
-```
+* DeNB
+* RN: Type-1 RN
+* UE
+
+**Process**
+
+* Poisson process: MM1
