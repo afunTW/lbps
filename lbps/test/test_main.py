@@ -50,13 +50,55 @@ if __name__ == '__main__':
 	d_K2= DataAcc(testUE.lambd/pktSize, K2, PROB_TH, view= True);
 	print(">	Accumulate Data in %d TTI: %d packet" % (K2, sorted(d_K2.keys())[-1]));
 
+	d_K3= LengthAwkSlpCyl(testUE.lambd/pktSize , DATA_TH, 1- PROB_TH, view= True);
+	print(">	Get the K1= %d" % sorted(d_K3.keys())[-1]);
+
+	K4= sorted(d_K3.keys())[-1];
+	d_K4= DataAcc(testUE.lambd/pktSize, K4, PROB_TH, view= True);
+	print(">	Accumulate Data in %d TTI: %d packet" % (K4, sorted(d_K4.keys())[-1]));
+
 	"""
 		Plotting the result
 	"""
 	plt.figure(1);
-	plt.title("Calculating sleep cycle length");
+	plt.title("Calculating sleep cycle length/ data accumulation");
+
+	plt.subplot(221);
+	# plt.title("Data_TH= %d, Prob_TH= %g %%"% (DATA_TH, PROB_TH*100))
 	plt.xlabel("K(TTI)");
 	plt.ylabel("P");
+	plt.text(0.05*sorted(d_K1.keys())[-1], 0.8*sorted(d_K1.values())[-1],
+			"K1= %d\nDATA_TH= %d packet\nPROB_TH= %g %%"% (sorted(d_K1.keys())[-1], DATA_TH, PROB_TH*100),
+			fontsize= 12, bbox= {'facecolor': 'yellow', 'alpha': 0.5})
 	plt.plot(sorted(d_K1.keys()), sorted(d_K1.values()), color= 'red');
+	plt.grid(True);
+
+	plt.subplot(223);
+	plt.xlabel("#pkt");
+	plt.ylabel("P");
+	plt.text(0.5, 0.6,
+			"K2= %d\nDATA_TH= %d packet\nPROB_TH= %g %%"% (sorted(d_K1.keys())[-1], sorted(d_K2.keys())[-1], PROB_TH*100),
+			fontsize= 12, bbox= {'facecolor': 'yellow', 'alpha': 0.5})
+	plt.plot(sorted(d_K2.keys()), sorted(d_K2.values()), color= 'red');
+	plt.grid(True);
+
+	plt.subplot(222);
+	plt.title("Data_TH= %d, Prob_TH= %g %%"% (DATA_TH, (1-PROB_TH)*100))
+	plt.xlabel("K(TTI)");
+	plt.ylabel("P");
+	plt.text(0.05*sorted(d_K3.keys())[-1], 0.8*sorted(d_K3.values())[-1],
+			"K1= %d\nDATA_TH= %d packet\nPROB_TH= %g %%"% (sorted(d_K3.keys())[-1], DATA_TH, (1-PROB_TH)*100),
+			fontsize= 12, bbox= {'facecolor': 'yellow', 'alpha': 0.5})
+	plt.plot(sorted(d_K3.keys()), sorted(d_K3.values()), color= 'blue');
+	plt.grid(True);
+
+	plt.subplot(224);
+	plt.xlabel("#pkt");
+	plt.ylabel("P");
+	plt.text(0.5, 0.6,
+			"K2= %d\nDATA_TH= %d packet\nPROB_TH= %g %%"% (sorted(d_K3.keys())[-1], sorted(d_K4.keys())[-1], PROB_TH*100),
+			fontsize= 12, bbox= {'facecolor': 'yellow', 'alpha': 0.5})
+	plt.plot(sorted(d_K4.keys()), sorted(d_K4.values()), color= 'blue');
+	plt.grid(True);
 
 	plt.show();
