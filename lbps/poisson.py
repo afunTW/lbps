@@ -51,3 +51,15 @@ def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
 		if(p_acc > PROB_TH): break;
 		else: pkt+= 1;
 	return d_K if view is True else pkt;
+
+if __name__ == "__main__":
+
+	# For same UE, larger PROB_TH leads to larger K value
+	# Fake UE info:
+	#	bufSize= 8000 bits
+	# 	lambd= (50 bit/ms) / pktSize (800 bits)
+	#	DATA_TH= int(testUE.buf[testUE.status] * 0.8 / pktSize)= int(6400/800) = 8
+	#	PROB_TH1= 0.8, PROB_TH2= 0.2
+
+	print("\tPROB_TH1 (0.8): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.8, True).keys())[-1]))
+	print("\tPROB_TH2 (0.2): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.2, True).keys())[-1]))

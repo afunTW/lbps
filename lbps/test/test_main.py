@@ -25,8 +25,8 @@ Llambd = 10;	# 10 bit/ms
 Mlambd = 50;
 Hlambd = 250;
 
-SBufSize = {'D': 800};
-LBufSize = {'D': 8000};
+SBufSize = {'D': 800, 'U': 800};
+LBufSize = {'D': 8000, 'U': 800};
 
 pktSize = 800;	# bits
 
