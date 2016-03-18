@@ -61,5 +61,5 @@ if __name__ == "__main__":
 	#	DATA_TH= int(testUE.buf[testUE.status] * 0.8 / pktSize)= int(6400/800) = 8
 	#	PROB_TH1= 0.8, PROB_TH2= 0.2
 
-	print("\tPROB_TH1 (0.8): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.8, True).keys())[-1]))
-	print("\tPROB_TH2 (0.2): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.2, True).keys())[-1]))
+	print("\tPROB_TH1 (0.51): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.51, True).keys())[-1]))
+	print("\tPROB_TH2 (0.5): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.5, True).keys())[-1]))
