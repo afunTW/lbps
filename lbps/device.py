@@ -1,101 +1,235 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-from poisson import *
+import inspect
+
+def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(object):
-	"""
+	def __init__(self, buf={}, status='D', link='', lambd=0):
+		"""
 		property:
 		[protected]	buf: buffer size (bits)
-		[protected]	status: point out the device is on upstream downstream by 'U' or 'D'
+		[protected]	status: identify the device is on upstream downstream by 'U' or 'D'
+		[protected]	link: identify the link is backhaul or access
 		[protected]	lambd: data rate (bps)
-	"""
-	# def __init__(self):
-	# 	self._buf = {'U':0, 'D':0};
-	# 	self._status = 'D';
+		"""
+		self._buf=buf;
+		self._status=status;
+		self._link=link;
+		self._lambd=lambd;
 
 	@property
 	def buf(self):
 		return self._buf;
 	@buf.setter
 	def buf(self, buf):
-		# pick the right key and value
-		buf = {k:v for k,v in buf.items() if k is 'U' or k is 'D'}
-		buf = {k:v for k,v in buf.items() if type(v) is type(1)}
-		self._buf.update(buf);
+		"""
+		buffer filter by checking type, key and value first, then update
+		maintain the buffer always have only two items with key 'U' and 'D'
+		and the value are always type int as well
+		"""
+		try:
+			if type(buf) is dict:
+				buf = {k:v for k,v in buf.items() if k is 'U' or k is 'D'}
+				buf = {k:v for k,v in buf.items() if type(v) is int}
+				self._buf.update(buf);
+			else: raise Exception("Buffer should be the type of dict.");
+		except Exception as e: print(e);
 
 	@property
 	def status(self):
 		return self._status;
 	@status.setter
 	def status(self, status):
-		if status is not 'D' and status is not 'U':
-			raise Exception("status value sould be 'D' or 'U'");
-		self._status = status;
+		"""
+		maintain status will only in the value of 'U' or 'D'
+		"""
+		try:
+			if type(status) is str:
+				status = status.upper();
+				self._status = status if status == 'U' or status == 'D' else raiser(Exception("status value sould be 'U' or 'D'"));
+			else: raise Exception("status value sould be str");
+		except Exception as e: print(e);
 
-	# FIXME: need to consider more situation for data format and exception handling
+	@property
+	def link(self):
+		return self._link;
+	@link.setter
+	def link(self, link):
+		try: self._link = link if link == 'backhaul' or link == 'access' else raiser(Exception("link should be 'baackhaul' or 'access'"));
+	except Exception as e: print(e);
+
 	@property
 	def lambd(self):
 		return self._lambd;
 	@lambd.setter
 	def lambd(self, lambd):
-		self._lambd = lambd;
+		try: self._lambd = lambd if type(lambd) is int else raiser(Exception("lambd value should be int"));
+		except Exception as e: print(e)
 
 class UE(Device):
-	"""
-	@property
-	[protected]	buf[2]
-	[protected]	status
-	[protected]	lambd
-	[private]	parentDevice: identity served RN
-	"""
-	def __init__(self, buf={'U':0, 'D':0}, status='D', lambd=None, parentDevice = None):
+	def __init__(self, buf={}, status='D', lambd=0, parentDevice = None):
+		"""
+		@property
+		[protected]	buf
+		[protected]	status
+		[protected]	link
+		[protected]	lambd
+		[private]	parentDevice: identity served RN
+		"""
 		self._buf = buf;
 		self._status = status;
+		self._link = 'access';
 		self._lambd = lambd;
 		self.__parentDevice = parentDevice;
 
-	# FIXME: need to consider more situation for data format and exception handling
 	@property
 	def parentDevice(self):
 		return self.__parentDevice;
-	# should parent RN changable? or init in begining?
 	@parentDevice.setter
 	def parentDevice(self, pD):
-		self.__parentDevice = pD;
+		"""
+		parent should be the type of RN object
+		check the type and make sure its instance rather than class by isinstance(obj, '__class__') build-in function
+		"""
+		try: self.__parentDevice = pD if isinstance(pD, RN) and not inspect.isclass(pD) else raiser(Exception("parent should be type of RN instance"));
+		except Exception as e: print(e)
 
 class RN(Device):
-	"""
-	@property
-	[protected]	buf[2]
-	[protected]	status
-	[protected]	lambd
-	[private]	l_UE: a list of served UE
-	"""
-	# FIXME
-	def __init__(self, buf={'U':0, 'D':0}, status='D', lambd=None, l_UE=None):
+	def __init__(self, buf={}, status='D', RUE=[]):
+		"""
+		@property
+		[protected]	buf
+		[protected]	status
+		[protected]	link
+		[protected]	lambd
+		[private]	RUE: a list of served UE
+		"""
 		self._buf = buf;
 		self._status = status;
-		self._lambd = None;
-		self.__l_UE = l_UE;
+		self._link = 'backhaul';
+		self._lambd = 0;
+		self.__RUE = RUE;
 
 	@property
-	def l_UE(self):
-		return self.__l_UE;
-	@l_UE.setter
-	def l_UE(self, l_UE):
-		if type(l_UE) != list or type(l_UE[0]) != UE:
-			raise Exception("Wrong type: " + str(l_UE));
-		self.__l_UE = l_UE;
-		setattr(self, '__lambd')
+	def RUE(self):
+		return self.__RUE;
+	@RUE.setter
+	def RUE(self, RUE):
+		"""
+		check the type of RUE is a list and each element is type of UE
+		set the RN lambda, which is aggregate RUE lambda
 
-	# rewrite lambd method, cause RN's lambd is equal to aggregate RUE lambd
+		NOTE: setting lambda in this setter rather then lambd.setter to prevent from changing value directly
+		# FIXME: append() would pass any value
+		"""
+		try:
+			if type(RUE) is list:
+				for i in RUE:
+					if not isinstance(i, UE) or inspect.isclass(i): raise Exception("RUE should be all UE instance object");
+				self.__RUE = RUE;
+
+				# setattr(self, '__lambd')
+				self._lambd = sum(ue.lambd for ue in self.__RUE);
+			else: raise Exception("RUE should be the type of list")
+		except Exception as e: print(e);
+
+class eNB(Device):
+	def __init__(self, buf={}, status='D', relays=None):
+		"""
+		@property
+		[protected]	buf
+		[protected]	status
+		[protected]	link
+		[protected]	lambd
+		[private]	relays: a list of served RN
+		"""
+		self._buf = buf;
+		self._status = status;
+		self._link = 'backhaul';
+		self._lambd = 0;
+		self.__relays = relay;
+
 	@property
-	def lambd(self):
-		return self.__lambd;
-	@lambd.setter
-	def lambd(self):
-		if self.__l_UE is None:
-			print("There's no served UEs for aggregate lambd");
-		self.__lambd = sum(ue.lambd for ue in self.__l_UE);
-		setattr(self, '_process')
+	def relays(self):
+		return self.__relays;
+	@relays.setter
+	def relays(self, relays):
+		"""
+		similar to RN.RUE setter
+		"""
+		try:
+			if type(relays) is list:
+				for i in relays:
+					if not isinstance(i, RN) or inspect.isclass(i): raise Exception("relays should be all RN instance object");
+				self.__relays = relays;
+				self._lambd = sum(rn.lambd for rn in self.__relays);
+			else: raise Exception("relays should be the type of list")
+		except Exception as e: print(e);
+
+if __name__ == '__main__':
+
+	"""
+	test
+	1. class Device, buffer setter
+		* [Success]	assign buf with different type compared to dict
+		* [Success]	assign buf in dict type but with unnecessary key except 'U' and 'D'
+		* [Success]	assign buf in dict type but with incorrect type of value compared to int
+	2. class Device, status setter
+		* [Success]	assign status with others type except str
+		* [Success]	assign status with 'u' or 'd'
+		* [Success]	assign status with others letter except 'U' or 'D'
+	3. class Device, lambd setter
+		* [Success]	assign lambd with non-integer value
+	4. class UE, parentDevice setter
+		* [Success]	assign parentDevice with the non-RN object
+		* [Success]	assign parentDevice with RN class rather than instance
+	5. class RN, RUE setter
+		* [Success]	assign RUE with non-list object
+		* [Success]	assign RUE with a list of non-UE object
+		* [Success]	assign RUE with UE class object
+		* [Failed]	assign by .append()
+	"""
+
+	print("Test\t\tprop/func\t\t\tresult")
+	test_D = Device();
+	test_UE = UE();
+	test_RN = RN()
+	print("====\t\t========\t\t\t========")
+	print("Device\t\ttype(buf) is int\t\t", end='');
+	test_D.buf = 100;
+	print("Device\t\tbuf={'U':50, 'D':100, 'Q':3}\t", end='');
+	test_D.buf = {'U':50, 'D':100, 'Q':3}
+	print(test_D.buf)
+	print("Device\t\tbuf={'U':20, 'D':100, 'Q':3}\t", end='');
+	test_D.buf = {'U':20, 'D':100, 'Q':3}
+	print(test_D.buf)
+	print("Device\t\tstatus=None\t\t\t", end='');
+	test_D.status = None;
+	print("Device\t\tstatus='d'\t\t\t", end='');
+	test_D.status = 'd';
+	print(test_D.status)
+	print("Device\t\tstatus='XD'\t\t\t", end='');
+	test_D.status = 'XD';
+	print("Device\t\tlambd='100'\t\t\t", end="");
+	test_D.lambd='100';
+	print("----\t\t--------\t\t\t--------")
+	print("UE\t\tparentDevice=None\t\t", end="");
+	test_UE.parentDevice = None;
+	print("UE\t\tparentDevice=RN()\t\t", end="");
+	test_UE.parentDevice = RN;
+	print("----\t\t--------\t\t\t--------")
+	print("RN\t\tRUE={}\t\t\t\t", end="")
+	test_RN.RUE = {};
+	print("RN\t\tRUE=[1,2,3]\t\t\t", end="")
+	test_RN.RUE = [1,2,3];
+	print("RN\t\tRUE=[UE1, UE]\t\t\t", end="")
+	test_RN.RUE = [test_UE, UE];
+	print("RN\t\tRUE=[UE1], RUE.append(UE)\t", end="");	# FIXME
+	test_RN.RUE = [test_UE];
+	test_RN.RUE.append(UE);
+	checkType = True;
+	for i in test_RN.RUE:
+		if inspect.isclass(i): checkType=False;break;
+	print(test_RN.RUE) if checkType else print(checkType);
