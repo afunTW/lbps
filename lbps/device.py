@@ -2,11 +2,12 @@
 #!/usr/bin/python3
 
 import inspect
+from network import Channel
 
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
-class Device(object):
-	def __init__(self, buf={}, status='D', link='', lambd=0):
+class Device(Channel):
+	def __init__(self, buf={}, status='D', lambd=0, link='access', bandwidth=0, CQI=0):
 		"""
 		property:
 		[protected]	buf: buffer size (bits)
@@ -14,10 +15,12 @@ class Device(object):
 		[protected]	link: identify the link is backhaul or access
 		[protected]	lambd: data rate (bps)
 		"""
-		self._buf=buf;
-		self._status=status;
-		self._link=link;
-		self._lambd=lambd;
+		self._buf = buf;
+		self._status = status;
+		self._lambd = lambd;
+		self._link = link;
+		self._bandwidth = bandwidth;
+		self._CQI = CQI;
 
 	@property
 	def buf(self):
@@ -34,8 +37,10 @@ class Device(object):
 				buf = {k:v for k,v in buf.items() if k is 'U' or k is 'D'}
 				buf = {k:v for k,v in buf.items() if type(v) is int}
 				self._buf.update(buf);
-			else: raise Exception("Buffer should be the type of dict.");
-		except Exception as e: print(e);
+			else:
+				raise Exception("Buffer should be the type of dict.");
+		except Exception as e:
+			print(e);
 
 	@property
 	def status(self):
@@ -46,30 +51,25 @@ class Device(object):
 		maintain status will only in the value of 'U' or 'D'
 		"""
 		try:
-			if type(status) is str:
-				status = status.upper();
-				self._status = status if status == 'U' or status == 'D' else raiser(Exception("status value sould be 'U' or 'D'"));
-			else: raise Exception("status value sould be str");
-		except Exception as e: print(e);
-
-	@property
-	def link(self):
-		return self._link;
-	@link.setter
-	def link(self, link):
-		try: self._link = link if link == 'backhaul' or link == 'access' else raiser(Exception("link should be 'baackhaul' or 'access'"));
-		except Exception as e: print(e);
+			if type(status) is str and (status.upper() is 'U' or status.upper() is 'D'):
+				self._status = status;
+			else:
+				raise Exception("status value sould be str and the value should be 'U' or 'D'");
+		except Exception as e:
+			print(e);
 
 	@property
 	def lambd(self):
 		return self._lambd;
 	@lambd.setter
 	def lambd(self, lambd):
-		try: self._lambd = lambd if type(lambd) is int else raiser(Exception("lambd value should be int"));
-		except Exception as e: print(e)
+		try:
+			self._lambd = lambd if type(lambd) is int else raiser(Exception("lambd value should be int"));
+		except Exception as e:
+			print(e)
 
 class UE(Device):
-	def __init__(self, buf={}, status='D', lambd=0, parentDevice = None):
+	def __init__(self, buf={}, status='D', lambd=0, bandwidth=0, CQI=0, parentDevice= None):
 		"""
 		@property
 		[protected]	buf
@@ -82,6 +82,8 @@ class UE(Device):
 		self._status = status;
 		self._link = 'access';
 		self._lambd = lambd;
+		self._bandwidth = bandwidth;
+		self._CQI = CQI;
 		self.__parentDevice = parentDevice;
 
 	@property
@@ -93,11 +95,13 @@ class UE(Device):
 		parent should be the type of RN object
 		check the type and make sure its instance rather than class by isinstance(obj, '__class__') build-in function
 		"""
-		try: self.__parentDevice = pD if isinstance(pD, RN) and not inspect.isclass(pD) else raiser(Exception("parent should be type of RN instance"));
-		except Exception as e: print(e)
+		try:
+			self.__parentDevice = pD if isinstance(pD, RN) and not inspect.isclass(pD) else raiser(Exception("parent should be type of RN instance"));
+		except Exception as e:
+			print(e)
 
 class RN(Device):
-	def __init__(self, buf={}, status='D', RUE=[]):
+	def __init__(self, buf={}, status='D', bandwidth=0, CQI=0, RUE=[]):
 		"""
 		@property
 		[protected]	buf
@@ -110,6 +114,8 @@ class RN(Device):
 		self._status = status;
 		self._link = 'backhaul';
 		self._lambd = 0;
+		self._bandwidth = bandwidth;
+		self._CQI = CQI;
 		self.__RUE = RUE;
 
 	@property
@@ -127,13 +133,15 @@ class RN(Device):
 		try:
 			if type(RUE) is list:
 				for i in RUE:
-					if not isinstance(i, UE) or inspect.isclass(i): raise Exception("RUE should be all UE instance object");
-				self.__RUE = RUE;
+					if not isinstance(i, UE) or inspect.isclass(i):
+						raise Exception("RUE should be all UE instance object");
 
-				# setattr(self, '__lambd')
+				self.__RUE = RUE;
 				self._lambd = sum(ue.lambd for ue in self.__RUE);
-			else: raise Exception("RUE should be the type of list")
-		except Exception as e: print(e);
+			else:
+				raise Exception("RUE should be the type of list")
+		except Exception as e:
+			print(e);
 
 class eNB(Device):
 	def __init__(self, buf={}, status='D', relays=None):
@@ -162,11 +170,14 @@ class eNB(Device):
 		try:
 			if type(relays) is list:
 				for i in relays:
-					if not isinstance(i, RN) or inspect.isclass(i): raise Exception("relays should be all RN instance object");
+					if not isinstance(i, RN) or inspect.isclass(i):
+						raise Exception("relays should be all RN instance object");
 				self.__relays = relays;
 				self._lambd = sum(rn.lambd for rn in self.__relays);
-			else: raise Exception("relays should be the type of list")
-		except Exception as e: print(e);
+			else:
+				raise Exception("relays should be the type of list")
+		except Exception as e:
+			print(e);
 
 if __name__ == '__main__':
 
