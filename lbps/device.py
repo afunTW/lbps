@@ -58,7 +58,7 @@ class Device(object):
 	@link.setter
 	def link(self, link):
 		try: self._link = link if link == 'backhaul' or link == 'access' else raiser(Exception("link should be 'baackhaul' or 'access'"));
-	except Exception as e: print(e);
+		except Exception as e: print(e);
 
 	@property
 	def lambd(self):
