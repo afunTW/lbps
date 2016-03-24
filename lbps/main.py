@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 
-import random
-import copy
-from device import UE, RN, eNB
-# from LBPS import *  #   include TopDown and BottomUp algorithm
+from __init__ import *
 
+"""
 # init
 #   deploy 6 RNs and 40 UEs for each RN (total 240 UE)
 #   declare UEs with random CQI to each RN
 #   aggregate UE info then assign to RN
+"""
 
 l_RN= [RN() for count in range(0,6)];
 for i in range(len(l_RN)):

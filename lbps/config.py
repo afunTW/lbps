@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # CQI = { CQI_index: modulation, code_rate*1024, efficiency }
-CQI = {
+t_CQI = {
         1: { 'modulation': 'QPSK', 'code-rate': 78, 'eff': 0.1523 },
         2: { 'modulation': 'QPSK', 'code-rate': 120, 'eff': 0.2344 },
         3: { 'modulation': 'QPSK', 'code-rate': 193, 'eff': 0.3770 },
@@ -16,16 +16,38 @@ CQI = {
         12: { 'modulation': '64QAM', 'code-rate': 666, 'eff': 3.9023 },
         13: { 'modulation': '64QAM', 'code-rate': 772, 'eff': 4.5234 },
         14: { 'modulation': '64QAM', 'code-rate': 873, 'eff': 5.1152 },
-        15: { 'modulation': '64QAM', 'code-rate': 948, 'eff': 5.5547 },
+        15: { 'modulation': '64QAM', 'code-rate': 948, 'eff': 5.5547 }
     };
 
 # TDD_config = { index: [ DL/Special/UL subframe] }
-TDD_config = {
+one_hop_TDD_config = {
         0: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'U'],
         1: ['D', 'S', 'U', 'U', 'D', 'D', 'S', 'U', 'U', 'D'],
         2: ['D', 'S', 'U', 'D', 'D', 'D', 'S', 'U', 'D', 'D'],
         3: ['D', 'S', 'U', 'U', 'U', 'D', 'D', 'D', 'D', 'D'],
         4: ['D', 'S', 'U', 'U', 'D', 'D', 'D', 'D', 'D', 'D'],
         5: ['D', 'S', 'U', 'D', 'D', 'D', 'D', 'D', 'D', 'D'],
-        6: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'D'],
+        6: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'D']
     };
+
+two_hop_TDD_config = {
+        0:[None, None, None, None, 'D', None, None, None, 'U', None],
+        1:[None, None, None, 'U', None, None, None, None, None, 'D'],
+        2:[None, None, None, None, 'D', None, None, None, 'U', 'D'],
+        3:[None, None, None, 'U', 'D', None, None, None, None, 'D'],
+        4:[None, None, None, 'U', 'D', None, None, None, 'U', 'D'],
+        5:[None, None, 'U', None, None, None, None, None, 'D', None],
+        6:[None, None, None, 'D', None, None, None, 'U', None, None],
+        7:[None, None, 'U', None, 'D', None, None, None, 'D', None],
+        8:[None, None, None, 'D', None, None, None, 'U', None, 'D'],
+        9:[None, None, 'U', 'D', 'D', None, None, None, 'D', None],
+        10:[None, None, None, 'D', None, None, None, 'U', 'D', 'D'],
+        11:[None, None, None, 'U', None, None, None, 'D', None, 'D'],
+        12:[None, None, None, 'U', None, None, None, 'D', 'D', 'D'],
+        13:[None, None, None, 'U', None, None, None, None, None, 'D'],
+        14:[None, None, None, 'U', None, None, None, 'D', None, 'D'],
+        15:[None, None, None, 'U', None, None, None, None, 'D', 'D'],
+        16:[None, None, None, 'U', None, None, None, 'D', 'D', 'D'],
+        17:[None, None, None, 'U', 'D', None, None, 'D', 'D', 'D'],
+        18:[None, None, None, None, 'U', None, None, None, None, 'D']
+}
