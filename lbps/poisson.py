@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from math import exp, pow, factorial
+from viewer import *
 
 """doc
 	@method
@@ -12,7 +13,7 @@ from math import exp, pow, factorial
 	DataAcc: calc data accumulation, DataAcc (#packet)
 """
 def Prob_AccDataUnderTH(lambd, threshold, simTime):
-	if type(threshold) is type(0.): threshold= int(threshold)
+	if type(threshold) is float: threshold= int(threshold)
 	p_accumulate = 0;
 	while(threshold >= 0):
 		# p_accumulate += exp(-1*lambd*time)*pow(lambd*time, threshold)/factorial(threshold);
@@ -60,6 +61,23 @@ if __name__ == "__main__":
 	# 	lambd= (50 bit/ms) / pktSize (800 bits)
 	#	DATA_TH= int(testUE.buf[testUE.status] * 0.8 / pktSize)= int(6400/800) = 8
 	#	PROB_TH1= 0.8, PROB_TH2= 0.2
+	lambd=50/800
+	Data_TH=8
+	P1=0.8
+	P2=0.2
 
-	print("\tPROB_TH1 (0.51): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.51, True).keys())[-1]))
-	print("\tPROB_TH2 (0.5): " + str(sorted(LengthAwkSlpCyl(50/800, 8, 0.5, True).keys())[-1]))
+	K_star = LengthAwkSlpCyl(lambd, Data_TH, P1, True)
+	K_caret = LengthAwkSlpCyl(lambd, Data_TH, P2, True)
+	# K_caret = DataAcc(lambd, max(K_star), P1, True)
+
+	print(max(K_star))
+	print(max(K_caret))
+
+	# plt.figure(1);
+	# plt.title("Distribution of K_star and K_caret");
+	# plt.xlabel("K(TTI)");
+	# plt.ylabel("P");
+	# plt.plot(sorted(K_star.keys()), sorted(K_star.values()), color= 'red');
+	# plt.plot(sorted(K_caret.keys()), sorted(K_caret.values()), color= 'blue');
+	# plt.grid(True);
+	# plt.show()
