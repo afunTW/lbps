@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
+from config import traffic
+
 class Channel(object):
     def __init__(self, link='access', bandwidth=0, CQI=0):
         """
@@ -51,3 +53,29 @@ class Channel(object):
                 raise Exception("CQI should be the type of int")
         except Exception as e:
             print(e);
+
+class Traffic(object):
+    def __init__(self, flow):
+        """
+        given a traffic, related info will be assign
+        this class can provide 'VoIP' and 'Video' so far
+        """
+        if flow in traffic:
+            self._flow = flow;
+            self._bitrate = traffic[flow].bitrate;
+            self._pkt_size = traffic[flow].pkt_size;
+            self._delay_budget = traffic[flow].delay_budget;
+        else:
+            print(str(flow) + " doesn't defined");
+
+    @property
+    def bitrate(self):
+        return self._bitrate;
+
+    @property
+    def pkt_size(self):
+        return self._pkt_size;
+
+    @property
+    def delay_budget(self):
+        return self._delay_budget;
