@@ -30,7 +30,14 @@ DEVICE_CQI_TYPE = {
     'H': [10, 11, 12, 13, 14, 15]
 }
 
-# TDD_config = { index: [ DL/Special/UL subframe] }
+"""
+TDD configuration
+# One hop TDD configuration
+#     only for one hop
+# Two hop TDD configuration
+#     consider HARQ signing, only few pair for both backhaul and access link
+"""
+
 ONE_HOP_TDD_CONFIG = {
     0: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'U'],
     1: ['D', 'S', 'U', 'U', 'D', 'D', 'S', 'U', 'U', 'D'],
@@ -62,3 +69,27 @@ TWO_HOP_TDD_CONFIG = {
         17:[None, None, None, 'U', 'D', None, None, 'D', 'D', 'D'],
         18:[None, None, None, None, 'U', None, None, None, None, 'D']
 };
+
+"""
+Packets
+# bitrate(Kbps)
+# pkt_size(bits)
+# delay_budget(ms)
+"""
+traffic = {
+    'VoIP':{
+        bitrate: 10,
+        pkt_size: 800,
+        delay_budget: 50
+    },
+    'Video':{
+        bitrate: 250,
+        pkt_size: 8000,
+        delay_budget: 300
+    },
+    'OnlineVideo':{
+        bitrate: 10,
+        pkt_size: 800,
+        delay_budget: 300
+    }
+}
