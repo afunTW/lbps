@@ -78,18 +78,18 @@ Packets
 """
 traffic = {
     'VoIP':{
-        bitrate: 10,
-        pkt_size: 800,
-        delay_budget: 50
+        'bitrate': 10,
+        'pkt_size': 800,
+        'delay_budget': 50
     },
     'Video':{
-        bitrate: 250,
-        pkt_size: 8000,
-        delay_budget: 300
+        'bitrate': 250,
+        'pkt_size': 8000,
+        'delay_budget': 300
     },
     'OnlineVideo':{
-        bitrate: 10,
-        pkt_size: 800,
-        delay_budget: 300
+        'bitrate': 10,
+        'pkt_size': 800,
+        'delay_budget': 300
     }
 }
