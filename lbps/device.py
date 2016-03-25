@@ -70,6 +70,9 @@ class Device(Channel):
 		except Exception as e:
 			print(e)
 
+	def isDevice(testDevice, targetClass):
+		return True if isinstance(testDevice, targetClass) and not inspect.isclass(targetClass) else False;
+
 class UE(Device):
 	def __init__(self, buf={}, status='D', lambd=0, bandwidth=0, CQI=0, parentDevice= None):
 		"""
@@ -93,12 +96,8 @@ class UE(Device):
 		return self.__parentDevice;
 	@parentDevice.setter
 	def parentDevice(self, pD):
-		"""
-		parent should be the type of RN object
-		check the type and make sure its instance rather than class by isinstance(obj, '__class__') build-in function
-		"""
 		try:
-			self.__parentDevice = pD if isinstance(pD, RN) and not inspect.isclass(pD) else raiser(Exception("parent should be type of RN instance"));
+			self.__parentDevice = pD if isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"));
 		except Exception as e:
 			print(e)
 
@@ -133,15 +132,13 @@ class RN(Device):
 		# FIXME: append() would pass any value
 		"""
 		try:
-			if type(RUE) is list:
-				for i in RUE:
-					if not isinstance(i, UE) or inspect.isclass(i):
-						raise Exception("RUE should be all UE instance object");
-
+			RUE = list(RUE) if RUE is not list else RUE;
+			check = list(map(lambda x: isDevice(x, UE), RUE));
+			if all(check):
 				self.__RUE = RUE;
 				self._lambd = sum(ue.lambd for ue in self.__RUE);
 			else:
-				raise Exception("RUE should be the type of list")
+				raise Exception("RUE should be all UE instance object");
 		except Exception as e:
 			print(e);
 
@@ -156,9 +153,7 @@ class RN(Device):
 		CQI_range = [];
 
         # check the para value and append to a list
-		if type(count) is not int:
-			return;
-		elif count is 0:
+		if type(count) is not int or count is 0:
 			return;
 		else:
 			for i in CQI_type:
@@ -171,7 +166,6 @@ class RN(Device):
 
 		# randomly choose a CQI value from CQI_range and assign to RUE list
 		self.RUE = [UE(CQI=random.choice(CQI_range), parentDevice=self) for i in range(count)]
-
 
 class eNB(Device):
 	def __init__(self, buf={}, status='D', relays=None):
