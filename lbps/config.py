@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+"""
+# CQI related
+"""
+
 # CQI = { CQI_index: modulation, code_rate*1024, efficiency }
 T_CQI = {
     1: { 'modulation': 'QPSK', 'code-rate': 78, 'eff': 0.1523 },
@@ -18,6 +22,13 @@ T_CQI = {
     14: { 'modulation': '64QAM', 'code-rate': 873, 'eff': 5.1152 },
     15: { 'modulation': '64QAM', 'code-rate': 948, 'eff': 5.5547 }
 };
+
+# CQI type for device setting
+DEVICE_CQI_TYPE = {
+    'L': [1, 2, 3, 4, 5, 6],
+    'M': [7, 8, 9],
+    'H': [10, 11, 12, 13, 14, 15]
+}
 
 # TDD_config = { index: [ DL/Special/UL subframe] }
 ONE_HOP_TDD_CONFIG = {

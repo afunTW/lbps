@@ -2,7 +2,9 @@
 #!/usr/bin/python3
 
 import inspect
+import random
 from network import Channel
+from config import DEVICE_CQI_TYPE
 
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
@@ -142,6 +144,34 @@ class RN(Device):
 				raise Exception("RUE should be the type of list")
 		except Exception as e:
 			print(e);
+
+	def add_UE(self, count=0, CQI_type=[]):
+		"""
+		this function will add multiple UEs and assign to RN.RUE
+
+		@parameter
+		    count: number of UE will be created
+			CQI_type: ['L','M','H'] which is L=CQI(1-6), M=CQI(7-9), H=CQI(10-15)
+		"""
+		CQI_range = [];
+
+        # check the para value and append to a list
+		if type(count) is not int:
+			return;
+		elif count is 0:
+			return;
+		else:
+			for i in CQI_type:
+				i = i.upper();
+				if i in DEVICE_CQI_TYPE:
+					list(map(CQI_range.append, DEVICE_CQI_TYPE[i]));
+
+		# remove duplicate value in list
+		CQI_range = list(set(CQI_range))
+
+		# randomly choose a CQI value from CQI_range and assign to RUE list
+		self.RUE = [UE(CQI=random.choice(CQI_range), parentDevice=self) for i in range(count)]
+
 
 class eNB(Device):
 	def __init__(self, buf={}, status='D', relays=None):
