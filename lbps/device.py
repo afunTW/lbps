@@ -9,7 +9,7 @@ from config import DEVICE_CQI_TYPE, traffic
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(Channel):
-	def __init__(self, buf={}, status='D', lambd=0, link='access', bandwidth=0, CQI=0, flow='VoIP'):
+	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, flow='VoIP'):
 		"""
 		property:
 		[protected]	buf: buffer size (bits)
@@ -19,8 +19,8 @@ class Device(Channel):
 		"""
 		self._buf = buf;
 		self._status = status;
-		self._lambd = lambd;
 		self._link = Channel(link, bandwidth, CQI, flow);
+		self._lambd = self._link.pkt_size/self._link.bitrate;
 
 	@property
 	def buf(self):
@@ -61,44 +61,42 @@ class Device(Channel):
 	@property
 	def lambd(self):
 		return self._lambd;
-	@lambd.setter
-	def lambd(self, lambd):
-		try:
-			self._lambd = lambd if type(lambd) is int else raiser(Exception("lambd value should be int"));
-		except Exception as e:
-			print(e)
+
+	@property
+	def link(self):
+		return self._link;
 
 	def isDevice(testDevice, targetClass):
 		return True if isinstance(testDevice, targetClass) else False;
 
 class UE(Device):
-	def __init__(self, buf={}, status='D', link='access', lambd=0, bandwidth=0, CQI=0, parentDevice= None):
+	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, flow='VoIP', parent=None):
 		"""
 		@property
 		[protected]	buf
 		[protected]	status
 		[protected]	link
 		[protected]	lambd
-		[private]	parentDevice: identity served RN
+		[private]	parent: identity served RN
 		"""
 		self._buf = buf;
 		self._status = status;
 		self._link = Channel(link, bandwidth, CQI);
-		self._lambd = lambd;
-		self.__parentDevice = parentDevice;
+		self._lambd = self._link.pkt_size/self._link.bitrate;
+		self.__parent = parent;
 
 	@property
-	def parentDevice(self):
-		return self.__parentDevice;
-	@parentDevice.setter
-	def parentDevice(self, pD):
+	def parent(self):
+		return self.__parent;
+	@parent.setter
+	def parent(self, pD):
 		try:
 			self.__parentDevice = pD if UE.isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"));
 		except Exception as e:
 			print(e)
 
 class RN(Device):
-	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, RUE=[]):
+	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, flow='VoIP',RUE=[]):
 		"""
 		@property
 		[protected]	buf
@@ -136,7 +134,7 @@ class RN(Device):
 		except Exception as e:
 			print(e);
 
-	def add_UE(self, count=0, CQI_type=[]):
+	def add_UE(self, count, CQI_type, buf={}, status='D', link='access', bandwidth=0, flow='VoIP'):
 		"""
 		this function will add multiple UEs and assign to RN.RUE
 
@@ -159,10 +157,11 @@ class RN(Device):
 		CQI_range = list(set(CQI_range))
 
 		# randomly choose a CQI value from CQI_range and assign to RUE list
-		self.RUE = [UE(CQI=random.choice(CQI_range), parentDevice=self) for i in range(count)]
+		self.RUE = [UE(buf=buf, status=status, link=link, bandwidth=bandwidth, \
+			CQI=random.choice(CQI_range), flow=flow, parent=self) for i in range(count)];
 
 class eNB(Device):
-	def __init__(self, buf={}, status='D', relays=None):
+	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, flow='VoIP',relays=[]):
 		"""
 		@property
 		[protected]	buf
@@ -173,7 +172,7 @@ class eNB(Device):
 		"""
 		self._buf = buf;
 		self._status = status;
-		self._link = 'backhaul';
+		self._link = Channel(link, bandwidth, CQI);
 		self._lambd = 0;
 		self.__relays = relay;
 

@@ -4,26 +4,34 @@
 from config import traffic
 
 class Channel(object):
-    def __init__(self, link='access', bandwidth=0, CQI=0, flow='VoIP'):
+    def __init__(self, interface='access', bandwidth=0, CQI=0, flow='VoIP'):
         """
         property:
-        [protected] link: identify the link is 'backhaul' or 'access'
+        [protected] interface: identify the link is 'backhaul' or 'access'
         [protected] bandwidth: for calculating the capacity of the link (MHz)
         [protected] CQI: identify the channel quality of the link
+        [protected] flow: flow type
         """
-        self._link = link;
+        self._interface = interface;
         self._bandwidth = bandwidth;
         self._CQI = CQI;
-        self._flow = Traffic(flow);
+
+        if flow in traffic:
+            self._flow = flow;
+            self._bitrate = traffic[flow]['bitrate'];
+            self._pkt_size = traffic[flow]['pkt_size'];
+            self._delay_budget = traffic[flow]['delay_budget'];
+        else:
+            raise Exception(str(flow) + " doesn't defined");
 
     @property
-    def link(self):
-        return self._link;
-    @link.setter
-    def link(self, link):
+    def interface(self):
+        return self._interface;
+    @interface.setter
+    def interface(self, interface):
         try:
-            if type(link) is str and (link.lower() is 'access' or link.lower() is 'backhaul'):
-                self._link = link;
+            if type(interface) is str and (interface.lower() is 'access' or interface.lower() is 'backhaul'):
+                self._interface = interface;
             else:
                 raise Exception("link should be str type and the value is 'access' or 'backhaul'")
         except Exception as e:
@@ -55,19 +63,9 @@ class Channel(object):
         except Exception as e:
             print(e);
 
-class Traffic(object):
-    def __init__(self, flow):
-        """
-        given a traffic, related info will be assign
-        this class can provide 'VoIP' and 'Video' so far
-        """
-        if flow in traffic:
-            self._flow = flow;
-            self._bitrate = traffic[flow]['bitrate'];
-            self._pkt_size = traffic[flow]['pkt_size'];
-            self._delay_budget = traffic[flow]['delay_budget'];
-        else:
-            print(str(flow) + " doesn't defined");
+    @property
+    def flow(self):
+        return self._flow;
 
     @property
     def bitrate(self):
