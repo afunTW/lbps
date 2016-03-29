@@ -71,7 +71,7 @@ class Device(Channel):
 			print(e)
 
 	def isDevice(testDevice, targetClass):
-		return True if isinstance(testDevice, targetClass) and not inspect.isclass(targetClass) else False;
+		return True if isinstance(testDevice, targetClass) else False;
 
 class UE(Device):
 	def __init__(self, buf={}, status='D', lambd=0, bandwidth=0, CQI=0, parentDevice= None):
@@ -97,7 +97,7 @@ class UE(Device):
 	@parentDevice.setter
 	def parentDevice(self, pD):
 		try:
-			self.__parentDevice = pD if isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"));
+			self.__parentDevice = pD if UE.isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"));
 		except Exception as e:
 			print(e)
 
@@ -128,12 +128,12 @@ class RN(Device):
 		check the type of RUE is a list and each element is type of UE
 		set the RN lambda, which is aggregate RUE lambda
 
-		NOTE: setting lambda in this setter rather then lambd.setter to prevent from changing value directly
+		NOTE: setting _lambd in this setter rather then lambd.setter to prevent from changing value directly
 		# FIXME: append() would pass any value
 		"""
 		try:
 			RUE = list(RUE) if RUE is not list else RUE;
-			check = list(map(lambda x: isDevice(x, UE), RUE));
+			check = list(map(lambda x: RN.isDevice(x, UE), RUE));
 			if all(check):
 				self.__RUE = RUE;
 				self._lambd = sum(ue.lambd for ue in self.__RUE);
