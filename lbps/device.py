@@ -4,12 +4,12 @@
 import inspect
 import random
 from network import Channel
-from config import DEVICE_CQI_TYPE
+from config import DEVICE_CQI_TYPE, traffic
 
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(Channel):
-	def __init__(self, buf={}, status='D', lambd=0, link='access', bandwidth=0, CQI=0):
+	def __init__(self, buf={}, status='D', lambd=0, link='access', bandwidth=0, CQI=0, flow='VoIP'):
 		"""
 		property:
 		[protected]	buf: buffer size (bits)
@@ -20,9 +20,7 @@ class Device(Channel):
 		self._buf = buf;
 		self._status = status;
 		self._lambd = lambd;
-		self._link = link;
-		self._bandwidth = bandwidth;
-		self._CQI = CQI;
+		self._link = Channel(link, bandwidth, CQI, flow);
 
 	@property
 	def buf(self):
@@ -74,7 +72,7 @@ class Device(Channel):
 		return True if isinstance(testDevice, targetClass) else False;
 
 class UE(Device):
-	def __init__(self, buf={}, status='D', lambd=0, bandwidth=0, CQI=0, parentDevice= None):
+	def __init__(self, buf={}, status='D', link='access', lambd=0, bandwidth=0, CQI=0, parentDevice= None):
 		"""
 		@property
 		[protected]	buf
@@ -85,10 +83,8 @@ class UE(Device):
 		"""
 		self._buf = buf;
 		self._status = status;
-		self._link = 'access';
+		self._link = Channel(link, bandwidth, CQI);
 		self._lambd = lambd;
-		self._bandwidth = bandwidth;
-		self._CQI = CQI;
 		self.__parentDevice = parentDevice;
 
 	@property
@@ -102,7 +98,7 @@ class UE(Device):
 			print(e)
 
 class RN(Device):
-	def __init__(self, buf={}, status='D', bandwidth=0, CQI=0, RUE=[]):
+	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, RUE=[]):
 		"""
 		@property
 		[protected]	buf
@@ -113,10 +109,8 @@ class RN(Device):
 		"""
 		self._buf = buf;
 		self._status = status;
-		self._link = 'backhaul';
+		self._link = Channel(link, bandwidth, CQI);
 		self._lambd = 0;
-		self._bandwidth = bandwidth;
-		self._CQI = CQI;
 		self.__RUE = RUE;
 
 	@property

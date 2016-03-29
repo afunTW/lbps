@@ -17,7 +17,7 @@ for i in l_RN:
 for i in range(0,len(l_RN)):
     print("\nRN[%d]:\t" % i)
     for j in range(0, len(l_RN[i].RUE)):
-        print("\tUE[%d].CQI= %d" %(j, l_RN[i].RUE[j].CQI), end='')
+        print("\tUE[%d].link.CQI= %d" %(j, l_RN[i].RUE[j].link.CQI), end='')
         if j%5 is 4: print()
 
 # # 6 revised LBPS scheduling

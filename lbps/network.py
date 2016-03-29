@@ -4,7 +4,7 @@
 from config import traffic
 
 class Channel(object):
-    def __init__(self, link='access', bandwidth=0, CQI=0):
+    def __init__(self, link='access', bandwidth=0, CQI=0, flow='VoIP'):
         """
         property:
         [protected] link: identify the link is 'backhaul' or 'access'
@@ -14,6 +14,7 @@ class Channel(object):
         self._link = link;
         self._bandwidth = bandwidth;
         self._CQI = CQI;
+        self._flow = Traffic(flow);
 
     @property
     def link(self):
@@ -62,9 +63,9 @@ class Traffic(object):
         """
         if flow in traffic:
             self._flow = flow;
-            self._bitrate = traffic[flow].bitrate;
-            self._pkt_size = traffic[flow].pkt_size;
-            self._delay_budget = traffic[flow].delay_budget;
+            self._bitrate = traffic[flow]['bitrate'];
+            self._pkt_size = traffic[flow]['pkt_size'];
+            self._delay_budget = traffic[flow]['delay_budget'];
         else:
             print(str(flow) + " doesn't defined");
 
