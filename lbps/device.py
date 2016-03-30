@@ -20,7 +20,7 @@ class Device(Channel):
 		self._buf = buf;
 		self._status = status;
 		self._link = Channel(link, bandwidth, CQI, flow);
-		self._lambd = self._link.pkt_size/self._link.bitrate;
+		self._lambd = self._link.bitrate/self._link.pkt_size;
 
 	@property
 	def buf(self):
@@ -70,7 +70,8 @@ class Device(Channel):
 		return True if isinstance(testDevice, targetClass) else False;
 
 class UE(Device):
-	def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, flow='VoIP', parent=None):
+	# def __init__(self, buf={}, status='D', link='access', bandwidth=0, CQI=0, flow='VoIP', parent=None):
+	def __init__(self, buf={}, status='D', parent=None):
 		"""
 		@property
 		[protected]	buf
@@ -81,8 +82,8 @@ class UE(Device):
 		"""
 		self._buf = buf;
 		self._status = status;
-		self._link = Channel(link, bandwidth, CQI);
-		self._lambd = self._link.pkt_size/self._link.bitrate;
+		# self._link = Channel(link, bandwidth, CQI, flow);
+		# self._lambd = self._link.bitrate/self._link.pkt_size;
 		self.__parent = parent;
 
 	@property
@@ -107,7 +108,7 @@ class RN(Device):
 		"""
 		self._buf = buf;
 		self._status = status;
-		self._link = Channel(link, bandwidth, CQI);
+		self._link = Channel(link, bandwidth, CQI, flow);
 		self._lambd = 0;
 		self.__RUE = RUE;
 
