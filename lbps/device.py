@@ -10,7 +10,7 @@ from config import  traffic
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(Bearer):
-	count=0;
+	count=0
 
 	def __init__(self, buf={}):
 		"""[summary] init
@@ -20,11 +20,11 @@ class Device(Bearer):
 		Keyword Arguments:
 			buf {dict} -- [description] (default: {{}})
 		"""
-		self._id = self.__class__.count;
+		self._id = self.__class__.count
 		self._buf = buf
-		self._link = None;
-		self._lambd = None;
-		self.__class__.count += 1;
+		self._link = None
+		self._lambd = None
+		self.__class__.count += 1
 
 	@property
 	def id(self):
@@ -59,7 +59,7 @@ class Device(Bearer):
 			else:
 				raise Exception("Buffer should be the type of dict.")
 		except Exception as e:
-			print(e);
+			print(e)
 
 	@property
 	def link(self):
@@ -90,9 +90,9 @@ class Device(Bearer):
 		"""
 		try:
 			if self._link:
-				print("Disconnect previous conneciton.");
+				print("Disconnect previous conneciton.")
 			print("Build up a new connection with " + str(dest))
-			self._link = Bearer(self, dest, status, interface, bandwidth, CQI, flow);
+			self._link = Bearer(self, dest, status, interface, bandwidth, CQI, flow)
 			self._lambd = self._link.bitrate / self._link.pkt_size;
 		except Exception as e:
 			print(e);
@@ -111,35 +111,40 @@ class UE(Device):
 		"""
 		self._id = self.__class__.count
 		self._buf = buf
-		self._link = None;
-		self._lambd = None;
-		self.__parent = None;
+		self._link = None
+		self._lambd = None
+		self.__parent = None
 		self.__class__.count += 1
 		print("UE::init::id\t%d" % self.id)
 
 	@property
 	def parent(self):
-		return self.__parent;
+		return self.__parent
 
 	@parent.setter
 	def parent(self, pD):
 		try:
-			self.__parent = pD if UE.isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"));
+			self.__parent = pD if UE.isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"))
 		except Exception as e:
-			print(e);
+			print(e)
 
-	def connect(self, CQI_type, status='D', interface='access', bandwidth=0, CQI=0, flow='VoIP'):
+	def connect(self, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
 		if  not self.__parent:
-			print("UE::connect\tno parent device to connect with");
-			return;
+			print("UE::connect\tno parent device to connect with")
+			return
 		try:
 			if self._link:
-				print("UE::connect\tdisconnect previous conneciton.");
+				print("UE::connect\tdisconnect previous conneciton.")
+
+			CQI_range = getCQIByType(CQI_type)
+			CQI = random.choice(CQI_range) if CQI_range else 0
+
+			self._link = Bearer(self, self.__parent, status, interface, bandwidth, CQI, flow)
 			print("UE::connect\tbuild up a new connection with " + str(self.__parent))
-			self._link = Bearer(self, self.__parent, status, interface, bandwidth, CQI, flow);
-			self._lambd = self._link.bitrate / self._link.pkt_size;
+
+			self._lambd = self._link.bitrate / self._link.pkt_size
 		except Exception as e:
-			print(e);
+			print(e)
 
 
 class RN(Device):
@@ -155,9 +160,9 @@ class RN(Device):
 		"""
 		self._id = self.__class__.count
 		self._buf = buf
-		self._link = {};
+		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = None
-		self.__RUE = [];
+		self.__RUE = []
 		self.__class__.count += 1
 		print("RN::init::id\t%d" % self.id)
 
@@ -165,7 +170,7 @@ class RN(Device):
 	def RUE(self):
 		return self.__RUE
 	@RUE.setter
-	def RUE(self, RUE):
+	def RUE(self, RUE, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
 		"""[summary]
 
 		[description]
@@ -189,12 +194,15 @@ class RN(Device):
 				self.__RUE = RUE
 				print("RN::RUE.setter\tsetter Done")
 
-				list(map(self._link['access'].append, self.__RUE.link));
-				print("RN::RUE.setter\tappend the served bearer to link['access']");
+				# binding both RN and RUE
+				# FIXME: check the RN bearer and all related info
+				for i in self.__RUE:
+					self._link['access'].append(i.link)
+					i.connect(CQI_type, status, 'access', bandwidth, flow)
 
-				# FIXME: random.choice(CQI_range)
+				print("RN::RUE.setter\tappend the served bearer to link['access']")
 
-				self._lambd = sum(self.__RUE.link.bitrate) / sum(self.__RUE.link.pkt_size);
+				self._lambd = sum(self.__RUE.link.bitrate) / sum(self.__RUE.link.pkt_size)
 				print("RN::RUE.setter::lambd\tRN.lambd = " + str(self._lambd))
 			else:
 				raise Exception("RUE should be all UE instance object")
@@ -203,7 +211,7 @@ class RN(Device):
 
 
 class eNB(Device):
-	count =0;
+	count =0
 
 	def __init__(self, buf={}):
 		"""
@@ -215,13 +223,13 @@ class eNB(Device):
 		[protected]	lambd
 		[private]	relays: a list of served RN
 		"""
-		self._id = self.__class__.count;
+		self._id = self.__class__.count
 		self._buf = buf
 		# self._status = status;
 		# self._link = Bearer(link, bandwidth, CQI);
 		# self._lambd = 0;
 		# self.__relays = relay;
-		self.__class__.count += 1;
+		self.__class__.count += 1
 
 	@property
 	def relays(self):
