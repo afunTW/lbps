@@ -3,15 +3,18 @@
 from __init__ import *
 
 """
-# init
-#   deploy 6 RNs and 40 UEs for each RN (total 240 UE)
-#   declare UEs with random CQI to each RN
-#   aggregate UE info then assign to RN
+init
+# new 1 eNB, 6 RNs, 240 UEs with given buffer
+build up bearer between two devices
 """
 
-l_RN= [RN(buf=H_BUF, bandwidth=BANDWIDTH, CQI=10, flow='VoIP') for count in range(0,6)];
-for i in l_RN:
-    i.add_UE(40, ['M', 'H'], buf=H_BUF, bandwidth=BANDWIDTH, flow='VoIP')
+base_station = eNB(M_BUF)
+relays = [RN(M_BUF) for i in range(6)]
+users = [UE(M_BUF) for i in range(240)]
+
+# l_RN= [RN(buf=H_BUF, bandwidth=BANDWIDTH, CQI=10, flow='VoIP') for count in range(0,6)];
+# for i in l_RN:
+#     i.add_UE(40, ['M', 'H'], buf=H_BUF, bandwidth=BANDWIDTH, flow='VoIP')
 
 # # Test: assign UE to RN
 # for i in range(0,len(l_RN)):

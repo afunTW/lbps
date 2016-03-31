@@ -26,19 +26,21 @@ N_RBG = int(BANDWIDTH / 0.2)
 N_S_RBG = 8
 
 # one TTI, one RBG
-N_TTI_RE = (N_TTI_OFDM-N_CTRL_OFDM)*12
+N_TTI_RE = (N_TTI_OFDM - N_CTRL_OFDM) * 12
 
 # one TTI, total RBGs = total REs
-N_TTI_RE = N_TTI_RE*N_RBG
+N_TTI_RE = N_TTI_RE * N_RBG
 
 # Capacity of wideband
+
+
 def wideband_capacity(l_UE):
     """
     input a list of UE with bunch of different CQI,
     wideband will only calc by one avg. CQI
     """
-    W_CQI = sum(l_UE.link.CQI)/len(l_UE);
-    return N_TTI_RE*T_CQI[int(W_CQI)]['eff']*N_RBG;
+    W_CQI = sum(l_UE.link.CQI) / len(l_UE)
+    return N_TTI_RE * T_CQI[int(W_CQI)]['eff'] * N_RBG
 
 # # Capacity of sub-band
 # def subband_capacity(l_UE):
@@ -52,5 +54,5 @@ def wideband_capacity(l_UE):
 Device config
 BUF = {'D': [bits], 'U': [bits]}
 """
-M_BUF = {'D':8000, 'U':8000}
-H_BUF = {'D':80000, 'U':80000}
+M_BUF = {'D': 8000, 'U': 8000}
+H_BUF = {'D': 80000, 'U': 80000}
