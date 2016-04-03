@@ -70,7 +70,7 @@ class Device(Bearer):
 		return self._lambd
 
 	def isDevice(testDevice, targetClass):
-		return True if isinstance(testDevice, targetClass) else False
+		return Tchilds if isinstance(testDevice, targetClass) else False
 
 	def connect(self, dest, status='D', interface='access', bandwidth=0, CQI=0, flow='VoIP'):
 		"""[summary] build up connection
@@ -162,15 +162,15 @@ class RN(Device):
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = None
-		self.__RUE = []
+		self.__childs = []
 		self.__class__.count += 1
 		print("RN::init::id\t%d" % self.id)
 
 	@property
-	def RUE(self):
-		return self.__RUE
-	@RUE.setter
-	def RUE(self, RUE, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
+	def childs(self):
+		return self.__childs
+	@childs.setter
+	def childs(self, childs, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
 		"""[summary]
 
 		[description]
@@ -179,33 +179,33 @@ class RN(Device):
 			# FIXME: append() would pass any value
 
 		Decorators:
-			RUE.setter
+			childs.setter
 
 		Arguments:
-			RUE {[list]} -- [description]
+			childs {[list]} -- [description]
 
 		Raises:
 			Exception -- [description]
 		"""
 		try:
-			RUE = list(RUE) if RUE is not list else RUE
-			check = list(map(lambda x: RN.isDevice(x, UE), RUE))
+			childs = list(childs) if childs is not list else childs
+			check = list(map(lambda x: RN.isDevice(x, UE), childs))
 			if all(check):
-				self.__RUE = RUE
-				print("RN::RUE.setter\tsetter Done")
+				self.__childs = childs
+				print("RN::childs.setter\tsetter Done")
 
-				# binding both RN and RUE
+				# binding both RN and childs
 				# FIXME: check the RN bearer and all related info
-				for i in self.__RUE:
+				for i in self.__childs:
 					self._link['access'].append(i.link)
 					i.connect(CQI_type, status, 'access', bandwidth, flow)
 
-				print("RN::RUE.setter\tappend the served bearer to link['access']")
+				print("RN::childs.setter\tappend the served bearer to link['access']")
 
-				self._lambd = sum(self.__RUE.link.bitrate) / sum(self.__RUE.link.pkt_size)
-				print("RN::RUE.setter::lambd\tRN.lambd = " + str(self._lambd))
+				self._lambd = sum(self.__childs.link.bitrate) / sum(self.__childs.link.pkt_size)
+				print("RN::childs.setter::lambd\tRN.lambd = " + str(self._lambd))
 			else:
-				raise Exception("RUE should be all UE instance object")
+				raise Exception("childs should be all UE instance object")
 		except Exception as e:
 			print(e)
 
@@ -238,7 +238,7 @@ class eNB(Device):
 	@relays.setter
 	def relays(self, relays):
 		"""
-		similar to RN.RUE setter
+		similar to RN.childs setter
 		"""
 		try:
 			relays = list(relays) if relays is not list else relays
@@ -248,7 +248,7 @@ class eNB(Device):
 				# FIXME: lambd = bitrate/pkt_size
 				# self._lambd = sum(rn.lambd for rn in self.__relays);
 			else:
-				raise Exception("RUE should be all UE instance object")
+				raise Exception("childs should be all UE instance object")
 		except Exception as e:
 			print(e)
 
@@ -269,10 +269,10 @@ if __name__ == '__main__':
 		4. class UE, parentDevice setter
 			* [Success]	assign parentDevice with the non-RN object
 			* [Success]	assign parentDevice with RN class rather than instance
-		5. class RN, RUE setter
-			* [Success]	assign RUE with non-list object
-			* [Success]	assign RUE with a list of non-UE object
-			* [Success]	assign RUE with UE class object
+		5. class RN, childs setter
+			* [Success]	assign childs with non-list object
+			* [Success]	assign childs with a list of non-UE object
+			* [Success]	assign childs with UE class object
 			* [Failed]	assign by .append()
 		"""
 
@@ -304,18 +304,18 @@ if __name__ == '__main__':
 		print("UE\t\tparentDevice=RN()\t\t", end="")
 		test_UE.parentDevice = RN
 		print("----\t\t--------\t\t\t--------")
-		print("RN\t\tRUE={}\t\t\t\t", end="")
-		test_RN.RUE = {}
-		print("RN\t\tRUE=[1,2,3]\t\t\t", end="")
-		test_RN.RUE = [1, 2, 3]
-		print("RN\t\tRUE=[UE1, UE]\t\t\t", end="")
-		test_RN.RUE = [test_UE, UE]
-		print("RN\t\tRUE=[UE1], RUE.append(UE)\t", end="")  # FIXME
-		test_RN.RUE = [test_UE]
-		test_RN.RUE.append(UE)
-		checkType = True
-		for i in test_RN.RUE:
+		print("RN\t\tchilds={}\t\t\t\t", end="")
+		test_RN.childs = {}
+		print("RN\t\tchilds=[1,2,3]\t\t\t", end="")
+		test_RN.childs = [1, 2, 3]
+		print("RN\t\tchilds=[UE1, UE]\t\t\t", end="")
+		test_RN.childs = [test_UE, UE]
+		print("RN\t\tchilds=[UE1], childs.append(UE)\t", end="")  # FIXME
+		test_RN.childs = [test_UE]
+		test_RN.childs.append(UE)
+		checkType = Tchilds
+		for i in test_RN.childs:
 				if inspect.isclass(i):
 					checkType = False
 					break
-		print(test_RN.RUE) if checkType else print(checkType)
+		print(test_RN.childs) if checkType else print(checkType)
