@@ -128,25 +128,6 @@ class UE(Device):
 		except Exception as e:
 			print(e)
 
-	def connect(self, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
-		if  not self.__parent:
-			print("UE::connect\tno parent device to connect with")
-			return
-		try:
-			if self._link:
-				print("UE::connect\tdisconnect previous conneciton.")
-
-			CQI_range = getCQIByType(CQI_type)
-			CQI = random.choice(CQI_range) if CQI_range else 0
-
-			self._link = Bearer(self, self.__parent, status, interface, bandwidth, CQI, flow)
-			print("UE::connect\tbuild up a new connection with " + str(self.__parent))
-
-			self._lambd = self._link.bitrate / self._link.pkt_size
-		except Exception as e:
-			print(e)
-
-
 class RN(Device):
 	count = 0
 
@@ -161,7 +142,7 @@ class RN(Device):
 		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = None
+		self._lambd = {'access':None, 'backhaul':None}
 		self.__childs = []
 		self.__class__.count += 1
 		print("RN::init::id\t%d" % self.id)
@@ -176,7 +157,6 @@ class RN(Device):
 		[description]
 			ensure the served UE list and aggregate the lambda as own value
 			and the link property is the type of dict, collect all served UEs bearer
-			# FIXME: append() would pass any value
 
 		Decorators:
 			childs.setter
@@ -191,24 +171,23 @@ class RN(Device):
 			childs = list(childs) if childs is not list else childs
 			check = list(map(lambda x: RN.isDevice(x, UE), childs))
 			if all(check):
-				self.__childs = childs
-				print("RN::childs.setter\tsetter Done")
+				self.__childs.append(childs)
+				print("RN::childs.setter\tbinding Done")
 
-				# binding both RN and childs
-				# FIXME: check the RN bearer and all related info
+				CQI_range = getCQIByType(CQI_type)
 				for i in self.__childs:
-					self._link['access'].append(i.link)
-					i.connect(CQI_type, status, 'access', bandwidth, flow)
+					CQI = random.choice(CQI_range) if CQI_range else 0
+					i.parent = self
+					i.connect(i.parent, status, interface, bandwidth, CQI, flow)
+					self.link[interface] .append(i.link)
+				print("RN:: childs.setter\tconnect each other")
 
-				print("RN::childs.setter\tappend the served bearer to link['access']")
-
-				self._lambd = sum(self.__childs.link.bitrate) / sum(self.__childs.link.pkt_size)
-				print("RN::childs.setter::lambd\tRN.lambd = " + str(self._lambd))
+				self._lambd[interface] = sum(self._link[interface].bitrate)/sum(self._link[interface].pkt_size)
+				print("RN::childs.setter\tRN.lambd = " + str(self._lambd))
 			else:
 				raise Exception("childs should be all UE instance object")
 		except Exception as e:
 			print(e)
-
 
 class eNB(Device):
 	count =0
@@ -221,32 +200,32 @@ class eNB(Device):
 		[protected]	status
 		[protected]	link
 		[protected]	lambd
-		[private]	relays: a list of served RN
+		[private]	childs: a list of served RN
 		"""
 		self._id = self.__class__.count
 		self._buf = buf
 		# self._status = status;
 		# self._link = Bearer(link, bandwidth, CQI);
 		# self._lambd = 0;
-		# self.__relays = relay;
+		# self.__childs = relay;
 		self.__class__.count += 1
 
 	@property
-	def relays(self):
-		return self.__relays
+	def childs(self):
+		return self.__childs
 
-	@relays.setter
-	def relays(self, relays):
+	@childs.setter
+	def childs(self, childs):
 		"""
 		similar to RN.childs setter
 		"""
 		try:
-			relays = list(relays) if relays is not list else relays
-			check = list(map(lambda x: eNB.isDevice(x, RN), relays))
+			childs = list(childs) if childs is not list else childs
+			check = list(map(lambda x: eNB.isDevice(x, RN), childs))
 			if all(check):
-				self.__relays = relays
+				self.__childs = childs
 				# FIXME: lambd = bitrate/pkt_size
-				# self._lambd = sum(rn.lambd for rn in self.__relays);
+				# self._lambd = sum(rn.lambd for rn in self.__childs);
 			else:
 				raise Exception("childs should be all UE instance object")
 		except Exception as e:
