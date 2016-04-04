@@ -5,45 +5,49 @@ from __init__ import *
 """
 init
 # new 1 eNB, 6 RNs, 240 UEs with given buffer
-build up bearer between two devices
+# build up bearer between two devices
 """
 
-base_station = eNB(M_BUF)
+# base_station = eNB(M_BUF)
 relays = [RN(M_BUF) for i in range(6)]
 users = [UE(M_BUF) for i in range(240)]
 
-# l_RN= [RN(buf=H_BUF, bandwidth=BANDWIDTH, CQI=10, flow='VoIP') for count in range(0,6)];
-# for i in l_RN:
-#     i.add_UE(40, ['M', 'H'], buf=H_BUF, bandwidth=BANDWIDTH, flow='VoIP')
+# relays = [RN(M_BUF) for i in range(1)]
+# users = [UE(M_BUF) for i in range(3)]
+
+for i in range(len(relays)):
+	relays[i].childs = users[i:i+40]
+	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='VoIP')
 
 # # Test: assign UE to RN
-# for i in range(0,len(l_RN)):
-#     print("\nRN[%d]:\t" % i)
-#     for j in range(0, len(l_RN[i].RUE)):
-#         print("\tUE[%d].link.CQI= %d" %(j, l_RN[i].RUE[j].link.CQI), end='')
-#         if j%5 is 4: print()
+# for i in relays:
+# 	parent = type(i).__name__ + "[" + str(i.id) + "]"
+# 	print("\n\n%s:\t" % parent)
+# 	for j in i.childs:
+# 		child = type(j).__name__ + str(j.id)
+# 		print("\n%s:\tCQI= %d\t lambda= %f" % (child, j.link['access'][0].CQI, j.lambd['access']), end='')
 
 # # Test: print all value of RN
 # print("RN[0]: ")
-# print("DL buffer\t\t" + str(l_RN[0].buf['D']) + "bits")
-# print("status\t\t\t" + l_RN[0].status)
-# print("Channel\t\t\t" + str(l_RN[0].link))
-# print("Channel.interface\t" + l_RN[0].link.interface)
-# print("Channel.bandwidth\t" + str(l_RN[0].link.bandwidth))
-# print("Channel.CQI\t\t" + str(l_RN[0].link.CQI))
-# print("Channel.flow\t\t" + l_RN[0].link.flow)
-# print("Channel.bitrate\t\t" + str(l_RN[0].link.bitrate))
-# print("Channel.pkt_size\t" + str(l_RN[0].link.pkt_size))
-# print("Channel.delay_budget\t" + str(l_RN[0].link.delay_budget))
-# print("RUE len\t\t\t" + str(len(l_RN[0].RUE)))
+# print("DL buffer\t\t" + str(relays[0].buf['D']) + "bits")
+# print("status\t\t\t" + relays[0].status)
+# print("Channel\t\t\t" + str(relays[0].link))
+# print("Channel.interface\t" + relays[0].link.interface)
+# print("Channel.bandwidth\t" + str(relays[0].link.bandwidth))
+# print("Channel.CQI\t\t" + str(relays[0].link.CQI))
+# print("Channel.flow\t\t" + relays[0].link.flow)
+# print("Channel.bitrate\t\t" + str(relays[0].link.bitrate))
+# print("Channel.pkt_size\t" + str(relays[0].link.pkt_size))
+# print("Channel.delay_budget\t" + str(relays[0].link.delay_budget))
+# print("childs len\t\t\t" + str(len(relays[0].childs)))
 
 # # 6 revised LBPS scheduling
-# TDAggrRN= copy.deepcopy(l_RN);
-# TDSplitRN= copy.deepcopy(l_RN);
-# TDMergeRN= copy.deepcopy(l_RN);
-# BUAggrMin= copy.deepcopy(l_RN);
-# BUSplitMin= copy.deepcopy(l_RN);
-# BUMergeMerge= copy.deepcopy(l_RN);
+# TDAggrRN= copy.deepcopy(relays);
+# TDSplitRN= copy.deepcopy(relays);
+# TDMergeRN= copy.deepcopy(relays);
+# BUAggrMin= copy.deepcopy(relays);
+# BUSplitMin= copy.deepcopy(relays);
+# BUMergeMerge= copy.deepcopy(relays);
 #
 # # result
 # TDAggrRN= LBPS.TopDownAggr(TDAggrRN);

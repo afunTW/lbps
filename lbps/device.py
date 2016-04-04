@@ -22,8 +22,8 @@ class Device(Bearer):
 		"""
 		self._id = self.__class__.count
 		self._buf = buf
-		self._link = None
-		self._lambd = None
+		self._link = {'access':[], 'backhaul':[]}
+		self._lambd = {'access':None, 'backhaul':None}
 		self.__class__.count += 1
 
 	@property
@@ -36,21 +36,6 @@ class Device(Bearer):
 
 	@buf.setter
 	def buf(self, buf):
-		"""[summary] check type and assign buffer approprite
-
-		[description]
-		maintain the buffer always have only two items with key 'U' and 'D'
-		and the value are always in type int
-
-		Decorators:
-			buf.setter
-
-		Arguments:
-			buf {[dict]} -- [description]
-
-		Raises:
-			Exception -- [description]
-		"""
 		try:
 			if type(buf) is dict:
 				buf = {k: v for k, v in buf.items() if k is 'U' or k is 'D'}
@@ -70,52 +55,58 @@ class Device(Bearer):
 		return self._lambd
 
 	def isDevice(testDevice, targetClass):
-		return Tchilds if isinstance(testDevice, targetClass) else False
+		return True if isinstance(testDevice, targetClass) else False
 
-	def connect(self, dest, status='D', interface='access', bandwidth=0, CQI=0, flow='VoIP'):
-		"""[summary] build up connection
+	def connect(self, dest, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
+		"""[summary] build up a connection one by one
 
 		[description]
-			build up a bearer and update the related info
+			1. build up a bearer between two device
+			2. append to link list
+			3. calculate lambda
 
 		Arguments:
-			dest {object} -- [destination device]
+			dest {[type]} -- [description]
 
 		Keyword Arguments:
-			status {str} -- [identify the flow direction] (default: {'D'})
-			interface {str} -- [identify the link type] (default: {'access'})
+			status {str} -- [description] (default: {'D'})
+			interface {str} -- [description] (default: {'access'})
 			bandwidth {number} -- [description] (default: {0})
-			CQI {number} -- [random number from 0 to 15] (default: {0})
-			flow {str} -- [reference to config.py] (default: {'VoIP'})
+			CQI_type {list} -- [description] (default: {[]})
+			flow {str} -- [description] (default: {'VoIP'})
 		"""
 		try:
-			if self._link:
-				print("Disconnect previous conneciton.")
-			print("Build up a new connection with " + str(dest))
-			self._link = Bearer(self, dest, status, interface, bandwidth, CQI, flow)
-			self._lambd = self._link.bitrate / self._link.pkt_size;
+			CQI_range = getCQIByType(CQI_type)
+			CQI = random.choice(CQI_range) if CQI_range else 0
+			me = type(self).__name__ + str(self.id)
+			you = type(dest).__name__ + str(dest.id)
+
+			if self._link[interface]:
+				print("%s::connect\t\tdisconnect previous conneciton." % me)
+
+			# print("%s::connect\t\tbuild up a new connection with %s" % (me, you))
+
+			self._link[interface].append(Bearer(self, dest, status, interface, bandwidth, CQI, flow))
+			dest._link[interface].append(Bearer(dest, self, status, interface, bandwidth, CQI, flow))
+
+			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
+			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
+			print("%s::connect\t\t%s.lambd = %s\t%s.lambd = %s"  % (me, me, str(self._lambd), you, str(dest.lambd)))
+
 		except Exception as e:
 			print(e);
-
 
 class UE(Device):
 	count = 0
 
 	def __init__(self, buf={}):
-		"""[summary] init
-
-		[description]
-
-		Keyword Arguments:
-			buf {dict} -- [description] (default: {{}})
-		"""
 		self._id = self.__class__.count
 		self._buf = buf
-		self._link = None
-		self._lambd = None
+		self._link = {'access':[], 'backhaul':[]}
+		self._lambd = {'access':None, 'backhaul':None}
 		self.__parent = None
 		self.__class__.count += 1
-		print("UE::init::id\t%d" % self.id)
+		# print("UE::init::id\t%d" % self.id)
 
 	@property
 	def parent(self):
@@ -132,47 +123,88 @@ class RN(Device):
 	count = 0
 
 	def __init__(self, buf={}):
-		"""[summary] init
-
-		[description]
-
-		Keyword Arguments:
-			buf {dict} -- [description] (default: {{}})
-		"""
 		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':None, 'backhaul':None}
 		self.__childs = []
 		self.__class__.count += 1
-		print("RN::init::id\t%d" % self.id)
+		# print("RN::init::id\t%d" % self.id)
 
 	@property
 	def childs(self):
 		return self.__childs
 	@childs.setter
-	def childs(self, childs, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
-		"""[summary]
+	# def childs(self, childs, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
+	def childs(self, childs):
+		"""[summary] binding RN and UEs
 
-		[description]
-			ensure the served UE list and aggregate the lambda as own value
-			and the link property is the type of dict, collect all served UEs bearer
+		[description] only assign the UE as RN's child , no connection
 
 		Decorators:
 			childs.setter
 
 		Arguments:
-			childs {[list]} -- [description]
+			childs {[UE]} -- [description]
 
 		Raises:
 			Exception -- [description]
 		"""
+		me = type(self).__name__ + str(self.id)
 		try:
 			childs = list(childs) if childs is not list else childs
 			check = list(map(lambda x: RN.isDevice(x, UE), childs))
 			if all(check):
+				self.__childs = childs
+				print("%s::childs.setter\tbinding Done" % me)
+			else:
+				raise Exception("childs should be all UE instance object")
+		except Exception as e:
+			print(e)
+
+	def connect(self, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
+		"""[summary] connect to own childs
+
+		[description] if there's no childs, this would no do anything
+
+		Keyword Arguments:
+			status {str} -- [description] (default: {'D'})
+			interface {str} -- [description] (default: {'access'})
+			bandwidth {number} -- [description] (default: {0})
+			CQI_type {list} -- [description] (default: {[]})
+			flow {str} -- [description] (default: {'VoIP'})
+		"""
+		me = type(self).__name__ + str(self.id)
+		if self.childs:
+			for i in self.__childs:
+				i.connect(self, status, interface, bandwidth, CQI_type, flow)
+			print("%s::connect\t\tDone" % me)
+		else:
+			return
+
+class eNB(Device):
+	count =0
+
+	def __init__(self, buf={}):
+		self._id = self.__class__.count
+		self._buf = buf
+		self._link = None
+		self._lambd = None
+		self.__childs = []
+		self.__class__.count += 1
+
+	@property
+	def childs(self):
+		return self.__childs
+
+	@childs.setter
+	def childs(self, childs, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
+		try:
+			childs = list(childs) if childs is not list else childs
+			check = list(map(lambda x: RN.isDevice(x, RN), childs))
+			if all(check):
 				self.__childs.append(childs)
-				print("RN::childs.setter\tbinding Done")
+				print("eNB::childs.setter\tbinding Done")
 
 				CQI_range = getCQIByType(CQI_type)
 				for i in self.__childs:
@@ -180,121 +212,13 @@ class RN(Device):
 					i.parent = self
 					i.connect(i.parent, status, interface, bandwidth, CQI, flow)
 					self.link[interface] .append(i.link)
-				print("RN:: childs.setter\tconnect each other")
+				print("eNB:: childs.setter\tconnect each other")
 
 				self._lambd[interface] = sum(self._link[interface].bitrate)/sum(self._link[interface].pkt_size)
-				print("RN::childs.setter\tRN.lambd = " + str(self._lambd))
+				print("eNB::childs.setter\tRN.lambd = " + str(self._lambd))
 			else:
-				raise Exception("childs should be all UE instance object")
+				raise Exception("childs should be all RN instance object")
 		except Exception as e:
 			print(e)
 
-class eNB(Device):
-	count =0
-
-	def __init__(self, buf={}):
-		"""
-		@property
-		[protected]	id: eNB id
-		[protected]	buf
-		[protected]	status
-		[protected]	link
-		[protected]	lambd
-		[private]	childs: a list of served RN
-		"""
-		self._id = self.__class__.count
-		self._buf = buf
-		# self._status = status;
-		# self._link = Bearer(link, bandwidth, CQI);
-		# self._lambd = 0;
-		# self.__childs = relay;
-		self.__class__.count += 1
-
-	@property
-	def childs(self):
-		return self.__childs
-
-	@childs.setter
-	def childs(self, childs):
-		"""
-		similar to RN.childs setter
-		"""
-		try:
-			childs = list(childs) if childs is not list else childs
-			check = list(map(lambda x: eNB.isDevice(x, RN), childs))
-			if all(check):
-				self.__childs = childs
-				# FIXME: lambd = bitrate/pkt_size
-				# self._lambd = sum(rn.lambd for rn in self.__childs);
-			else:
-				raise Exception("childs should be all UE instance object")
-		except Exception as e:
-			print(e)
-
-if __name__ == '__main__':
-
-		"""
-		test
-		1. class Device, buffer setter
-			* [Success]	assign buf with different type compared to dict
-			* [Success]	assign buf in dict type but with unnecessary key except 'U' and 'D'
-			* [Success]	assign buf in dict type but with incorrect type of value compared to int
-		2. class Device, status setter
-			* [Success]	assign status with others type except str
-			* [Success]	assign status with 'u' or 'd'
-			* [Success]	assign status with others letter except 'U' or 'D'
-		3. class Device, lambd setter
-			* [Success]	assign lambd with non-integer value
-		4. class UE, parentDevice setter
-			* [Success]	assign parentDevice with the non-RN object
-			* [Success]	assign parentDevice with RN class rather than instance
-		5. class RN, childs setter
-			* [Success]	assign childs with non-list object
-			* [Success]	assign childs with a list of non-UE object
-			* [Success]	assign childs with UE class object
-			* [Failed]	assign by .append()
-		"""
-
-		print("Test\t\tprop/func\t\t\tresult")
-		test_D = Device()
-		test_UE = UE()
-		test_RN = RN()
-		print("====\t\t========\t\t\t========")
-		print("Device\t\ttype(buf) is int\t\t", end='')
-		test_D.buf = 100
-		print("Device\t\tbuf={'U':50, 'D':100, 'Q':3}\t", end='')
-		test_D.buf = {'U': 50, 'D': 100, 'Q': 3}
-		print(test_D.buf)
-		print("Device\t\tbuf={'U':20, 'D':100, 'Q':3}\t", end='')
-		test_D.buf = {'U': 20, 'D': 100, 'Q': 3}
-		print(test_D.buf)
-		print("Device\t\tstatus=None\t\t\t", end='')
-		test_D.status = None
-		print("Device\t\tstatus='d'\t\t\t", end='')
-		test_D.status = 'd'
-		print(test_D.status)
-		print("Device\t\tstatus='XD'\t\t\t", end='')
-		test_D.status = 'XD'
-		print("Device\t\tlambd='100'\t\t\t", end="")
-		test_D.lambd = '100'
-		print("----\t\t--------\t\t\t--------")
-		print("UE\t\tparentDevice=None\t\t", end="")
-		test_UE.parentDevice = None
-		print("UE\t\tparentDevice=RN()\t\t", end="")
-		test_UE.parentDevice = RN
-		print("----\t\t--------\t\t\t--------")
-		print("RN\t\tchilds={}\t\t\t\t", end="")
-		test_RN.childs = {}
-		print("RN\t\tchilds=[1,2,3]\t\t\t", end="")
-		test_RN.childs = [1, 2, 3]
-		print("RN\t\tchilds=[UE1, UE]\t\t\t", end="")
-		test_RN.childs = [test_UE, UE]
-		print("RN\t\tchilds=[UE1], childs.append(UE)\t", end="")  # FIXME
-		test_RN.childs = [test_UE]
-		test_RN.childs.append(UE)
-		checkType = Tchilds
-		for i in test_RN.childs:
-				if inspect.isclass(i):
-					checkType = False
-					break
-		print(test_RN.childs) if checkType else print(checkType)
+# if __name__ == '__main__':
