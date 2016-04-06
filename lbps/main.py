@@ -8,12 +8,9 @@ init
 # build up bearer between two devices
 """
 
-# base_station = eNB(M_BUF)
+base_station = eNB(M_BUF)
 relays = [RN(M_BUF) for i in range(6)]
 users = [UE(M_BUF) for i in range(240)]
-
-# relays = [RN(M_BUF) for i in range(1)]
-# users = [UE(M_BUF) for i in range(3)]
 
 for i in range(len(relays)):
 	relays[i].childs = users[i:i+40]
@@ -26,20 +23,6 @@ for i in range(len(relays)):
 # 	for j in i.childs:
 # 		child = type(j).__name__ + str(j.id)
 # 		print("\n%s:\tCQI= %d\t lambda= %f" % (child, j.link['access'][0].CQI, j.lambd['access']), end='')
-
-# # Test: print all value of RN
-# print("RN[0]: ")
-# print("DL buffer\t\t" + str(relays[0].buf['D']) + "bits")
-# print("status\t\t\t" + relays[0].status)
-# print("Channel\t\t\t" + str(relays[0].link))
-# print("Channel.interface\t" + relays[0].link.interface)
-# print("Channel.bandwidth\t" + str(relays[0].link.bandwidth))
-# print("Channel.CQI\t\t" + str(relays[0].link.CQI))
-# print("Channel.flow\t\t" + relays[0].link.flow)
-# print("Channel.bitrate\t\t" + str(relays[0].link.bitrate))
-# print("Channel.pkt_size\t" + str(relays[0].link.pkt_size))
-# print("Channel.delay_budget\t" + str(relays[0].link.delay_budget))
-# print("childs len\t\t\t" + str(len(relays[0].childs)))
 
 # # 6 revised LBPS scheduling
 # TDAggrRN= copy.deepcopy(relays);

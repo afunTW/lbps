@@ -23,7 +23,7 @@ class Device(Bearer):
 		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = {'access':None, 'backhaul':None}
+		self._lambd = {'access':0, 'backhaul':0}
 		self.__class__.count += 1
 
 	@property
@@ -81,8 +81,8 @@ class Device(Bearer):
 			me = type(self).__name__ + str(self.id)
 			you = type(dest).__name__ + str(dest.id)
 
-			if self._link[interface]:
-				print("%s::connect\t\tdisconnect previous conneciton." % me)
+			# if self._link[interface]:
+			# 	print("%s::connect\t\tdisconnect previous conneciton." % me)
 
 			# print("%s::connect\t\tbuild up a new connection with %s" % (me, you))
 
@@ -91,7 +91,10 @@ class Device(Bearer):
 
 			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
 			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
-			print("%s::connect\t\t%s.lambd = %s\t%s.lambd = %s"  % (me, me, str(self._lambd), you, str(dest.lambd)))
+
+			print("%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}" \
+					% (me, me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']))
+
 
 		except Exception as e:
 			print(e);
@@ -103,7 +106,7 @@ class UE(Device):
 		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = {'access':None, 'backhaul':None}
+		self._lambd = {'access':0, 'backhaul':0}
 		self.__parent = None
 		self.__class__.count += 1
 		# print("UE::init::id\t%d" % self.id)
@@ -126,7 +129,7 @@ class RN(Device):
 		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = {'access':None, 'backhaul':None}
+		self._lambd = {'access':0, 'backhaul':0}
 		self.__childs = []
 		self.__class__.count += 1
 		# print("RN::init::id\t%d" % self.id)
@@ -153,7 +156,7 @@ class RN(Device):
 		me = type(self).__name__ + str(self.id)
 		try:
 			childs = list(childs) if childs is not list else childs
-			check = list(map(lambda x: RN.isDevice(x, UE), childs))
+			check = list(map(lambda x: Device.isDevice(x, UE), childs))
 			if all(check):
 				self.__childs = childs
 				print("%s::childs.setter\tbinding Done" % me)
@@ -178,7 +181,7 @@ class RN(Device):
 		if self.childs:
 			for i in self.__childs:
 				i.connect(self, status, interface, bandwidth, CQI_type, flow)
-			print("%s::connect\t\tDone" % me)
+			print("%s::connect\t\tDone\n" % me)
 		else:
 			return
 
