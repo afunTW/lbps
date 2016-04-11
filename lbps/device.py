@@ -138,7 +138,6 @@ class RN(Device):
 	def childs(self):
 		return self.__childs
 	@childs.setter
-	# def childs(self, childs, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
 	def childs(self, childs):
 		"""[summary] binding RN and UEs
 
@@ -191,37 +190,47 @@ class eNB(Device):
 	def __init__(self, buf={}):
 		self._id = self.__class__.count
 		self._buf = buf
-		self._link = None
-		self._lambd = None
+		self._link = {'access':[], 'backhaul':[]}
+		self._lambd = {'access':0, 'backhaul':0}
 		self.__childs = []
 		self.__class__.count += 1
+		# print("eNB::init::id\t%d" % self.id)
 
 	@property
 	def childs(self):
 		return self.__childs
 
 	@childs.setter
-	def childs(self, childs, CQI_type=[], status='D', interface='access', bandwidth=0, flow='VoIP'):
+	def childs(self, childs):
+		me = type(self).__name__ + str(self.id)
 		try:
 			childs = list(childs) if childs is not list else childs
-			check = list(map(lambda x: RN.isDevice(x, RN), childs))
+			check = list(map(lambda x: Device.isDevice(x, RN), childs))
 			if all(check):
-				self.__childs.append(childs)
-				print("eNB::childs.setter\tbinding Done")
-
-				CQI_range = getCQIByType(CQI_type)
-				for i in self.__childs:
-					CQI = random.choice(CQI_range) if CQI_range else 0
-					i.parent = self
-					i.connect(i.parent, status, interface, bandwidth, CQI, flow)
-					self.link[interface] .append(i.link)
-				print("eNB:: childs.setter\tconnect each other")
-
-				self._lambd[interface] = sum(self._link[interface].bitrate)/sum(self._link[interface].pkt_size)
-				print("eNB::childs.setter\tRN.lambd = " + str(self._lambd))
+				self.__childs = childs
+				print("%s::childs.setter\tbinding Done" % me)
 			else:
 				raise Exception("childs should be all RN instance object")
 		except Exception as e:
 			print(e)
 
+	def connect(self, status='D', interface='backhaul', bandwidth=0, CQI_type=[], flow='VoIP'):
+		"""[summary] connect to own childs
+
+		[description] if there's no childs, this would no do anything
+
+		Keyword Arguments:
+			status {str} -- [description] (default: {'D'})
+			interface {str} -- [description] (default: {'access'})
+			bandwidth {number} -- [description] (default: {0})
+			CQI_type {list} -- [description] (default: {[]})
+			flow {str} -- [description] (default: {'VoIP'})
+		"""
+		me = type(self).__name__ + str(self.id)
+		if self.childs:
+			for i in self.__childs:
+				i.connect(self, status, interface, bandwidth, CQI_type, flow)
+			print("%s::connect\t\tDone\n" % me)
+		else:
+			return
 # if __name__ == '__main__':

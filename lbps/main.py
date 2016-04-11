@@ -16,6 +16,10 @@ for i in range(len(relays)):
 	relays[i].childs = users[i:i+40]
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='VoIP')
 
+base_station.childs = relays
+base_station.connect(status='D', interface='backhaul', bandwidth=BANDWIDTH, CQI_type=['H'], flow='VoIP')
+
+
 # # Test: assign UE to RN
 # for i in relays:
 # 	parent = type(i).__name__ + "[" + str(i.id) + "]"
