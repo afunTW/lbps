@@ -26,8 +26,12 @@ N_TTI_RE = (N_TTI_OFDM - N_CTRL_OFDM) * 12
 N_TTI_RE = N_TTI_RE * N_RBG
 
 def wideband_capacity(device, interface):
-	W_CQI = sum(d.link[interface][0].CQI for d in device) / len(device)
-	return N_TTI_RE * T_CQI[int(W_CQI)]['eff'] * N_RBG
+	try:
+		link_count = len(device.link[interface])
+		W_CQI = sum(device.link[interface][i].CQI for i in range(link_count)) / link_count
+		return N_TTI_RE * T_CQI[int(W_CQI)]['eff'] * N_RBG
+	except Exception as e:
+		print("W-capacity\t\t%s"%e)
 
 """
 # CQI related

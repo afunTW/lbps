@@ -16,6 +16,7 @@ users = [UE(M_BUF) for i in range(240)]
 for i in range(len(relays)):
 	relays[i].childs = users[i*40:i*40+40]
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='VoIP')
+	relays[i].capacity
 
 # # Test: assign UE to RN
 # for i in relays:

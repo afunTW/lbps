@@ -4,7 +4,7 @@
 import inspect
 import random
 from network import Bearer, getCQIByType
-from config import  traffic
+from config import  traffic, wideband_capacity
 
 
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
@@ -24,6 +24,7 @@ class Device(Bearer):
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
+		self._capacity = {'access':None, 'backhaul':None}
 		self.__class__.count += 1
 
 	@property
@@ -53,6 +54,24 @@ class Device(Bearer):
 	@property
 	def lambd(self):
 		return self._lambd
+
+	@property
+	def capacity(self):
+		"""[summary] get the capacity
+
+		[description] using wideband in this simulation
+		"""
+		me = type(self).__name__ + str(self.id)
+		if self._capacity['access']:
+			return self._capacity
+		elif self._link:
+			self._capacity['access'] = wideband_capacity(self, 'access')
+			print("%s::capacity\t\t%d (bits)" % (me, self._capacity['access']))
+			return self._capacity
+		else:
+			print("%s::capacity\t\tno capacity" % (me))
+			return
+
 
 	def isDevice(testDevice, targetClass):
 		return True if isinstance(testDevice, targetClass) else False
@@ -106,6 +125,7 @@ class UE(Device):
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
+		self._capacity = {'access':0, 'backhaul':0}
 		self.__parent = None
 		self.__class__.count += 1
 		# print("UE::init::id\t%d" % self.id)
@@ -129,6 +149,7 @@ class RN(Device):
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
+		self._capacity = {'access':0, 'backhaul':0}
 		self.__childs = []
 		self.__parent = None
 		self.__class__.count += 1
