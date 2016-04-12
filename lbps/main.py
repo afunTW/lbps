@@ -4,20 +4,18 @@ from __init__ import *
 
 """
 init
-# new 1 eNB, 6 RNs, 240 UEs with given buffer
+# 6 RNs, 240 UEs with given buffer
 # build up bearer between two devices
+# calculate capacity
 """
 
-base_station = eNB(M_BUF)
+# base_station = eNB(M_BUF)
 relays = [RN(M_BUF) for i in range(6)]
 users = [UE(M_BUF) for i in range(240)]
 
 for i in range(len(relays)):
 	relays[i].childs = users[i:i+40]
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='VoIP')
-
-base_station.childs = relays
-base_station.connect(status='D', interface='backhaul', bandwidth=BANDWIDTH, CQI_type=['H'], flow='VoIP')
 
 
 # # Test: assign UE to RN
