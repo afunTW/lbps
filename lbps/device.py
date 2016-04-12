@@ -111,7 +111,7 @@ class Device(Bearer):
 			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
 			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
 
-			print("%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}" \
+			print("%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
 					% (me, me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']))
 
 		except Exception as e:
@@ -201,7 +201,7 @@ class RN(Device):
 		if self.childs:
 			for i in self.__childs:
 				i.connect(self, status, interface, bandwidth, CQI_type, flow)
-			print("%s::connect\t\tDone\n" % me)
+			print("%s::connect\t\tDone" % me)
 		else:
 			return
 

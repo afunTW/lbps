@@ -2,11 +2,12 @@
 
 from __init__ import *
 
-"""
-init
-# 6 RNs, 240 UEs with given buffer
-# build up bearer between two devices
-# calculate capacity
+"""[summary] init
+
+[description]
+1. 6 RNs, 240 UEs with given buffer
+2. build up bearer between two devices
+3. calculate capacity
 """
 
 # base_station = eNB(M_BUF)
@@ -18,13 +19,12 @@ for i in range(len(relays)):
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='VoIP')
 	relays[i].capacity
 
-# # Test: assign UE to RN
-# for i in relays:
-# 	parent = type(i).__name__ + "[" + str(i.id) + "]"
-# 	print("\n\n%s:\t" % parent)
-# 	for j in i.childs:
-# 		child = type(j).__name__ + str(j.id)
-# 		print("\n%s:\tCQI= %d\t lambda= %f" % (child, j.link['access'][0].CQI, j.lambd['access']), end='')
+"""[summary] apply LBPS algorithm
+
+[description]
+"""
+TestAggrRN = copy.deepcopy(relays[0])
+aggr(TestAggrRN, 'access')
 
 # # 6 revised LBPS scheduling
 # TDAggrRN= copy.deepcopy(relays);

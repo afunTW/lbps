@@ -28,7 +28,7 @@ def Prob_AccDataOverTH(lambd, threshold, simTime):
 	return 1-Prob_AccDataUnderTH(lambd, threshold, simTime);
 
 def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH= 0.8, view= None):
-	print("...	Calculating awake-sleep-cycle with DATA_TH(%d), PROB_TH(%.2f)" % (DATA_TH, PROB_TH));
+	print("Calculating awake-sleep-cycle with DATA_TH(%d pkt), PROB_TH(%.2f)" % (DATA_TH, PROB_TH));
 	K= 1;			# ms
 	d_K= dict();	# {K: prob}
 	while(1):
@@ -41,7 +41,7 @@ def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH= 0.8, view= None):
 	return d_K if view is True else K
 
 def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
-	print("...	Calculating number of packet accumulate in %d TTI with lambd %g (packet/ms)" %(K, lambd))
+	print("Calculating number of packet accumulate in %d TTI with lambd %g (packet/ms)" %(K, lambd))
 	pkt=0;			# number of packet
 	d_K= dict();	# {pkt: prob}
 	while(1):
@@ -52,6 +52,20 @@ def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
 		if(p_acc > PROB_TH): break;
 		else: pkt+= 1;
 	return d_K if view is True else pkt;
+
+def getDataTH(buf_size, pkt_size, percent=0.8):
+	"""[summary] get DATA_TH
+
+	[description] check the capability and return how many packet could buffer in queue
+
+	Arguments:
+		buf_size {int} -- [description] (bits)
+		pkt_size {int} -- [description] (bits)
+
+	Keyword Arguments:
+		percent {number} -- [description] (default: {0.8})
+	"""
+	return (buf_size/pkt_size)*percent
 
 if __name__ == "__main__":
 

@@ -29,7 +29,7 @@ def wideband_capacity(device, interface):
 	try:
 		link_count = len(device.link[interface])
 		W_CQI = sum(device.link[interface][i].CQI for i in range(link_count)) / link_count
-		return N_TTI_RE * T_CQI[int(W_CQI)]['eff'] * N_RBG
+		return N_TTI_RE * T_CQI[int(W_CQI)]['eff']
 	except Exception as e:
 		print("W-capacity\t\t%s"%e)
 

@@ -3,7 +3,6 @@
 
 from config import traffic, DEVICE_CQI_TYPE
 
-
 class Bearer(object):
 
 	def __init__(self, src, dest, status='D', interface='access', bandwidth=0, CQI=0, flow='VoIP'):
