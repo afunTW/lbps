@@ -95,7 +95,6 @@ class Device(Bearer):
 			print("%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}" \
 					% (me, me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']))
 
-
 		except Exception as e:
 			print(e);
 

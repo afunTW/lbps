@@ -3,5 +3,5 @@
 
 import random
 import copy
-from device import UE, RN, eNB
+from device import UE, RN
 from config import *
