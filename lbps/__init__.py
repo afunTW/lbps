@@ -5,4 +5,4 @@ import random
 import copy
 from device import UE, RN
 from config import *
-from lbps import aggr
+from lbps import aggr, split

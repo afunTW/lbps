@@ -16,7 +16,7 @@ users = [UE(M_BUF) for i in range(240)]
 
 for i in range(len(relays)):
 	relays[i].childs = users[i*40:i*40+40]
-	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='VoIP')
+	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='Video')
 	relays[i].capacity
 
 """[summary] apply LBPS algorithm
@@ -25,6 +25,8 @@ for i in range(len(relays)):
 """
 TestAggrRN = copy.deepcopy(relays[0])
 aggr(TestAggrRN, 'access')
+TestSplitRN = copy.deepcopy(relays[0])
+split(TestSplitRN, 'access')
 
 # # 6 revised LBPS scheduling
 # TDAggrRN= copy.deepcopy(relays);
