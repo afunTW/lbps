@@ -13,7 +13,7 @@ config = {
 	'author-email': 'endlessproof@gmail.com',
 	'version': '0.1',
 	'install_requires': ['nose'],
-	'packages': ['lbps', 'math', 'numpy', 'scipy', 'matplotlib'],
+	'packages': ['lbps', 'math', 'numpy', 'scipy', 'matplotlib', 'hyrry.filesize'],
 	'script': [],
 	'name': 'lbps'
 }
