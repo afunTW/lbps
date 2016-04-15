@@ -11,10 +11,17 @@ def schedulability(check_list):
 		print(bcolors.FAIL + "Check schedulability:\tFalse" + bcolors.ENDC)
 	return result
 
-def non_degraded(device1, device2, interface, DATH_TH):
-	cycle=[LengthAwkSlpCyl(d.lambd[interface], DATA_TH) for d in [device1, device2]]
-	merge_sleep_cycle = LengthAwkSlpCyl(device1.lambd[interface]+device2.lambd[interface], DATA_TH)
-	return True if merge_sleep_cycle in cycle else False
+def non_degraded(groups_1, groups_2, interface, DATA_TH):
+	sleep_cycle_length_1 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_1]), DATA_TH)
+	sleep_cycle_length_1 = 2**floor(log(sleep_cycle_length_1, 2))
+	sleep_cycle_length_2 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_2]), DATA_TH)
+	sleep_cycle_length_2 = 2**floor(log(sleep_cycle_length_2, 2))
+
+	merge_sleep_cycle = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_1 + groups_2]), DATA_TH)
+	merge_sleep_cycle = 2**floor(log(merge_sleep_cycle, 2))
+
+	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
+	return result
 
 def aggr(device, interface):
 	"""[summary] original lbps aggr scheme
@@ -38,7 +45,7 @@ def aggr(device, interface):
 		# print(bcolors.OKBLUE + "lbps::aggr::%s\t\t%s.sleepCycle = %d" % (me, type(i).__name__ + str(i.id), i.sleepCycle) + bcolors.ENDC)
 
 	device.sleepCycle = sleep_cycle_length
-	print(bcolors.OKGREEN + "lbps::aggr::%s\t\tsleepCycle = %d\t\tDone" % (me, i.sleepCycle) + bcolors.ENDC)
+	print(bcolors.OKGREEN + "lbps::aggr::%s\t\tsleepCycle = %d" % (me, i.sleepCycle) + bcolors.ENDC)
 	return sleep_cycle_length
 
 def split(device, interface):
@@ -92,16 +99,38 @@ def merge(device, interface):
 		device {[list]} -- [description] a list of device
 		interface {[string]} -- [description] 'access' or 'backhaul'
 	"""
-# 	me = type(device).__name__ + str(device.id)
-# 	DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
-# 	print("lbps::merge::%s\tload= %g\t" % (me, (device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size))))
-# 	# sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
 
-# 	# one UE one group, then revise it for merge process
-# 	K_original = [LengthAwkSlpCyl(device.childs[i].lambd[interface], DATA_TH) for i in range(len(device.childs))]
-# 	K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_original))
+	me = type(device).__name__ + str(device.id)
+	DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
+	print("lbps::merge::%s\tload= %g\t" % (me, (device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size))))
 
-# 	while True:
-# 		if schedulability(K_merge) and len(K_merge)>1:
-# 			return K_merge
-# 		
+	groups = [[i] for i in device.childs]
+	groups_load = [i.lambd[interface] for i in device.childs]
+	K_original = [LengthAwkSlpCyl(device.childs[i].lambd[interface], DATA_TH) for i in range(len(device.childs))]
+	K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_original))
+
+	while not schedulability(K_merge):
+		min_load = groups_load.index(min(groups_load))
+
+		# non-degraded merge
+		non_degraded_success = False
+		for i in groups:
+			if i is groups[min_load]:
+				continue
+			if non_degraded(groups[min_load], i, interface, DATA_TH):
+				non_degraded_success = True
+				i += groups[min_load]
+				del groups[min_load]
+				break
+
+		# degraded merge
+		# FIXME
+		if not non_degraded_success:
+			max_K_1 = K_merge.index(max(K_merge))
+			tmp = copy.deepcopy(K_merge)
+			tmp.pop(max_K_1)
+			max_K_2 = K_merge.index(max(tmp))
+			print(max_K_1)
+			print(max_K_2)
+
+		break
