@@ -27,6 +27,8 @@ TestAggrRN = copy.deepcopy(relays[0])
 aggr(TestAggrRN, 'access')
 TestSplitRN = copy.deepcopy(relays[0])
 split(TestSplitRN, 'access')
+# TestMergeRN = copy.deepcopy(relays[0])
+# merge(TestMergeRN, 'access')
 
 # # 6 revised LBPS scheduling
 # TDAggrRN= copy.deepcopy(relays);
