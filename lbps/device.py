@@ -4,7 +4,7 @@
 import inspect
 import random
 from network import Bearer, getCQIByType
-from config import  traffic, wideband_capacity
+from config import  traffic, wideband_capacity, bcolors
 
 
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
@@ -111,8 +111,8 @@ class Device(Bearer):
 			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
 			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
 
-			print("%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
-					% (me, me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']))
+			print(bcolors.OKBLUE + "%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
+					% (me, me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']) + bcolors.ENDC)
 
 		except Exception as e:
 			print(e);
@@ -179,7 +179,7 @@ class RN(Device):
 			check = list(map(lambda x: Device.isDevice(x, UE), childs))
 			if all(check):
 				self.__childs = childs
-				print("%s::childs.setter\tbinding Done" % me)
+				print(bcolors.OKGREEN + "%s::childs.setter\tbinding Done" % me + bcolors.ENDC)
 			else:
 				raise Exception("childs should be all UE instance object")
 		except Exception as e:
@@ -201,7 +201,7 @@ class RN(Device):
 		if self.childs:
 			for i in self.__childs:
 				i.connect(self, status, interface, bandwidth, CQI_type, flow)
-			print("%s::connect\t\tDone" % me)
+			print(bcolors.OKGREEN + "%s::connect\t\tDone" % me + bcolors.ENDC)
 		else:
 			return
 
