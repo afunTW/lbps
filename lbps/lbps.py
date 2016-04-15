@@ -126,11 +126,5 @@ def merge(device, interface):
 		# degraded merge
 		# FIXME
 		if not non_degraded_success:
-			max_K_1 = K_merge.index(max(K_merge))
-			tmp = copy.deepcopy(K_merge)
-			tmp.pop(max_K_1)
-			max_K_2 = K_merge.index(max(tmp))
-			print(max_K_1)
-			print(max_K_2)
-
+			max_K_1, max_K_2 = sorted(K_merge, reverse=True)[0:2]
 		break
