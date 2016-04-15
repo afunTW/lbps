@@ -25,6 +25,7 @@ class Device(Bearer):
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':None, 'backhaul':None}
+		self._sleepCycle = 0
 		self.__class__.count += 1
 
 	@property
@@ -72,6 +73,12 @@ class Device(Bearer):
 			print("%s::capacity\t\tno capacity" % (me))
 			return
 
+	@property
+	def sleepCycle(self):
+	    return self._sleepCycle
+	@sleepCycle.setter
+	def sleepCycle(self, K):
+		self._sleepCycle = K
 
 	def isDevice(testDevice, targetClass):
 		return True if isinstance(testDevice, targetClass) else False
