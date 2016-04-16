@@ -82,12 +82,14 @@ class Device(Bearer):
 		if type(VC) is dict:
 			if VC['access']:
 				self._virtualCapacity['access'] = VC['access']
+				print(prefix + "%d (bits)" % self._virtualCapacity['access'])
 			elif VC['backhaul']:
 				self._virtualCapacity['backhaul'] = VC['backhaul']
+				print(prefix + "%d (bits)" % self._virtualCapacity['backhaul'])
 			else:
 				pass
 		else:
-			msg_fail("assign value should be a list", pre=prefix)
+			msg_fail("assign value should be a dict", pre=prefix)
 
 	@property
 	def sleepCycle(self):
@@ -150,6 +152,7 @@ class UE(Device):
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':0, 'backhaul':0}
+		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self.__parent = None
 		self.__class__.count += 1
 
@@ -173,6 +176,7 @@ class RN(Device):
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':0, 'backhaul':0}
+		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self.__childs = []
 		self.__parent = None
 		self.__class__.count += 1
