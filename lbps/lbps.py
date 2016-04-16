@@ -124,7 +124,11 @@ def merge(device, interface):
 				break
 
 		# degraded merge
-		# FIXME
 		if not non_degraded_success:
-			max_K_1, max_K_2 = sorted(K_merge, reverse=True)[0:2]
+			max_K_groups = [d for (k,d) in sorted(zip(K_merge, groups), key=lambda x: x[0], reverse=True)]
+			max_K_1 = groups.index(max_K_groups[0])
+			max_K_2 = groups.index(max_K_groups[1])
+			groups[max_K_1] += groups[max_K_2]
+			del groups[max_K_2]
+
 		break
