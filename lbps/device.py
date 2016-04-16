@@ -57,14 +57,17 @@ class Device(Bearer):
 		[description] using wideband in this simulation
 		"""
 		me = type(self).__name__ + str(self.id)
+		prefix = "%s::capacity\t\t" % me
+
 		if self._capacity['access']:
+			print(prefix + "%d (bits)" % self._capacity['access'])
 			return self._capacity
 		elif self._link:
 			self._capacity['access'] = wideband_capacity(self, 'access')
-			print("%s::capacity\t\t%d (bits)" % (me, self._capacity['access']))
+			print(prefix + "%d (bits)" % self._capacity['access'])
 			return self._capacity
 		else:
-			print("%s::capacity\t\tno capacity" % (me))
+			print(prefix + "no capacity")
 			return
 
 	@property
