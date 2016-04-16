@@ -28,3 +28,6 @@ TestMergeRN = copy.deepcopy(relays[0])
 merge(TestMergeRN, 'access')
 
 # TDD
+TDD_config = ONE_HOP_TDD_CONFIG[1]
+TestTDD = copy.deepcopy(relays[0])
+VSC(TestTDD, 'access', TDD_config)
