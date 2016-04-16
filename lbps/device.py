@@ -19,6 +19,7 @@ class Device(Bearer):
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':None, 'backhaul':None}
+		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._sleepCycle = 0
 		self.__class__.count += 1
 
@@ -69,6 +70,13 @@ class Device(Bearer):
 		else:
 			print(prefix + "no capacity")
 			return
+	@property
+	def virtualCapacity(self):
+	    return self._virtualCapacity
+
+	@virtualCapacity.setter
+	def virtualCapacity(self, VC):
+		self._virtualCapacity = VC
 
 	@property
 	def sleepCycle(self):
