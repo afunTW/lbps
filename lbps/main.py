@@ -19,10 +19,7 @@ for i in range(len(relays)):
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='Video')
 	relays[i].capacity
 
-"""[summary] apply LBPS algorithm
-
-[description]
-"""
+# LBPS-Aggr, Split, Merge
 TestAggrRN = copy.deepcopy(relays[0])
 aggr(TestAggrRN, 'access')
 TestSplitRN = copy.deepcopy(relays[0])
@@ -30,18 +27,4 @@ split(TestSplitRN, 'access')
 TestMergeRN = copy.deepcopy(relays[0])
 merge(TestMergeRN, 'access')
 
-# # 6 revised LBPS scheduling
-# TDAggrRN= copy.deepcopy(relays);
-# TDSplitRN= copy.deepcopy(relays);
-# TDMergeRN= copy.deepcopy(relays);
-# BUAggrMin= copy.deepcopy(relays);
-# BUSplitMin= copy.deepcopy(relays);
-# BUMergeMerge= copy.deepcopy(relays);
-#
-# # result
-# TDAggrRN= LBPS.TopDownAggr(TDAggrRN);
-# TDSplitRN= LBPS.TopDownSplit(TDSplitRN);
-# TDMergeRN= LBPS.TopDownMergeRN(TDMergeRN);
-# BUAggrMin= LBPS.BottomUpAggrMin(BUAggrMin);
-# BUSplitMin= LBPS.BottomUpSplitMin(BUSplitMin);
-# BUMergeMerge= LBPS.BottomUpMergeMerge(BUMergeMerge);
+# TDD
