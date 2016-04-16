@@ -76,7 +76,18 @@ class Device(Bearer):
 
 	@virtualCapacity.setter
 	def virtualCapacity(self, VC):
-		self._virtualCapacity = VC
+		me = type(self).__name__ + str(self.id)
+		prefix = "%s::virtualCapacity\t" % me
+
+		if type(VC) is dict:
+			if VC['access']:
+				self._virtualCapacity['access'] = VC['access']
+			elif VC['backhaul']:
+				self._virtualCapacity['backhaul'] = VC['backhaul']
+			else:
+				pass
+		else:
+			msg_fail("assign value should be a list", pre=prefix)
 
 	@property
 	def sleepCycle(self):
