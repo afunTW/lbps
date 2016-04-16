@@ -4,7 +4,8 @@
 import inspect
 import random
 from network import Bearer, getCQIByType
-from config import  traffic, wideband_capacity, bcolors
+from config import  traffic, wideband_capacity
+from viewer import *
 
 
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
@@ -13,13 +14,6 @@ class Device(Bearer):
 	count=0
 
 	def __init__(self, buf={}):
-		"""[summary] init
-
-		[description]
-
-		Keyword Arguments:
-			buf {dict} -- [description] (default: {{}})
-		"""
 		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
@@ -76,6 +70,7 @@ class Device(Bearer):
 	@property
 	def sleepCycle(self):
 	    return self._sleepCycle
+
 	@sleepCycle.setter
 	def sleepCycle(self, K):
 		self._sleepCycle = K
@@ -101,16 +96,16 @@ class Device(Bearer):
 			CQI_type {list} -- [description] (default: {[]})
 			flow {str} -- [description] (default: {'VoIP'})
 		"""
+		me = type(self).__name__ + str(self.id)
+		you = type(dest).__name__ + str(dest.id)
+		pre = "%s::connect\t\t" % me
+
 		try:
 			CQI_range = getCQIByType(CQI_type)
 			CQI = random.choice(CQI_range) if CQI_range else 0
-			me = type(self).__name__ + str(self.id)
-			you = type(dest).__name__ + str(dest.id)
 
 			# if self._link[interface]:
-			# 	print("%s::connect\t\tdisconnect previous conneciton." % me)
-
-			# print("%s::connect\t\tbuild up a new connection with %s" % (me, you))
+			# 	msg_warning("disconnect previous conneciton", pre=pre)
 
 			self._link[interface].append(Bearer(self, dest, status, interface, bandwidth, CQI, flow))
 			dest._link[interface].append(Bearer(dest, self, status, interface, bandwidth, CQI, flow))
@@ -118,8 +113,8 @@ class Device(Bearer):
 			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
 			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
 
-			print(bcolors.OKBLUE + "%s::connect\t\t%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
-					% (me, me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']) + bcolors.ENDC)
+			msg_execute("%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
+					% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=pre)
 
 		except Exception as e:
 			print(e);
@@ -135,7 +130,6 @@ class UE(Device):
 		self._capacity = {'access':0, 'backhaul':0}
 		self.__parent = None
 		self.__class__.count += 1
-		# print("UE::init::id\t%d" % self.id)
 
 	@property
 	def parent(self):
@@ -160,55 +154,33 @@ class RN(Device):
 		self.__childs = []
 		self.__parent = None
 		self.__class__.count += 1
-		# print("RN::init::id\t%d" % self.id)
 
 	@property
 	def childs(self):
 		return self.__childs
+
 	@childs.setter
 	def childs(self, childs):
-		"""[summary] binding RN and UEs
-
-		[description] only assign the UE as RN's child , no connection
-
-		Decorators:
-			childs.setter
-
-		Arguments:
-			childs {[UE]} -- [description]
-
-		Raises:
-			Exception -- [description]
-		"""
 		me = type(self).__name__ + str(self.id)
+		pre = "%s::childs.setter\t" % me
+
 		try:
 			childs = list(childs) if childs is not list else childs
 			check = list(map(lambda x: Device.isDevice(x, UE), childs))
 			if all(check):
 				self.__childs = childs
-				print(bcolors.OKGREEN + "%s::childs.setter\tbinding Done" % me + bcolors.ENDC)
-			else:
-				raise Exception("childs should be all UE instance object")
+				msg_success("binding Done")
+
 		except Exception as e:
 			print(e)
 
 	def connect(self, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
-		"""[summary] connect to own childs
-
-		[description] if there's no childs, this would no do anything
-
-		Keyword Arguments:
-			status {str} -- [description] (default: {'D'})
-			interface {str} -- [description] (default: {'access'})
-			bandwidth {number} -- [description] (default: {0})
-			CQI_type {list} -- [description] (default: {[]})
-			flow {str} -- [description] (default: {'VoIP'})
-		"""
 		me = type(self).__name__ + str(self.id)
+		pre = "%s::connect\t\t" % me
 		if self.childs:
 			for i in self.__childs:
 				i.connect(self, status, interface, bandwidth, CQI_type, flow)
-			print(bcolors.OKGREEN + "%s::connect\t\tDone" % me + bcolors.ENDC)
+			msg_success("Done", pre=pre)
 		else:
 			return
 
