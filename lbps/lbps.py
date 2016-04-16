@@ -2,13 +2,19 @@ import copy
 from math import log, floor
 from poisson import getDataTH, LengthAwkSlpCyl
 from config import bcolors
+from viewer import *
+
+def getLoad(device, interface):
+	return device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size)
 
 def schedulability(check_list):
 	result = True if sum([1/cycle for cycle in check_list]) <= 1 else False;
+
 	if result:
-		print(bcolors.OKBLUE + "Check schedulability:\tTrue" + bcolors.ENDC)
+		msg_success("Check schedulability:\tTrue")
 	else:
-		print(bcolors.FAIL + "Check schedulability:\tFalse" + bcolors.ENDC)
+		msg_fail("Check schedulability:\tFalse")
+
 	return result
 
 def non_degraded(groups_1, groups_2, interface, DATA_TH):
@@ -24,50 +30,38 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	return result
 
 def aggr(device, interface):
-	"""[summary] original lbps aggr scheme
 
-	[description]
-	aggrgate all UE's lambda then calculate the sleep sysle length
-	assign the sleep cycle length to each UE at the end
-
-	Arguments:
-		device {[list]} -- [description] a list of device
-		interface {[string]} -- [description]
-	"""
-
+	# init
 	me = type(device).__name__ + str(device.id)
+	prefix = "lbps::aggr::%s\t\t" % me
 	DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
-	print("lbps::aggr::%s\t\tload= %g\t" % (me, (device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size))))
+	print(prefix + "load= %g\t" % getLoad(device, interface))
 
+	# aggr process
 	sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
+
+	# record
 	for i in device.childs:
 		i.sleepCycle = sleep_cycle_length
-		# print(bcolors.OKBLUE + "lbps::aggr::%s\t\t%s.sleepCycle = %d" % (me, type(i).__name__ + str(i.id), i.sleepCycle) + bcolors.ENDC)
+		msg_execute("%s.sleepCycle = %d" % (type(i).__name__ + str(i.id), i.sleepCycle), pre=prefix)
 
 	device.sleepCycle = sleep_cycle_length
-	print(bcolors.OKGREEN + "lbps::aggr::%s\t\tsleepCycle = %d" % (me, i.sleepCycle) + bcolors.ENDC)
+	msg_success("sleepCycle = %d" % i.sleepCycle ,pre=prefix)
 	return sleep_cycle_length
 
 def split(device, interface):
-	"""[summary] original lbps split scheme
 
-	[description]
-	split the group in the length of sleep cycle
-
-	Arguments:
-		device {[list]} -- [description] a list of device
-		interface {[string]} -- [description]
-	"""
-
+	# init
 	me = type(device).__name__ + str(device.id)
+	prefix = "lbps::split::%s\t" % me
 	DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
-	print("lbps::split::%s\tload= %g\t" % (me, (device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size))))
+	print(prefix + "load= %g\t" % getLoad(device, interface))
 
 	sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
 	groups = [copy.deepcopy(device.childs)]
 	old_groupsLength = 0
 
-	# Split the group until the number of group as same as the last iterate result
+	# Split process
 	while old_groupsLength is not len(groups):
 		old_groupsLength = len(groups)
 		groups = [[] for i in range(min(sleep_cycle_length, len(device.childs)))]
@@ -82,33 +76,31 @@ def split(device, interface):
 
 		sleep_cycle_length = min(groups_K) if min(groups_K) > 0 else sleep_cycle_length
 
+	# record
 	for i in range(len(groups)):
+		msg_execute("Group %d" % i, pre=prefix)
 		for j in groups[i]:
 			j.sleepCycle = groups_K[i]
-			# print(bcolors.OKBLUE + "lbps::split::%s\t%s.sleepCycle = %d" % (me, type(j).__name__ + str(j.id), j.sleepCycle) + bcolors.ENDC)
+			msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
 
-	print(bcolors.OKGREEN + "lbps::split::%s\tsleep cycle length = %d with %d groups" % (me, sleep_cycle_length, len(groups)) + bcolors.ENDC)
+	device.sleepCycle = sleep_cycle_length
+	msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
 	return sleep_cycle_length
 
 def merge(device, interface):
-	"""[summary] original lbps merge scheme
 
-	[description]
-
-	Arguments:
-		device {[list]} -- [description] a list of device
-		interface {[string]} -- [description] 'access' or 'backhaul'
-	"""
-
+	# init
 	me = type(device).__name__ + str(device.id)
 	DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
-	print("lbps::merge::%s\tload= %g\t" % (me, (device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size))))
+	prefix = "lbps::merge::%s\t" % me
+	print(prefix + "load= %g\t" % getLoad(device, interface))
 
 	groups = [[i] for i in device.childs]
 	groups_load = [i.lambd[interface] for i in device.childs]
-	K_original = [LengthAwkSlpCyl(device.childs[i].lambd[interface], DATA_TH) for i in range(len(device.childs))]
+	K_original = [LengthAwkSlpCyl(i, DATA_TH) for i in groups_load]
 	K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_original))
 
+	# merge process
 	while not schedulability(K_merge):
 		min_load = groups_load.index(min(groups_load))
 
@@ -124,11 +116,30 @@ def merge(device, interface):
 				break
 
 		# degraded merge
-		if not non_degraded_success:
-			max_K_groups = [d for (k,d) in sorted(zip(K_merge, groups), key=lambda x: x[0], reverse=True)]
-			max_K_1 = groups.index(max_K_groups[0])
-			max_K_2 = groups.index(max_K_groups[1])
-			groups[max_K_1] += groups[max_K_2]
-			del groups[max_K_2]
+		if not non_degraded_success and len(groups) > 1:
+			msg_execute("degraded merge process", pre=prefix)
 
-		break
+			groups = [d for (k,d) in sorted(zip(K_merge, groups), key=lambda x: x[0], reverse=True)]
+			groups[0] += groups[1]
+			del groups[1]
+
+			K_merge = [sum([dev.lambd[interface] for dev in subgroup]) for subgroup in groups]
+			K_merge = [LengthAwkSlpCyl(i, DATA_TH) for i in K_merge]
+			K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_merge))
+
+		elif non_degraded_success and len(groups) > 1:
+			msg_execute("non-degraded merge process", pre=prefix)
+		else:
+			msg_warning("reamain only one group", pre=prefix)
+
+
+	# record
+	for i in range(len(groups)):
+		msg_success("Group %d, wake up %d times" % (i, max(K_merge)/K_merge[i]), pre=prefix)
+		for j in groups[i]:
+			j.sleepCycle = K_merge[i]
+			msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
+
+	device.sleepCycle = max(K_merge)
+	msg_success("sleep cycle length = %d with %d groups" % (max(K_merge), len(groups)), pre=prefix)
+	return K_merge
