@@ -5,6 +5,7 @@ import inspect
 import random
 from network import Bearer, getCQIByType
 from config import  traffic, wideband_capacity
+from tdd import *
 from viewer import *
 
 
@@ -21,6 +22,7 @@ class Device(Bearer):
 		self._capacity = {'access':None, 'backhaul':None}
 		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._sleepCycle = 0
+		self._tdd_config = None
 		self.__class__.count += 1
 
 	@property
@@ -51,6 +53,7 @@ class Device(Bearer):
 	def lambd(self):
 		return self._lambd
 
+	# Calculate capacity based on interface
 	@property
 	def capacity(self):
 		"""[summary] get the capacity
@@ -60,36 +63,39 @@ class Device(Bearer):
 		me = type(self).__name__ + str(self.id)
 		prefix = "%s::capacity\t\t" % me
 
-		if self._capacity['access']:
-			print(prefix + "%d (bits)" % self._capacity['access'])
-			return self._capacity
-		elif self._link:
-			self._capacity['access'] = wideband_capacity(self, 'access')
-			print(prefix + "%d (bits)" % self._capacity['access'])
-			return self._capacity
-		else:
-			print(prefix + "no capacity")
-			return
+		try:
+			if self._capacity['access'] or self._capacity['backhaul']:
+				return self._capacity
+			elif self._link:
+				self._capacity['access'] = wideband_capacity(self, 'access')
+				# self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
+				return self._capacity
+			else:
+				msg_warning("no capacity", pre=pre)
+				return
+		except Exception as e:
+			msg_fail(e, pre=prefix)
+
 	@property
 	def virtualCapacity(self):
-	    return self._virtualCapacity
-
-	@virtualCapacity.setter
-	def virtualCapacity(self, VC):
 		me = type(self).__name__ + str(self.id)
 		prefix = "%s::virtualCapacity\t" % me
 
-		if type(VC) is dict:
-			if VC['access']:
-				self._virtualCapacity['access'] = VC['access']
-				print(prefix + "%d (bits)" % self._virtualCapacity['access'])
-			elif VC['backhaul']:
-				self._virtualCapacity['backhaul'] = VC['backhaul']
-				print(prefix + "%d (bits)" % self._virtualCapacity['backhaul'])
+		try:
+			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
+				return self._virtualCapacity
+			elif self._tdd_config and self._link:
+				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
+				self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
+				return self._virtualCapacity
+			elif self._tdd_config:
+				msg_fail("there's no connection to estimate CQI calue", pre=prefix)
+				return
 			else:
-				pass
-		else:
-			msg_fail("assign value should be a dict", pre=prefix)
+				msg_fail("there's no TDD configuration", pre=prefix)
+				return
+		except Exception as e:
+			msg_fail(e, pre=prefix)
 
 	@property
 	def sleepCycle(self):
@@ -98,6 +104,20 @@ class Device(Bearer):
 	@sleepCycle.setter
 	def sleepCycle(self, K):
 		self._sleepCycle = K
+
+	@property
+	def tdd_config(self):
+	    return self._tdd_config
+
+	@tdd_config.setter
+	def tdd_config(self, config):
+		me = type(self).__name__ + str(self.id)
+		prefix = "%s::tdd_config.setter\t" % me
+
+		if config in ONE_HOP_TDD_CONFIG.values() or config in TWO_HOP_TDD_CONFIG.values():
+			self._tdd_config = config
+		else:
+			msg_fail("wrong tdd config setting", pre=prefix)
 
 	def isDevice(testDevice, targetClass):
 		return True if isinstance(testDevice, targetClass) else False
@@ -137,8 +157,8 @@ class Device(Bearer):
 			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
 			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
 
-			msg_execute("%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
-					% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=pre)
+			# msg_execute("%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
+			# 		% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=pre)
 
 		except Exception as e:
 			print(e);
@@ -153,6 +173,7 @@ class UE(Device):
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':0, 'backhaul':0}
 		self._virtualCapacity = {'access':None, 'backhaul':None}
+		self._tdd_config = None
 		self.__parent = None
 		self.__class__.count += 1
 
@@ -177,6 +198,7 @@ class RN(Device):
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':0, 'backhaul':0}
 		self._virtualCapacity = {'access':None, 'backhaul':None}
+		self._tdd_config = None
 		self.__childs = []
 		self.__parent = None
 		self.__class__.count += 1
@@ -195,7 +217,7 @@ class RN(Device):
 			check = list(map(lambda x: Device.isDevice(x, UE), childs))
 			if all(check):
 				self.__childs = childs
-				msg_success("binding Done")
+				msg_success("binding Done", pre=pre)
 
 		except Exception as e:
 			print(e)

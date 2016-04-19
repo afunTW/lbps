@@ -13,7 +13,7 @@ def schedulability(check_list):
 	if result:
 		msg_success("Check schedulability:\tTrue")
 	else:
-		msg_fail("Check schedulability:\tFalse")
+		msg_warning("Check schedulability:\tFalse")
 
 	return result
 
@@ -43,7 +43,7 @@ def aggr(device, interface):
 	# record
 	for i in device.childs:
 		i.sleepCycle = sleep_cycle_length
-		msg_execute("%s.sleepCycle = %d" % (type(i).__name__ + str(i.id), i.sleepCycle), pre=prefix)
+		# msg_execute("%s.sleepCycle = %d" % (type(i).__name__ + str(i.id), i.sleepCycle), pre=prefix)
 
 	device.sleepCycle = sleep_cycle_length
 	msg_success("sleepCycle = %d" % i.sleepCycle ,pre=prefix)
@@ -78,10 +78,10 @@ def split(device, interface):
 
 	# record
 	for i in range(len(groups)):
-		msg_execute("Group %d" % i, pre=prefix)
+		# msg_execute("Group %d" % i, pre=prefix)
 		for j in groups[i]:
 			j.sleepCycle = groups_K[i]
-			msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
+			# msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
 
 	device.sleepCycle = sleep_cycle_length
 	msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
@@ -138,7 +138,7 @@ def merge(device, interface):
 		msg_success("Group %d, wake up %d times" % (i, max(K_merge)/K_merge[i]), pre=prefix)
 		for j in groups[i]:
 			j.sleepCycle = K_merge[i]
-			msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
+			# msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
 
 	device.sleepCycle = max(K_merge)
 	msg_success("sleep cycle length = %d with %d groups" % (max(K_merge), len(groups)), pre=prefix)

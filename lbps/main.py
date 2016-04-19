@@ -17,7 +17,6 @@ users = [UE(M_BUF) for i in range(240)]
 for i in range(len(relays)):
 	relays[i].childs = users[i*40:i*40+40]
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='Video')
-	relays[i].capacity
 
 # LBPS-Aggr, Split, Merge
 TestAggrRN = copy.deepcopy(relays[0])
@@ -30,4 +29,17 @@ merge(TestMergeRN, 'access')
 # TDD
 TDD_config = ONE_HOP_TDD_CONFIG[1]
 TestTDD = copy.deepcopy(relays[0])
-VSC(TestTDD, 'access', TDD_config)
+TestTDD.tdd_config = TDD_config
+
+me = type(TestTDD).__name__ + str(TestTDD.id)
+pre = "%s::TDD::VSC\t\t" % me
+# msg_execute("CQI = %d" % TestTDD.link['access'].CQI, pre=pre)
+msg_execute("virtual capacity = %d" % TestTDD.virtualCapacity['access'], pre=pre)
+
+for i in TestTDD.childs:
+	me = type(i).__name__ + str(i.id)
+	pre = "%s::TDD::VSC\t\t" % me
+
+	i.tdd_config = TDD_config
+	msg_execute("CQI = %d" % i.link['access'][0].CQI, pre=pre)
+	msg_execute("virtual capacity = %d" % i.virtualCapacity['access'], pre=pre)
