@@ -36,37 +36,19 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 				mapping_to_realtimeline[i].append(tracking_list[tracking_index])
 				check_list[tracking_list[tracking_index]] -= VSC
 				tracking_index = (tracking_index+1)%len(tracking_list)
-				print(mapping_to_realtimeline)
-				print(tracking_index)
 				continue
 			else:
-				print([check_list[i] for i in tracking_list])
-				print(all(j > 0 for j in [check_list[i] for i in tracking_list]))
+				tmp = copy.deepcopy(VSC)
 
-				while all(check_list[i] is not 0 for i in tracking_list):
-					mapping_to_realtimeline.append(tracking_list[tracking_index])
+				while any(check_list[i] is not 0 for i in tracking_list) and tmp >0:
+					mapping_to_realtimeline[i].append(tracking_list[tracking_index])
+					tmp -= check_list[tracking_list[tracking_index]]
 					check_list[tracking_list[tracking_index]] = 0
 					tracking_index = (tracking_index+1)%len(tracking_list)
-					# print(tracking_index)
-					# print(check_list)
+					print("tmp\t", end='')
+					print(tmp)
 
-		# print(mapping_to_realtimeline)
-		# print(len(mapping_to_realtimeline))
-		# for i in range(len(schedule_result)):
-		# 	if check_list[tracking_index] >= VSC:
-		# 		mapping_to_realtimeline[i] += schedule_result[i]
-		# 		check_list[tracking_index] -= VSC:
-		# 		tracking_index = (tracking_index+1)%len(check_list)
-		# 		continue
-		# 	else:
-		# 		tmp = copy.deepcopy(VSC)
-
-		# 		while tmp and all(i is not 0 for i in check_list):
-		# 			tmp -= check_list[tracking_index]
-		# 			mapping_to_realtimeline[i] += schedule_result[i]
-		# 			check_list[tracking_index] = 0
-		# 			tracking_index = (tracking_index+1)%len(check_list)
-
+		print(mapping_to_realtimeline)
 		return
 
 	except Exception as e:
