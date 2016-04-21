@@ -119,10 +119,13 @@ class Device(Bearer):
 	def tdd_config(self, config):
 		prefix = "%s::tdd_config.setter\t" % self._name
 
-		if config in ONE_HOP_TDD_CONFIG.values() or config in TWO_HOP_TDD_CONFIG.values():
-			self._tdd_config = config
-		else:
-			msg_fail("wrong tdd config setting", pre=prefix)
+		try:
+			if config in ONE_HOP_TDD_CONFIG.values() or config in TWO_HOP_TDD_CONFIG.values():
+				self._tdd_config = config
+			self.virtualCapacity
+
+		except Exception as e:
+			msg_fail(str(e), pre=prefix)
 
 	def isDevice(testDevice, targetClass):
 		return True if isinstance(testDevice, targetClass) else False
