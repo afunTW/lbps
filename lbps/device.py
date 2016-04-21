@@ -12,8 +12,10 @@ from viewer import *
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(Bearer):
-	def __init__(self, buf={}):
+
+	def __init__(self, buf={}, name=None):
 		self._buf = buf
+		self._name = name
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':None, 'backhaul':None}
@@ -28,7 +30,7 @@ class Device(Bearer):
 
 	@buf.setter
 	def buf(self, buf):
-		prefix = "%s::buf.setter\t\t" % me
+		prefix = "%s::buf.setter\t\t" % self._name
 		try:
 			if type(buf) is dict:
 				buf = {k: v for k, v in buf.items() if k is 'U' or k is 'D'}
@@ -38,6 +40,10 @@ class Device(Bearer):
 				raise Exception("Buffer should be the type of dict.")
 		except Exception as e:
 			msg_fail(str(e), pre=prefix)
+
+	@property
+	def name(self):
+	    return self._name
 
 	@property
 	def link(self):
@@ -54,8 +60,7 @@ class Device(Bearer):
 
 		[description] using wideband in this simulation
 		"""
-		me = type(self).__name__ + str(self.id)
-		prefix = "%s::capacity\t\t" % me
+		prefix = "%s::capacity\t\t" % self._name
 
 		try:
 			if self._capacity['access'] or self._capacity['backhaul']:
@@ -72,8 +77,7 @@ class Device(Bearer):
 
 	@property
 	def virtualCapacity(self):
-		me = type(self).__name__ + str(self.id)
-		prefix = "%s::virtualCapacity\t" % me
+		prefix = "%s::virtualCapacity\t" % self._name
 
 		try:
 			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
@@ -113,8 +117,7 @@ class Device(Bearer):
 
 	@tdd_config.setter
 	def tdd_config(self, config):
-		me = type(self).__name__ + str(self.id)
-		prefix = "%s::tdd_config.setter\t" % me
+		prefix = "%s::tdd_config.setter\t" % self._name
 
 		if config in ONE_HOP_TDD_CONFIG.values() or config in TWO_HOP_TDD_CONFIG.values():
 			self._tdd_config = config
@@ -142,8 +145,8 @@ class Device(Bearer):
 			CQI_type {list} -- [description] (default: {[]})
 			flow {str} -- [description] (default: {'VoIP'})
 		"""
-		me = type(self).__name__ + str(self.id)
-		you = type(dest).__name__ + str(dest.id)
+		me = self._name
+		you = dest._name
 		prefix = "%s::connect\t\t" % me
 
 		try:
@@ -169,14 +172,12 @@ class UE(Device):
 	count = 0
 
 	def __init__(self, buf={}):
-		Device.__init__(self, buf)
-		self._id = self.__class__.count
+		self.__id = self.__class__.count
+		self.__name = self.__class__.__name__ + str(self.__id)
+		Device.__init__(self, buf, self.__name)
+
 		self.__parent = None
 		self.__class__.count += 1
-
-	@property
-	def id(self):
-		return self._id
 
 	@property
 	def parent(self):
@@ -193,15 +194,13 @@ class RN(Device):
 	count = 0
 
 	def __init__(self, buf={}):
-		Device.__init__(self, buf)
-		self._id = self.__class__.count
+		self.__id = self.__class__.count
+		self.__name = self.__class__.__name__ + str(self.__id)
+		Device.__init__(self, buf, self.__name)
+
 		self.__childs = []
 		self.__parent = None
 		self.__class__.count += 1
-
-	@property
-	def id(self):
-		return self._id
 
 	@property
 	def childs(self):
@@ -209,8 +208,7 @@ class RN(Device):
 
 	@childs.setter
 	def childs(self, childs):
-		me = type(self).__name__ + str(self.id)
-		pre = "%s::childs.setter\t" % me
+		pre = "%s::childs.setter\t" % self.__name
 
 		try:
 			childs = list(childs) if childs is not list else childs
@@ -223,8 +221,8 @@ class RN(Device):
 			print(e)
 
 	def connect(self, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
-		me = type(self).__name__ + str(self.id)
-		pre = "%s::connect\t\t" % me
+		pre = "%s::childs.setter\t" % self.__name
+
 		if self.childs:
 			for i in self.__childs:
 				i.connect(self, status, interface, bandwidth, CQI_type, flow)

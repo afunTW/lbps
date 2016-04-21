@@ -34,8 +34,7 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	return result
 
 def aggr(device, interface):
-	me = type(device).__name__ + str(device.id)
-	prefix = "lbps::aggr::%s\t\t" % me
+	prefix = "lbps::aggr::%s\t\t" % device.name
 
 	try:
 		# init
@@ -58,8 +57,7 @@ def aggr(device, interface):
 		return
 
 def split(device, interface):
-	me = type(device).__name__ + str(device.id)
-	prefix = "lbps::split::%s\t" % me
+	prefix = "lbps::split::%s\t" % device.name
 
 	try:
 		# init
@@ -90,7 +88,7 @@ def split(device, interface):
 			msg_execute("Group %d" % i, pre=prefix)
 			for j in groups[i]:
 				j.sleepCycle = groups_K[i]
-				msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
+				msg_execute("%s.sleepCycle = %d" % (j.name, j.sleepCycle), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
 		msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
@@ -100,8 +98,7 @@ def split(device, interface):
 		return
 
 def merge(device, interface):
-	me = type(device).__name__ + str(device.id)
-	prefix = "lbps::merge::%s\t" % me
+	prefix = "lbps::merge::%s\t" % device.name
 
 	try:
 		# init

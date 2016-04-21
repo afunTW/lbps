@@ -23,16 +23,16 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 	for i in device:
 		if type(i) is list:
 			for j in i:
-				msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=pre, suf=suf)
+				msg_execute("%s.sleepCycle = %d" % (j.name, j.sleepCycle), pre=pre, suf=suf)
 		else:
-			msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(i.id), i.sleepCycle), pre=pre, suf=suf)
+			msg_execute("%s.sleepCycle = %d" % (j.name, i.sleepCycle), pre=pre, suf=suf)
 
 def show_aggr_result(device, show=False):
 	deivce_K = [i.sleepCycle for i in device.childs]
 	result = []
 
 	for i in range(deivce_K[0]):
-		result.append([type(i).__name__ + str(i.id) for i in device.childs])
+		result.append([i.name for i in device.childs])
 
 	if show:
 		for i in range(len(result)):
@@ -43,6 +43,9 @@ def show_aggr_result(device, show=False):
 				msg_execute(result[i][j], pre=pre, end=end)
 
 	return result
+
+# def show_split_result(device, show=False):
+	# getGroup
 
 # def show_scheduling_result(device, scheduling, RN=False, TDD=False):
 # 	show = {
