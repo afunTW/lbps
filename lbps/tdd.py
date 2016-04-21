@@ -29,9 +29,29 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 		tracking_list = list(check_list.keys())
 		tracking_index = 0
 
-		# for i in range(len(schedule_result)):
-		# 	if check_list
+		print(tracking_list)
 
+		for i in range(len(schedule_result)):
+			if check_list[tracking_list[tracking_index]] >= VSC:
+				mapping_to_realtimeline[i].append(tracking_list[tracking_index])
+				check_list[tracking_list[tracking_index]] -= VSC
+				tracking_index = (tracking_index+1)%len(tracking_list)
+				print(mapping_to_realtimeline)
+				print(tracking_index)
+				continue
+			else:
+				print([check_list[i] for i in tracking_list])
+				print(all(j > 0 for j in [check_list[i] for i in tracking_list]))
+
+				while all(check_list[i] is not 0 for i in tracking_list):
+					mapping_to_realtimeline.append(tracking_list[tracking_index])
+					check_list[tracking_list[tracking_index]] = 0
+					tracking_index = (tracking_index+1)%len(tracking_list)
+					# print(tracking_index)
+					# print(check_list)
+
+		# print(mapping_to_realtimeline)
+		# print(len(mapping_to_realtimeline))
 		# for i in range(len(schedule_result)):
 		# 	if check_list[tracking_index] >= VSC:
 		# 		mapping_to_realtimeline[i] += schedule_result[i]
