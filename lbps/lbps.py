@@ -5,13 +5,16 @@ from config import bcolors
 from viewer import *
 
 def getLoad(device, interface):
+
 	try:
 		return device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size)
+
 	except Exception as e:
 		msg_fail(str(e), pre="getLoad\t\t\t")
 		return
 
 def schedulability(check_list):
+
 	result = True if sum([1/cycle for cycle in check_list]) <= 1 else False;
 
 	if result:
@@ -22,6 +25,7 @@ def schedulability(check_list):
 	return result
 
 def non_degraded(groups_1, groups_2, interface, DATA_TH):
+
 	sleep_cycle_length_1 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_1]), DATA_TH)
 	sleep_cycle_length_1 = 2**floor(log(sleep_cycle_length_1, 2))
 	sleep_cycle_length_2 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_2]), DATA_TH)
@@ -34,6 +38,7 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	return result
 
 def aggr(device, interface):
+
 	prefix = "lbps::aggr::%s\t\t" % device.name
 
 	try:
@@ -52,11 +57,13 @@ def aggr(device, interface):
 		device.sleepCycle = sleep_cycle_length
 		msg_success("sleepCycle = %d" % i.sleepCycle ,pre=prefix)
 		return sleep_cycle_length
+
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
 
 def split(device, interface):
+
 	prefix = "lbps::split::%s\t" % device.name
 
 	try:
@@ -93,11 +100,13 @@ def split(device, interface):
 		device.sleepCycle = sleep_cycle_length
 		msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
 		return sleep_cycle_length
+
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
 
 def merge(device, interface):
+
 	prefix = "lbps::merge::%s\t" % device.name
 
 	try:
@@ -154,6 +163,7 @@ def merge(device, interface):
 		device.sleepCycle = max(K_merge)
 		msg_success("sleep cycle length = %d with %d groups" % (max(K_merge), len(groups)), pre=prefix)
 		return K_merge
+
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
