@@ -85,10 +85,10 @@ def split(device, interface):
 
 		# record
 		for i in range(len(groups)):
-			msg_execute("Group %d" % i, pre=prefix)
 			for j in groups[i]:
 				j.sleepCycle = groups_K[i]
-				msg_execute("%s.sleepCycle = %d" % (j.name, j.sleepCycle), pre=prefix)
+				j.lbpsGroup = i
+				# msg_execute("%s.sleepCycle = %d\tin Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
 		msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)

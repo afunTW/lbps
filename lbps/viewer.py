@@ -20,6 +20,7 @@ def msg_underline(context, pre='', suf='', end='\n'):
 	print(bcolors.UNDERLINE + pre + context + suf + bcolors.ENDC, end=end)
 
 def show_sleepCycle(device, pre='', suf='', end='\n'):
+
 	for i in device:
 		if type(i) is list:
 			for j in i:
@@ -28,6 +29,7 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 			msg_execute("%s.sleepCycle = %d" % (j.name, i.sleepCycle), pre=pre, suf=suf)
 
 def show_aggr_result(device, show=False):
+
 	deivce_K = [i.sleepCycle for i in device.childs]
 	result = []
 
@@ -36,16 +38,27 @@ def show_aggr_result(device, show=False):
 
 	if show:
 		for i in range(len(result)):
-			msg_execute("aggr::result\t\tsubframe %d\t" % i)
-			for j in range(len(result[i])):
-				pre = '\t\t\t' if (j+1) % 5 is 1 else '\t'
-				end = '\n' if (j+1) % 5 is 0 else '\t'
-				msg_execute(result[i][j], pre=pre, end=end)
+			msg_execute(str(result[i]), pre="aggr::result\t\tsubframe %d\t" % i)
 
 	return result
 
-# def show_split_result(device, show=False):
-	# getGroup
+def show_split_result(device, show=False):
+
+	result = []
+
+	groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+	for i in device.childs:
+		groups[i.lbpsGroup].append(i.name)
+
+	for i in groups:
+		result.append(groups[i])
+
+	if show:
+		for i in range(len(result)):
+			msg_execute(str(result[i]), pre="split::result\t\tsubframe %d\tGroup %d:\t" % (i, i))
+
+	return result
+
 
 # def show_scheduling_result(device, scheduling, RN=False, TDD=False):
 # 	show = {
