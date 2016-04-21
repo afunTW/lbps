@@ -4,10 +4,11 @@ from poisson import getDataTH, LengthAwkSlpCyl
 from config import bcolors
 from viewer import *
 
-def getLoad(device, interface):
+def getLoad(device, interface, duplex="FDD"):
 
 	try:
-		return device.lambd[interface]/(device.capacity[interface]/device.link[interface][0].pkt_size)
+		capacity = device.virtualCapacity[interface] if duplex is "TDD" and device.virtualCapacity[interface] else device.capacity[interface]
+		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
 
 	except Exception as e:
 		msg_fail(str(e), pre="getLoad\t\t\t")
