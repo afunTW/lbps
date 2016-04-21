@@ -148,7 +148,8 @@ def merge(device, interface):
 			msg_success("Group %d, wake up %d times" % (i, max(K_merge)/K_merge[i]), pre=prefix)
 			for j in groups[i]:
 				j.sleepCycle = K_merge[i]
-				# msg_execute("%s.sleepCycle = %d" % (type(j).__name__ + str(j.id), j.sleepCycle), pre=prefix)
+				j.lbpsGroup = i
+				# msg_execute("%s.sleepCycle = %d\t in Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
 		device.sleepCycle = max(K_merge)
 		msg_success("sleep cycle length = %d with %d groups" % (max(K_merge), len(groups)), pre=prefix)

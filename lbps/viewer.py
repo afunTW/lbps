@@ -28,7 +28,7 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 		else:
 			msg_execute("%s.sleepCycle = %d" % (j.name, i.sleepCycle), pre=pre, suf=suf)
 
-def show_aggr_result(device, show=False):
+def aggr_result(device, show=False):
 
 	deivce_K = [i.sleepCycle for i in device.childs]
 	result = []
@@ -42,11 +42,11 @@ def show_aggr_result(device, show=False):
 
 	return result
 
-def show_split_result(device, show=False):
+def split_result(device, show=False):
 
 	result = []
-
 	groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+
 	for i in device.childs:
 		groups[i.lbpsGroup].append(i.name)
 
@@ -59,6 +59,38 @@ def show_split_result(device, show=False):
 
 	return result
 
+def merge_result(device, show=False):
+
+	result = []
+	groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+	groups_K = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+	K = {}
+	queue = []
+
+	for i in device.childs:
+		groups[i.lbpsGroup].append(i.name)
+		groups_K[i.lbpsGroup] = i.sleepCycle
+		K.update({groups_K[i.lbpsGroup]:[]})
+
+	for i in groups_K:
+		K[groups_K[i]].append(i)
+
+	for i in range(max(K)):
+
+		for k in K.keys():
+			queue += K[k] if i%(k-1) is 0 else []
+
+		if queue:
+			result.append(queue[0])
+			del queue[0]
+		else:
+			result.append(None)
+
+	if show:
+		for i in range(len(result)):
+			msg_execute(str(groups[result[i]]), pre="merge::result\t\tsubframe %d\tGroup %d:\t" % (i, result[i]))
+
+	return result
 
 # def show_scheduling_result(device, scheduling, RN=False, TDD=False):
 # 	show = {

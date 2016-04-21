@@ -21,25 +21,30 @@ for i in range(len(relays)):
 # LBPS-Aggr, Split, Merge
 TestAggrRN = copy.deepcopy(relays[0])
 aggr(TestAggrRN, 'access')
+aggr_result(TestAggrRN, show=True)
+
 TestSplitRN = copy.deepcopy(relays[0])
 split(TestSplitRN, 'access')
+split_result(TestSplitRN, show=True)
+
 TestMergeRN = copy.deepcopy(relays[0])
 merge(TestMergeRN, 'access')
+merge_result(TestMergeRN, show=True)
 
-# TDD
-TDD_config = ONE_HOP_TDD_CONFIG[1]
-TestTDD = copy.deepcopy(relays[0])
-TestTDD.tdd_config = TDD_config
+# # TDD
+# TDD_config = ONE_HOP_TDD_CONFIG[1]
+# TestTDD = copy.deepcopy(relays[0])
+# TestTDD.tdd_config = TDD_config
 
-me = type(TestTDD).__name__ + str(TestTDD.id)
-pre = "%s::TDD::VSC\t\t" % me
-# msg_execute("CQI = %d" % TestTDD.link['access'].CQI, pre=pre)
-msg_execute("virtual capacity = %d" % TestTDD.virtualCapacity['access'], pre=pre)
+# me = type(TestTDD).__name__ + str(TestTDD.id)
+# pre = "%s::TDD::VSC\t\t" % me
+# # msg_execute("CQI = %d" % TestTDD.link['access'].CQI, pre=pre)
+# msg_execute("virtual capacity = %d" % TestTDD.virtualCapacity['access'], pre=pre)
 
-for i in TestTDD.childs:
-	me = type(i).__name__ + str(i.id)
-	pre = "%s::TDD::VSC\t\t" % me
+# for i in TestTDD.childs:
+# 	me = type(i).__name__ + str(i.id)
+# 	pre = "%s::TDD::VSC\t\t" % me
 
-	i.tdd_config = TDD_config
-	msg_execute("CQI = %d" % i.link['access'][0].CQI, pre=pre)
-	msg_execute("virtual capacity = %d" % i.virtualCapacity['access'], pre=pre)
+# 	i.tdd_config = TDD_config
+# 	msg_execute("CQI = %d" % i.link['access'][0].CQI, pre=pre)
+# 	msg_execute("virtual capacity = %d" % i.virtualCapacity['access'], pre=pre)
