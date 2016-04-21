@@ -91,14 +91,15 @@ def merge_result(device, show=False):
 			queue += K[k] if i%(k-1) is 0 else []
 
 		if queue:
-			result.append(queue[0])
+			result.append(groups[queue[0]])
 			del queue[0]
 		else:
 			result.append(None)
 
 	if show:
 		for i in range(len(result)):
-			msg_execute(str(groups[result[i]]), pre="merge::result\t\tsubframe %d\tGroup %d:\t" % (i, result[i]))
+			group_number = list(groups.keys())[list(groups.values()).index(result[i])]
+			msg_execute(str(result[i]), pre="merge::result\t\tsubframe %d\tGroup %d:\t" % (i, group_number))
 
 	return result
 

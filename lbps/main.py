@@ -21,29 +21,28 @@ for i in range(len(relays)):
 # LBPS-Aggr, Split, Merge
 TestAggrRN = copy.deepcopy(relays[0])
 aggr(TestAggrRN, 'access')
-scheduling_result(TestAggrRN, 'aggr', show=True)
+result = scheduling_result(TestAggrRN, 'aggr', show=True)
 
 TestSplitRN = copy.deepcopy(relays[0])
 split(TestSplitRN, 'access')
-scheduling_result(TestSplitRN, 'split', show=True)
+result = scheduling_result(TestSplitRN, 'split', show=True)
 
 TestMergeRN = copy.deepcopy(relays[0])
 merge(TestMergeRN, 'access')
-scheduling_result(TestMergeRN, 'merge', show=True)
+result = scheduling_result(TestMergeRN, 'merge', show=True)
+
 
 # # TDD
 # TDD_config = ONE_HOP_TDD_CONFIG[1]
 # TestTDD = copy.deepcopy(relays[0])
 # TestTDD.tdd_config = TDD_config
 
-# me = type(TestTDD).__name__ + str(TestTDD.id)
-# pre = "%s::TDD::VSC\t\t" % me
+# pre = "%s::TDD::VSC\t\t" % TestTDD.name
 # # msg_execute("CQI = %d" % TestTDD.link['access'].CQI, pre=pre)
 # msg_execute("virtual capacity = %d" % TestTDD.virtualCapacity['access'], pre=pre)
 
 # for i in TestTDD.childs:
-# 	me = type(i).__name__ + str(i.id)
-# 	pre = "%s::TDD::VSC\t\t" % me
+# 	pre = "%s::TDD::VSC\t\t" % i.name
 
 # 	i.tdd_config = TDD_config
 # 	msg_execute("CQI = %d" % i.link['access'][0].CQI, pre=pre)
