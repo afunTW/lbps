@@ -12,22 +12,15 @@ from viewer import *
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(Bearer):
-	count=0
-
 	def __init__(self, buf={}):
-		self._id = self.__class__.count
 		self._buf = buf
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':None, 'backhaul':None}
 		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._sleepCycle = 0
+		self._lbpsGroup = None
 		self._tdd_config = None
-		self.__class__.count += 1
-
-	@property
-	def id(self):
-		return self._id
 
 	@property
 	def buf(self):
@@ -35,6 +28,7 @@ class Device(Bearer):
 
 	@buf.setter
 	def buf(self, buf):
+		prefix = "%s::buf.setter\t\t" % me
 		try:
 			if type(buf) is dict:
 				buf = {k: v for k, v in buf.items() if k is 'U' or k is 'D'}
@@ -43,7 +37,7 @@ class Device(Bearer):
 			else:
 				raise Exception("Buffer should be the type of dict.")
 		except Exception as e:
-			print(e)
+			msg_fail(str(e), pre=prefix)
 
 	@property
 	def link(self):
@@ -74,7 +68,7 @@ class Device(Bearer):
 				msg_warning("no capacity", pre=pre)
 				return
 		except Exception as e:
-			msg_fail(e, pre=prefix)
+			msg_fail(str(e), pre=prefix)
 
 	@property
 	def virtualCapacity(self):
@@ -95,7 +89,7 @@ class Device(Bearer):
 				msg_fail("there's no TDD configuration", pre=prefix)
 				return
 		except Exception as e:
-			msg_fail(e, pre=prefix)
+			msg_fail(str(e), pre=prefix)
 
 	@property
 	def sleepCycle(self):
@@ -104,6 +98,14 @@ class Device(Bearer):
 	@sleepCycle.setter
 	def sleepCycle(self, K):
 		self._sleepCycle = K
+
+	@property
+	def lbpsGroup(self):
+	    return self._lbpsGroup
+
+	@lbpsGroup.setter
+	def lbpsGroup(self, group):
+		self._lbpsGroup = group if type(group) is int else None
 
 	@property
 	def tdd_config(self):
@@ -142,7 +144,7 @@ class Device(Bearer):
 		"""
 		me = type(self).__name__ + str(self.id)
 		you = type(dest).__name__ + str(dest.id)
-		pre = "%s::connect\t\t" % me
+		prefix = "%s::connect\t\t" % me
 
 		try:
 			CQI_range = getCQIByType(CQI_type)
@@ -161,21 +163,20 @@ class Device(Bearer):
 			# 		% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=pre)
 
 		except Exception as e:
-			print(e);
+			msg_fail(str(e), pre=prefix);
 
 class UE(Device):
 	count = 0
 
 	def __init__(self, buf={}):
+		Device.__init__(self, buf)
 		self._id = self.__class__.count
-		self._buf = buf
-		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = {'access':0, 'backhaul':0}
-		self._capacity = {'access':0, 'backhaul':0}
-		self._virtualCapacity = {'access':None, 'backhaul':None}
-		self._tdd_config = None
 		self.__parent = None
 		self.__class__.count += 1
+
+	@property
+	def id(self):
+		return self._id
 
 	@property
 	def parent(self):
@@ -192,16 +193,15 @@ class RN(Device):
 	count = 0
 
 	def __init__(self, buf={}):
+		Device.__init__(self, buf)
 		self._id = self.__class__.count
-		self._buf = buf
-		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = {'access':0, 'backhaul':0}
-		self._capacity = {'access':0, 'backhaul':0}
-		self._virtualCapacity = {'access':None, 'backhaul':None}
-		self._tdd_config = None
 		self.__childs = []
 		self.__parent = None
 		self.__class__.count += 1
+
+	@property
+	def id(self):
+		return self._id
 
 	@property
 	def childs(self):
@@ -237,12 +237,8 @@ class RN(Device):
 
 # 	def __init__(self, buf={}):
 # 		self._id = self.__class__.count
-# 		self._buf = buf
-# 		self._link = {'access':[], 'backhaul':[]}
-# 		self._lambd = {'access':0, 'backhaul':0}
 # 		self.__childs = []
 # 		self.__class__.count += 1
-# 		# print("eNB::init::id\t%d" % self.id)
 
 # 	@property
 # 	def childs(self):
