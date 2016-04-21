@@ -21,15 +21,15 @@ for i in range(len(relays)):
 # LBPS-Aggr, Split, Merge
 TestAggrRN = copy.deepcopy(relays[0])
 aggr(TestAggrRN, 'access')
-aggr_result(TestAggrRN, show=True)
+scheduling_result(TestAggrRN, 'aggr', show=True)
 
 TestSplitRN = copy.deepcopy(relays[0])
 split(TestSplitRN, 'access')
-split_result(TestSplitRN, show=True)
+scheduling_result(TestSplitRN, 'split', show=True)
 
 TestMergeRN = copy.deepcopy(relays[0])
 merge(TestMergeRN, 'access')
-merge_result(TestMergeRN, show=True)
+scheduling_result(TestMergeRN, 'merge', show=True)
 
 # # TDD
 # TDD_config = ONE_HOP_TDD_CONFIG[1]

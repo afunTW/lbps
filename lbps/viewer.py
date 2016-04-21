@@ -4,6 +4,11 @@
 import matplotlib.pyplot as plt
 from config import bcolors
 
+"""[summary] print with color tag
+
+[description]
+"""
+
 def msg_execute(context, pre='', suf='', end='\n'):
 	print(bcolors.OKBLUE + pre + context + suf + bcolors.ENDC, end=end)
 def msg_success(context, pre='', suf='', end='\n'):
@@ -18,6 +23,11 @@ def msg_bold(context, pre='', suf='', end='\n'):
 	print(bcolors.BOLD + pre + context + suf + bcolors.ENDC, end=end)
 def msg_underline(context, pre='', suf='', end='\n'):
 	print(bcolors.UNDERLINE + pre + context + suf + bcolors.ENDC, end=end)
+
+"""[summary] lbps supporting
+
+[description]
+"""
 
 def show_sleepCycle(device, pre='', suf='', end='\n'):
 
@@ -92,8 +102,11 @@ def merge_result(device, show=False):
 
 	return result
 
-# def show_scheduling_result(device, scheduling, RN=False, TDD=False):
-# 	show = {
-# 		"aggr":
+scheduling_mapping = {
+	"aggr": aggr_result,
+	"split": split_result,
+	"merge": merge_result
+}
 
-# 	}
+def scheduling_result(device, scheduling, RN=False, TDD=False, show=False):
+	return scheduling_mapping[scheduling](device, show)
