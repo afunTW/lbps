@@ -53,19 +53,8 @@ def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
 		else: pkt+= 1;
 	return d_K if view is True else pkt;
 
-def getDataTH(buf_size, pkt_size, percent=0.8):
-	"""[summary] get DATA_TH
-
-	[description] check the capability and return how many packet could buffer in queue
-
-	Arguments:
-		buf_size {int} -- [description] (bits)
-		pkt_size {int} -- [description] (bits)
-
-	Keyword Arguments:
-		percent {number} -- [description] (default: {0.8})
-	"""
-	return (buf_size/pkt_size)*percent
+def getDataTH(capacity, pkt_size, percent=0.8):
+	return (capacity/pkt_size)*percent
 
 if __name__ == "__main__":
 
