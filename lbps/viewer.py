@@ -40,68 +40,105 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 
 def aggr_result(device, show=False):
 
-	deivce_K = [i.sleepCycle for i in device.childs]
-	result = []
+	try:
+		pre = "%s::aggr::result\t" % device.name
 
-	for i in range(deivce_K[0]):
-		result.append([i.name for i in device.childs])
+		deivce_K = [i.sleepCycle for i in device.childs]
+		result = []
 
-	if show:
-		for i in range(len(result)):
-			msg_execute(str(result[i]), pre="aggr::result\t\tsubframe %d\t" % i)
+		for i in range(deivce_K[0]):
+			result.append([i.name for i in device.childs])
 
-	return result
+		if show:
+			for i in range(len(result)):
+				msg_execute("subframe %d:\t%s" % (i,str(result[i])), pre=pre)
+
+		return result
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
 
 def split_result(device, show=False):
 
-	result = []
-	groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+	try:
+		pre = "%s::split::result\t" % device.name
 
-	for i in device.childs:
-		groups[i.lbpsGroup].append(i.name)
+		result = []
+		groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
 
-	for i in groups:
-		result.append(groups[i])
+		for i in device.childs:
+			groups[i.lbpsGroup].append(i.name)
 
-	if show:
-		for i in range(len(result)):
-			msg_execute(str(result[i]), pre="split::result\t\tsubframe %d\tGroup %d:\t" % (i, i))
+		for i in groups:
+			result.append(groups[i])
 
-	return result
+		if show:
+			for i in range(len(result)):
+				msg_execute("subframe %d:\tGroup %d:\t%s" % (i, i, str(result[i])), pre=pre)
+
+		return result
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
 
 def merge_result(device, show=False):
 
-	result = []
-	groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
-	groups_K = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
-	K = {}
-	queue = []
+	try:
+		pre = "%s::merge::result\t" % device.name
 
-	for i in device.childs:
-		groups[i.lbpsGroup].append(i.name)
-		groups_K[i.lbpsGroup] = i.sleepCycle
-		K.update({groups_K[i.lbpsGroup]:[]})
+		result = []
+		groups = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+		groups_K = {i:[] for i in range(max([g.lbpsGroup for g in device.childs])+1)}
+		K = {}
+		queue = []
 
-	for i in groups_K:
-		K[groups_K[i]].append(i)
+		for i in device.childs:
+			groups[i.lbpsGroup].append(i.name)
+			groups_K[i.lbpsGroup] = i.sleepCycle
+			K.update({groups_K[i.lbpsGroup]:[]})
 
-	for i in range(max(K)):
+		for i in groups_K:
+			K[groups_K[i]].append(i)
 
-		for k in K.keys():
-			queue += K[k] if i%(k-1) is 0 else []
+		for i in range(max(K)):
 
-		if queue:
-			result.append(groups[queue[0]])
-			del queue[0]
-		else:
-			result.append(None)
+			for k in K.keys():
+				queue += K[k] if i%(k-1) is 0 else []
 
-	if show:
-		for i in range(len(result)):
-			group_number = list(groups.keys())[list(groups.values()).index(result[i])]
-			msg_execute(str(result[i]), pre="merge::result\t\tsubframe %d\tGroup %d:\t" % (i, group_number))
+			if queue:
+				result.append(groups[queue[0]])
+				del queue[0]
+			else:
+				result.append(None)
 
-	return result
+		if show:
+			for i in range(len(result)):
+				group_number = list(groups.keys())[list(groups.values()).index(result[i])]
+				msg_execute("subframe %d:\tGroup %d:\t%s" % (i, group_number, str(result[i])), pre=pre)
+
+		return result
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
+def M3_result(device, schedule_result, map_result, show=False):
+
+	try:
+		pre = "%s::M3::result\t\t" % device.name
+
+		TDD_config = device.tdd_config
+		result = { i:[] for i in range(len(schedule_result))}
+
+		for i in range(len(map_result)):
+			for j in map_result[i]:
+				result[j] += schedule_result[i]
+
+		if show:
+			for i in range(len(result)):
+				msg_execute("subframe %d\t[%s]:\t%s" % (i, TDD_config[i%len(TDD_config)], str(result[i])), pre=pre)
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
 
 scheduling_mapping = {
 	"aggr": aggr_result,
