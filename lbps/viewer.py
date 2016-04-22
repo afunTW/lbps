@@ -113,8 +113,9 @@ def merge_result(device, show=False):
 
 		if show:
 			for i in range(len(result)):
-				group_number = list(groups.keys())[list(groups.values()).index(result[i])]
-				msg_execute("subframe %d:\tGroup %d:\t%s" % (i, group_number, str(result[i])), pre=pre)
+				group_number = list(groups.keys())[list(groups.values()).index(result[i])] if result[i] else None
+				suf = "Group %d:\t%s" % (group_number, str(result[i])) if group_number else "None"
+				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
 

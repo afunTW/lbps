@@ -11,8 +11,23 @@ def getLoad(device, interface, duplex="FDD"):
 		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
 
 	except Exception as e:
-		msg_fail(str(e), pre="getLoad\t\t\t")
+		msg_fail(str(e), pre="%s::getLoad\t\t" % device.name)
 		return
+
+def getCapacity(device, interface, duplex):
+
+	try:
+		duplex = duplex.upper() if type(duplex) is str else ""
+
+		if duplex == 'FDD':
+			return device.capacity[interface]
+		elif duplex == 'TDD' and device.virtualCapacity[interface]:
+			return device.virtualCapacity[interface]
+		else:
+			return 0
+
+	except Exception as e:
+		msg_fail(str(e), pre="%s::getCapacity\t\t" % device.name)
 
 def schedulability(check_list):
 
@@ -38,14 +53,15 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
 	return result
 
-def aggr(device, interface):
+def aggr(device, interface, duplex='FDD'):
 
 	prefix = "lbps::aggr::%s\t\t" % device.name
 
 	try:
-		# init
-		DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
-		print(prefix + "load= %g\t" % getLoad(device, interface))
+
+		capacity = getCapacity(device, interface, duplex)
+		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
+		msg_success("load= %g\t" % getLoad(device, interface), pre=prefix)
 
 		# aggr process
 		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
@@ -53,7 +69,7 @@ def aggr(device, interface):
 		# record
 		for i in device.childs:
 			i.sleepCycle = sleep_cycle_length
-			# msg_execute("%s.sleepCycle = %d" % (type(i).__name__ + str(i.id), i.sleepCycle), pre=prefix)
+			msg_execute("%s.sleepCycle = %d" % (i.name, i.sleepCycle), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
 		msg_success("sleepCycle = %d" % i.sleepCycle ,pre=prefix)
@@ -63,14 +79,15 @@ def aggr(device, interface):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def split(device, interface):
+def split(device, interface, duplex='FDD'):
 
 	prefix = "lbps::split::%s\t" % device.name
 
 	try:
 		# init
-		DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
-		print(prefix + "load= %g\t" % getLoad(device, interface))
+		capacity = getCapacity(device, interface, duplex)
+		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
+		msg_success("load= %g\t" % getLoad(device, interface), pre=prefix)
 
 		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
 		groups = [copy.deepcopy(device.childs)]
@@ -106,13 +123,14 @@ def split(device, interface):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def merge(device, interface):
+def merge(device, interface, duplex='FDD'):
 
 	prefix = "lbps::merge::%s\t" % device.name
 
 	try:
 		# init
-		DATA_TH = getDataTH(device.buf['D'], device.link[interface][0].pkt_size)
+		capacity = getCapacity(device, interface, duplex)
+		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
 		print(prefix + "load= %g\t" % getLoad(device, interface))
 
 		groups = [[i] for i in device.childs]
