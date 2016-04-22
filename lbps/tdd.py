@@ -1,5 +1,5 @@
 import copy
-from viewer import msg_fail
+from viewer import msg_fail, M3_result
 from math import ceil
 from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
 
@@ -8,13 +8,13 @@ def virtual_subframe_capacity(device, interface, TDD_config):
 
 	if device.link[interface]:
 		status = device.link[interface][0].status
-		real_subframe_count = len(list(filter(lambda x: x  if x is status else '', TDD_config)))
+		real_subframe_count = len(list(filter(lambda x: x  if x == status else '', TDD_config)))
 		VSC = {interface:device.capacity[interface]*real_subframe_count/len(TDD_config)}
 		return VSC
 	else:
 		return {interface:None}
 
-def one_to_one_first_mapping(device, interface, schedule_result):
+def one_to_one_first_mapping(device, interface, schedule_result, show=False):
 
 	try:
 		status = device.link[interface][0].status
@@ -26,11 +26,10 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 
 		mapping_to_realtimeline = [[] for i in range(len(real_subframe))]
 		check_list = {i:RSC for i in range(len(real_subframe)) if real_subframe[i] is status}
-		tracking_list = list(check_list.keys())
+		tracking_list = list(sorted(check_list.keys()))
 		tracking_index = 0
 
-		print(tracking_list)
-
+		# mapping
 		for i in range(len(schedule_result)):
 			if check_list[tracking_list[tracking_index]] >= VSC:
 				mapping_to_realtimeline[i].append(tracking_list[tracking_index])
@@ -45,11 +44,11 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 					tmp -= check_list[tracking_list[tracking_index]]
 					check_list[tracking_list[tracking_index]] = 0
 					tracking_index = (tracking_index+1)%len(tracking_list)
-					print("tmp\t", end='')
-					print(tmp)
 
-		print(mapping_to_realtimeline)
-		return
+		# record
+		result = M3_result(device, schedule_result, mapping_to_realtimeline, show)
+
+		return result
 
 	except Exception as e:
 		msg_fail(str(e), pre="mapping::M3\t\t")
