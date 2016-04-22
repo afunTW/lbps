@@ -69,7 +69,7 @@ def aggr(device, interface, duplex='FDD'):
 		# record
 		for i in device.childs:
 			i.sleepCycle = sleep_cycle_length
-			msg_execute("%s.sleepCycle = %d" % (i.name, i.sleepCycle), pre=prefix)
+			# msg_execute("%s.sleepCycle = %d" % (i.name, i.sleepCycle), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
 		msg_success("sleepCycle = %d" % i.sleepCycle ,pre=prefix)
@@ -131,7 +131,7 @@ def merge(device, interface, duplex='FDD'):
 		# init
 		capacity = getCapacity(device, interface, duplex)
 		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
-		print(prefix + "load= %g\t" % getLoad(device, interface))
+		msg_success("load= %g\t" % getLoad(device, interface), pre=prefix)
 
 		groups = [[i] for i in device.childs]
 		groups_load = [i.lambd[interface] for i in device.childs]
@@ -170,10 +170,9 @@ def merge(device, interface, duplex='FDD'):
 			else:
 				msg_warning("reamain only one group", pre=prefix)
 
-
 		# record
 		for i in range(len(groups)):
-			msg_success("Group %d, wake up %d times" % (i, max(K_merge)/K_merge[i]), pre=prefix)
+			# msg_execute("Group %d, wake up %d times" % (i, max(K_merge)/K_merge[i]), pre=prefix)
 			for j in groups[i]:
 				j.sleepCycle = K_merge[i]
 				j.lbpsGroup = i

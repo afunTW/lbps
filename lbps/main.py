@@ -18,7 +18,14 @@ for i in range(len(relays)):
 	relays[i].childs = users[i*40:i*40+40]
 	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='Video')
 
-# # LBPS-Aggr, Split, Merge
+"""[summary] LBPS basic scheme
+
+[description]
+1. Aggr
+2. Split
+3. Merge
+"""
+
 # TestAggrRN = copy.deepcopy(relays[0])
 # aggr(TestAggrRN, 'access')
 # result = scheduling_result(TestAggrRN, 'aggr', show=True)
@@ -31,35 +38,33 @@ for i in range(len(relays)):
 # merge(TestMergeRN, 'access')
 # result = scheduling_result(TestMergeRN, 'merge', show=True)
 
-# LBPS with TDD
+"""[summary] LBPS basic scheme with TDD
+
+[description]
+1. Aggr in TDD
+2. Split in TDD
+3. Merge in TDD
+
+only RN will be assign TDD configuration so far
+
+"""
+
 TDD_config = ONE_HOP_TDD_CONFIG[1]
 
-# TestAggrRN = copy.deepcopy(relays[0])
-# TestAggrRN.tdd_config = TDD_config
-# aggr(TestAggrRN, 'access')
-# result = scheduling_result(TestAggrRN, 'aggr', show=True)
+TestAggrRN = copy.deepcopy(relays[0])
+TestAggrRN.tdd_config = TDD_config
+aggr(TestAggrRN, 'access', 'TDD')
+result = scheduling_result(TestAggrRN, 'aggr', show=False)
+M3(TestAggrRN, 'access', result, show=True)
 
+TestSplitRN = copy.deepcopy(relays[0])
+TestSplitRN.tdd_config = TDD_config
+split(TestSplitRN, 'access', 'TDD')
+result = scheduling_result(TestSplitRN, 'split', show=False)
+M3(TestSplitRN, 'access', result, show=True)
 
 TestMergeRN = copy.deepcopy(relays[0])
 TestMergeRN.tdd_config = TDD_config
-merge(TestMergeRN, 'access')
-result = scheduling_result(TestMergeRN, 'merge', show=True)
-
-M3(TestMergeRN, 'access', result)
-
-# pre = "%s::TDD::VSC\t\t" % TestAggrRN.name
-# msg_execute("virtual capacity = %d" % TestAggrRN.virtualCapacity['access'], pre=pre)
-
-# TestTDD = copy.deepcopy(relays[0])
-# TestTDD.tdd_config = TDD_config
-
-# pre = "%s::TDD::VSC\t\t" % TestTDD.name
-# msg_execute("CQI = %d" % TestTDD.link['access'].CQI, pre=pre)
-# msg_execute("virtual capacity = %d" % TestTDD.virtualCapacity['access'], pre=pre)
-
-# for i in TestTDD.childs:
-# 	pre = "%s::TDD::VSC\t\t" % i.name
-
-# 	i.tdd_config = TDD_config
-# 	msg_execute("CQI = %d" % i.link['access'][0].CQI, pre=pre)
-# 	msg_execute("virtual capacity = %d" % i.virtualCapacity['access'], pre=pre)
+merge(TestMergeRN, 'access', 'TDD')
+result = scheduling_result(TestMergeRN, 'merge', show=False)
+M3(TestMergeRN, 'access', result, show=True)

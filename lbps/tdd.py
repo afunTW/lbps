@@ -1,5 +1,5 @@
 import copy
-from viewer import msg_fail, M3_result
+from viewer import msg_fail, msg_warning, M3_result
 from math import ceil
 from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
 
@@ -15,6 +15,8 @@ def virtual_subframe_capacity(device, interface, TDD_config):
 		return {interface:None}
 
 def one_to_one_first_mapping(device, interface, schedule_result, show=False):
+
+	pre = "mapping::M3\t\t"
 
 	try:
 		status = device.link[interface][0].status
@@ -44,6 +46,8 @@ def one_to_one_first_mapping(device, interface, schedule_result, show=False):
 					tmp -= check_list[tracking_list[tracking_index]]
 					check_list[tracking_list[tracking_index]] = 0
 					tracking_index = (tracking_index+1)%len(tracking_list)
+				if tmp > 0:
+					msg_warning("needs more %g bits capacity" % tmp, pre=pre)
 
 		# record
 		result = M3_result(device, schedule_result, mapping_to_realtimeline, show)
@@ -51,4 +55,4 @@ def one_to_one_first_mapping(device, interface, schedule_result, show=False):
 		return result
 
 	except Exception as e:
-		msg_fail(str(e), pre="mapping::M3\t\t")
+		msg_fail(str(e), pre=pre)

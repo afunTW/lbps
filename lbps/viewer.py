@@ -131,8 +131,10 @@ def M3_result(device, schedule_result, map_result, show=False):
 		result = { i:[] for i in range(len(schedule_result))}
 
 		for i in range(len(map_result)):
-			for j in map_result[i]:
-				result[j] += schedule_result[i]
+			if schedule_result[i]:
+				for j in map_result[i]:
+					result[j] += schedule_result[i]
+					result[j] = list(set(result[j]))
 
 		if show:
 			for i in range(len(result)):
