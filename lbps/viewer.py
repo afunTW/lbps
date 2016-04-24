@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from config import bcolors
 
 """[summary] print with color tag
