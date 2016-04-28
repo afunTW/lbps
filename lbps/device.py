@@ -81,12 +81,10 @@ class Device(Bearer):
 
 		try:
 			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
-				print("1")
 				return self._virtualCapacity
 			elif self._tdd_config and self._link:
-				print("2")
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
-				self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
+				# self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
 				return self._virtualCapacity
 			elif self._tdd_config:
 				msg_fail("there's no connection to estimate CQI calue", pre=prefix)
