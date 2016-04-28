@@ -8,7 +8,6 @@ from config import  traffic, wideband_capacity
 from tdd import *
 from viewer import *
 
-
 def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(err)))
 
 class Device(Bearer):
@@ -82,8 +81,10 @@ class Device(Bearer):
 
 		try:
 			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
+				print("1")
 				return self._virtualCapacity
 			elif self._tdd_config and self._link:
+				print("2")
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
 				return self._virtualCapacity
@@ -237,6 +238,48 @@ class RN(Device):
 
 		elif interface is 'backhaul' and self.__parent:
 			super().connect(self.__parent, status, interface, bandwidth, CQI_type, flow)
+
+		else:
+			msg_fail("failed", pre=pre)
+			return
+
+		msg_success("Done", pre=pre)
+
+class eNB(Device):
+	count = 0
+
+	def __init__(self, buf={}):
+		self.__id = self.__class__.count
+		self.__name = self.__class__.__name__ + str(self.__id)
+		super().__init__(buf, self.__name)
+
+		self.__childs = []
+		self.__class__.count += 1
+
+	@property
+	def childs(self):
+		return self.__childs
+
+	@childs.setter
+	def childs(self, childs):
+		pre = "%s::childs.setter\t" % self.__name
+
+		try:
+			childs = list(childs) if type(childs) is not list else childs
+			check = list(map(lambda x: Device.isDevice(x, RN), childs))
+			if all(check):
+				self.__childs = childs
+				msg_success("binding Done", pre=pre)
+
+		except Exception as e:
+			print(e)
+
+	def connect(self, status='D', interface='backhaul', bandwidth=0, CQI_type=[], flow='VoIP'):
+		pre = "%s::childs.connect\t" % self.__name
+
+		if interface is 'backhaul' and self.__childs:
+			for i in self.__childs:
+				super().connect(i, status, interface, bandwidth, CQI_type, flow)
 
 		else:
 			msg_fail("failed", pre=pre)

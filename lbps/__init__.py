@@ -3,7 +3,7 @@
 
 import random
 import copy
-from device import UE, RN
+from device import UE, RN, eNB
 from config import *
 from viewer import *
 from lbps import aggr, split, merge
