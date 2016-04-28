@@ -80,7 +80,7 @@ def load_based_power_saving(device, scheduling, interface, RN=None, TDD=False, s
 
 def aggr(device, interface, duplex='FDD'):
 
-	prefix = "lbps::aggr::%s\t\t" % device.name
+	prefix = "lbps::aggr::%s \t" % device.name
 
 	try:
 
