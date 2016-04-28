@@ -49,10 +49,7 @@ def one_to_one_first_mapping(device, interface, schedule_result, show=False):
 				if tmp > 0:
 					msg_warning("needs more %g bits capacity" % tmp, pre=pre)
 
-		# record
-		result = M3_result(device, schedule_result, mapping_to_realtimeline, show)
-
-		return result
+		return mapping_to_realtimeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)

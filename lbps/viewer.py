@@ -147,8 +147,18 @@ def M3_result(device, schedule_result, map_result, show=False):
 scheduling_mapping = {
 	"aggr": aggr_result,
 	"split": split_result,
-	"merge": merge_result
+	"merge": merge_result,
+	"aggr-tdd": M3_result,
+	"split-tdd": M3_result,
+	"merge-tdd": M3_result
 }
 
-def scheduling_result(device, scheduling, RN=False, TDD=False, show=False):
-	return scheduling_mapping[scheduling](device, show)
+def scheduling_result(device, scheduling, result=None, map_result=None, RN=False, TDD=False, show=False):
+
+	try:
+		if not RN and not TDD:
+			return scheduling_mapping[scheduling](device, show)
+		elif not RN and TDD:
+			return scheduling_mapping[scheduling+"-tdd"](device, result, map_result, show)
+	except Exception as e:
+		msg_fail(e, pre="schedule_result\t")
