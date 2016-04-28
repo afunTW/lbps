@@ -4,6 +4,8 @@
 # import matplotlib.pyplot as plt
 from config import bcolors
 
+from pprint import pprint
+
 """[summary] print with color tag
 
 [description]
@@ -101,10 +103,12 @@ def merge_result(device, show=False):
 		for i in groups_K:
 			K[groups_K[i]].append(i)
 
+		print(K.keys())
+
 		for i in range(max(K)):
 
 			for k in K.keys():
-				queue += K[k] if i%(k-1) is 0 else []
+				queue += K[k] if i % k is 0 else []
 
 			if queue:
 				result.append(groups[queue[0]])
@@ -144,7 +148,7 @@ def M3_result(device, schedule_result, map_result, show=False):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-scheduling_mapping = {
+result_mapping = {
 	"aggr": aggr_result,
 	"split": split_result,
 	"merge": merge_result,
@@ -152,13 +156,3 @@ scheduling_mapping = {
 	"split-tdd": M3_result,
 	"merge-tdd": M3_result
 }
-
-def scheduling_result(device, scheduling, result=None, map_result=None, RN=False, TDD=False, show=False):
-
-	try:
-		if not RN and not TDD:
-			return scheduling_mapping[scheduling](device, show)
-		elif not RN and TDD:
-			return scheduling_mapping[scheduling+"-tdd"](device, result, map_result, show)
-	except Exception as e:
-		msg_fail(e, pre="schedule_result\t")
