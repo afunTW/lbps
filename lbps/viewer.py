@@ -103,8 +103,6 @@ def merge_result(device, show=False):
 		for i in groups_K:
 			K[groups_K[i]].append(i)
 
-		print(K.keys())
-
 		for i in range(max(K)):
 
 			for k in K.keys():
