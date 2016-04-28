@@ -63,11 +63,11 @@ class Device(Bearer):
 		prefix = "%s::capacity\t\t" % self._name
 
 		try:
-			if self._capacity['access'] or self._capacity['backhaul']:
+			if self._capacity['access'] and self._capacity['backhaul']:
 				return self._capacity
 			elif self._link:
 				self._capacity['access'] = wideband_capacity(self, 'access')
-				# self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
+				self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
 				return self._capacity
 			else:
 				msg_warning("no capacity", pre=pre)
