@@ -66,7 +66,7 @@ def load_based_power_saving(device, scheduling, interface, RN=None, TDD=False, s
 			LBPS_scheduling[scheduling](device, interface)
 			return result_mapping[scheduling](device, show)
 		elif not RN and TDD:
-			LBPS_scheduling[scheduling](device, interface)
+			LBPS_scheduling[scheduling](device, interface, duplex='TDD')
 			result = result_mapping[scheduling](device, show=False)
 			map_result = M3(device, interface, result)
 			return result_mapping[scheduling+"-tdd"](device, result, map_result, show)
