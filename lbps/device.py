@@ -20,6 +20,7 @@ class Device(Bearer):
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':None, 'backhaul':None}
 		self._virtualCapacity = {'access':None, 'backhaul':None}
+
 		self._sleepCycle = 0
 		self._lbpsGroup = None
 		self._tdd_config = None
@@ -43,7 +44,7 @@ class Device(Bearer):
 
 	@property
 	def name(self):
-	    return self._name
+		return self._name
 
 	@property
 	def link(self):
@@ -97,7 +98,7 @@ class Device(Bearer):
 
 	@property
 	def sleepCycle(self):
-	    return self._sleepCycle
+		return self._sleepCycle
 
 	@sleepCycle.setter
 	def sleepCycle(self, K):
@@ -105,7 +106,7 @@ class Device(Bearer):
 
 	@property
 	def lbpsGroup(self):
-	    return self._lbpsGroup
+		return self._lbpsGroup
 
 	@lbpsGroup.setter
 	def lbpsGroup(self, group):
@@ -113,7 +114,7 @@ class Device(Bearer):
 
 	@property
 	def tdd_config(self):
-	    return self._tdd_config
+		return self._tdd_config
 
 	@tdd_config.setter
 	def tdd_config(self, config):
@@ -127,9 +128,6 @@ class Device(Bearer):
 		except Exception as e:
 			msg_fail(str(e), pre=prefix)
 
-	def isDevice(testDevice, targetClass):
-		return True if isinstance(testDevice, targetClass) else False
-
 	def connect(self, dest, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
 		"""[summary] build up a connection one by one
 
@@ -137,17 +135,8 @@ class Device(Bearer):
 			1. build up a bearer between two device
 			2. append to link list
 			3. calculate lambda
-
-		Arguments:
-			dest {[type]} -- [description]
-
-		Keyword Arguments:
-			status {str} -- [description] (default: {'D'})
-			interface {str} -- [description] (default: {'access'})
-			bandwidth {number} -- [description] (default: {0})
-			CQI_type {list} -- [description] (default: {[]})
-			flow {str} -- [description] (default: {'VoIP'})
 		"""
+
 		me = self._name
 		you = dest._name
 		prefix = "%s::connect\t\t" % me
@@ -177,7 +166,7 @@ class UE(Device):
 	def __init__(self, buf={}):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
-		Device.__init__(self, buf, self.__name)
+		super().__init__(buf, self.__name)
 
 		self.__parent = None
 		self.__class__.count += 1
@@ -189,7 +178,7 @@ class UE(Device):
 	@parent.setter
 	def parent(self, pD):
 		try:
-			self.__parent = pD if UE.isDevice(pD, RN) else raiser(Exception("parent should be type of RN instance"))
+			self.__parent = pD if isinstance(pD, RN) else raiser(Exception("parent should be type of RN instance"))
 		except Exception as e:
 			print(e)
 
@@ -199,7 +188,7 @@ class RN(Device):
 	def __init__(self, buf={}):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
-		Device.__init__(self, buf, self.__name)
+		super().__init__(buf, self.__name)
 
 		self.__childs = []
 		self.__parent = None
@@ -214,57 +203,43 @@ class RN(Device):
 		pre = "%s::childs.setter\t" % self.__name
 
 		try:
-			childs = list(childs) if childs is not list else childs
-			check = list(map(lambda x: Device.isDevice(x, UE), childs))
+			childs = list(childs) if type(childs) is not list else childs
+			check = list(map(lambda x: isinstance(x, UE), childs))
 			if all(check):
 				self.__childs = childs
-				msg_success("binding Done", pre=pre)
+				msg_success("Done", pre=pre)
 
 		except Exception as e:
-			print(e)
+			msg_fail(e, pre=pre)
+
+	@property
+	def parent(self):
+		return self.__parent
+
+	@parent.setter
+	def parent(self, parent):
+		pre = "%s::parent.setter\t" % self.__name
+
+		try:
+			if isinstance(parent, eNB):
+				self.__parent = parent
+				msg_success("Done", pre=pre)
+
+		except Exception as e:
+			msg_fail(e, pre=pre)
 
 	def connect(self, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
-		pre = "%s::childs.setter\t" % self.__name
+		pre = "%s::childs.connect\t" % self.__name
 
-		if self.childs:
+		if interface is 'access' and self.__childs:
 			for i in self.__childs:
-				i.connect(self, status, interface, bandwidth, CQI_type, flow)
-			msg_success("Done", pre=pre)
+				super().connect(i, status, interface, bandwidth, CQI_type, flow)
+
+		elif interface is 'backhaul' and self.__parent:
+			super().connect(self.__parent, status, interface, bandwidth, CQI_type, flow)
+
 		else:
+			msg_fail("failed", pre=pre)
 			return
 
-# class eNB(Device):
-# 	count =0
-
-# 	def __init__(self, buf={}):
-# 		self._id = self.__class__.count
-# 		self.__childs = []
-# 		self.__class__.count += 1
-
-# 	@property
-# 	def childs(self):
-# 		return self.__childs
-
-# 	@childs.setter
-# 	def childs(self, childs):
-# 		me = type(self).__name__ + str(self.id)
-# 		try:
-# 			childs = list(childs) if childs is not list else childs
-# 			check = list(map(lambda x: Device.isDevice(x, RN), childs))
-# 			if all(check):
-# 				self.__childs = childs
-# 				print("%s::childs.setter\tbinding Done" % me)
-# 			else:
-# 				raise Exception("childs should be all RN instance object")
-# 		except Exception as e:
-# 			print(e)
-
-# 	def connect(self, status='D', interface='backhaul', bandwidth=0, CQI_type=[], flow='VoIP'):
-# 		me = type(self).__name__ + str(self.id)
-# 		if self.childs:
-# 			for i in self.__childs:
-# 				i.connect(self, status, interface, bandwidth, CQI_type, flow)
-# 			print("%s::connect\t\tDone\n" % me)
-# 		else:
-# 			return
-# if __name__ == '__main__':
+		msg_success("Done", pre=pre)
