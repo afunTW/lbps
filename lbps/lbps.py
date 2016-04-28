@@ -27,7 +27,7 @@ def getCapacity(device, interface, duplex):
 			return 0
 
 	except Exception as e:
-		msg_fail(str(e), pre="%s::getCapacity\t\t" % device.name)
+		msg_fail(str(e), pre="%s::getCapacity\t" % device.name)
 
 def schedulability(check_list):
 
