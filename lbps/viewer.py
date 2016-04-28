@@ -73,8 +73,9 @@ def split_result(device, show=False):
 			result.append(groups[i])
 
 		if show:
-			for i in range(len(result)):
-				msg_execute("subframe %d:\tGroup %d:\t%s" % (i, i, str(result[i])), pre=pre)
+			for i in range(device.sleepCycle):
+				suf = "Group %d:\t%s" % (i, str(result[i])) if i < len(result) else "None"
+				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
 
@@ -112,9 +113,9 @@ def merge_result(device, show=False):
 				result.append(None)
 
 		if show:
-			for i in range(len(result)):
+			for i in range(device.sleepCycle):
 				group_number = list(groups.keys())[list(groups.values()).index(result[i])] if result[i] else None
-				suf = "Group %d:\t%s" % (group_number, str(result[i])) if group_number else "None"
+				suf = "Group %d:\t%s" % (group_number, str(result[i])) if group_number is not None else "None"
 				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
