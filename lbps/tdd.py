@@ -14,7 +14,7 @@ def virtual_subframe_capacity(device, interface, TDD_config):
 	else:
 		return {interface:None}
 
-def one_to_one_first_mapping(device, interface, schedule_result, show=False):
+def one_to_one_first_mapping(device, interface, schedule_result):
 
 	pre = "mapping::M3\t\t"
 
