@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 from __init__ import *
-from pprint import pprint
 
 """[summary] init
 
@@ -31,17 +30,14 @@ base_station.connect(status='D', interface='backhaul', bandwidth=BANDWIDTH, CQI_
 3. Merge
 """
 
-# TestAggrRN = copy.deepcopy(relays[0])
-# K = aggr(TestAggrRN, 'access')
-# result = scheduling_result(TestAggrRN, 'aggr', show=True)
+TestAggrRN = copy.deepcopy(relays[0])
+result = LBPS(TestAggrRN, 'aggr', 'access', show=True)
 
-# TestSplitRN = copy.deepcopy(relays[0])
-# K = split(TestSplitRN, 'access')
-# result = scheduling_result(TestSplitRN, 'split', show=True)
+TestSplitRN = copy.deepcopy(relays[0])
+result = LBPS(TestSplitRN, 'split', 'access', show=True)
 
-# TestMergeRN = copy.deepcopy(relays[0])
-# K = merge(TestMergeRN, 'access')
-# result = scheduling_result(TestMergeRN, 'merge', show=True)
+TestMergeRN = copy.deepcopy(relays[0])
+result = LBPS(TestMergeRN, 'merge', 'access', show=True)
 
 """[summary] LBPS basic scheme with TDD
 
@@ -58,24 +54,12 @@ TDD_config = ONE_HOP_TDD_CONFIG[1]
 
 TestAggrRN = copy.deepcopy(relays[0])
 TestAggrRN.tdd_config = TDD_config
-K = aggr(TestAggrRN, 'access', 'TDD')
-result = scheduling_result(TestAggrRN, 'aggr', show=False)
-map_result = M3(TestAggrRN, 'access', result)
-
-result = scheduling_result(TestAggrRN, 'aggr', result=result, map_result=map_result, TDD=True, show=True)
+result = LBPS(TestAggrRN, 'aggr', 'access', TDD=True, show=True)
 
 TestSplitRN = copy.deepcopy(relays[0])
 TestSplitRN.tdd_config = TDD_config
-K = split(TestSplitRN, 'access', 'TDD')
-result = scheduling_result(TestSplitRN, 'split', show=False)
-map_result = M3(TestSplitRN, 'access', result)
-
-result = scheduling_result(TestSplitRN, 'split', result=result, map_result=map_result, TDD=True, show=True)
+result = LBPS(TestSplitRN, 'split', 'access', TDD=True, show=True)
 
 TestMergeRN = copy.deepcopy(relays[0])
 TestMergeRN.tdd_config = TDD_config
-K = merge(TestMergeRN, 'access', 'TDD')
-result = scheduling_result(TestMergeRN, 'merge', show=False)
-map_result = M3(TestMergeRN, 'access', result)
-
-result = scheduling_result(TestMergeRN, 'merge', result=result, map_result=map_result, TDD=True, show=True)
+result = LBPS(TestMergeRN, 'merge', 'access', TDD=True, show=True)

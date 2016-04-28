@@ -1,8 +1,14 @@
 import copy
 from math import log, floor
+from tdd import one_to_one_first_mapping as M3
 from poisson import getDataTH, LengthAwkSlpCyl
 from config import bcolors
 from viewer import *
+
+"""[summary] supported function
+
+[description]
+"""
 
 def getLoad(device, interface, duplex="FDD"):
 
@@ -52,6 +58,25 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
 	return result
+
+def load_based_power_saving(device, scheduling, interface, RN=None, TDD=False, show=False):
+
+	try:
+		if not RN and not TDD:
+			LBPS_scheduling[scheduling](device, interface)
+			return result_mapping[scheduling](device, show)
+		elif not RN and TDD:
+			LBPS_scheduling[scheduling](device, interface)
+			result = result_mapping[scheduling](device, show=False)
+			map_result = M3(device, interface, result)
+			return result_mapping[scheduling+"-tdd"](device, result, map_result, show)
+	except Exception as e:
+		msg_fail(e, pre="schedule_result\t")
+
+"""[summary] basic LBPS scheduling
+
+[description]
+"""
 
 def aggr(device, interface, duplex='FDD'):
 
@@ -185,3 +210,9 @@ def merge(device, interface, duplex='FDD'):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
+
+LBPS_scheduling = {
+	'aggr': aggr,
+	'split': split,
+	'merge': merge
+}
