@@ -4,6 +4,8 @@
 # import matplotlib.pyplot as plt
 from config import bcolors
 
+from pprint import pprint
+
 """[summary] print with color tag
 
 [description]
@@ -73,8 +75,9 @@ def split_result(device, show=False):
 			result.append(groups[i])
 
 		if show:
-			for i in range(len(result)):
-				msg_execute("subframe %d:\tGroup %d:\t%s" % (i, i, str(result[i])), pre=pre)
+			for i in range(device.sleepCycle):
+				suf = "Group %d:\t%s" % (i, str(result[i])) if i < len(result) else "None"
+				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
 
@@ -103,7 +106,7 @@ def merge_result(device, show=False):
 		for i in range(max(K)):
 
 			for k in K.keys():
-				queue += K[k] if i%(k-1) is 0 else []
+				queue += K[k] if i % k is 0 else []
 
 			if queue:
 				result.append(groups[queue[0]])
@@ -112,9 +115,9 @@ def merge_result(device, show=False):
 				result.append(None)
 
 		if show:
-			for i in range(len(result)):
+			for i in range(device.sleepCycle):
 				group_number = list(groups.keys())[list(groups.values()).index(result[i])] if result[i] else None
-				suf = "Group %d:\t%s" % (group_number, str(result[i])) if group_number else "None"
+				suf = "Group %d:\t%s" % (group_number, str(result[i])) if group_number is not None else "None"
 				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
@@ -143,11 +146,11 @@ def M3_result(device, schedule_result, map_result, show=False):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-scheduling_mapping = {
+result_mapping = {
 	"aggr": aggr_result,
 	"split": split_result,
-	"merge": merge_result
+	"merge": merge_result,
+	"aggr-tdd": M3_result,
+	"split-tdd": M3_result,
+	"merge-tdd": M3_result
 }
-
-def scheduling_result(device, scheduling, RN=False, TDD=False, show=False):
-	return scheduling_mapping[scheduling](device, show)
