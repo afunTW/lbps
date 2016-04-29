@@ -13,7 +13,9 @@ from viewer import *
 def getLoad(device, interface, duplex="FDD"):
 
 	try:
-		capacity = device.virtualCapacity[interface] if duplex is "TDD" and device.virtualCapacity[interface] else device.capacity[interface]
+		RSC = device.capacity[interface]
+		VSC = device.virtualCapacity[interface]
+		capacity = VSC if duplex is "TDD" else RSC
 		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
 
 	except Exception as e:
@@ -24,11 +26,15 @@ def getCapacity(device, interface, duplex):
 
 	try:
 		duplex = duplex.upper() if type(duplex) is str else ""
+		RSC = device.capacity[interface]
+		VSC = device.virtualCapacity[interface]
 
-		if duplex == 'FDD':
-			return device.capacity[interface]
-		elif duplex == 'TDD' and device.virtualCapacity[interface]:
-			return device.virtualCapacity[interface]
+		if duplex is 'FDD':
+			return RSC
+
+		elif duplex is 'TDD':
+			return VSC
+
 		else:
 			return 0
 
@@ -41,6 +47,7 @@ def schedulability(check_list):
 
 	if result:
 		msg_success("Check schedulability:\tTrue")
+
 	else:
 		msg_warning("Check schedulability:\tFalse")
 
@@ -62,14 +69,17 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 def load_based_power_saving(device, scheduling, interface, TDD=False, show=False):
 
 	try:
+
 		if scheduling in LBPS_scheduling.keys() and not TDD:
 			LBPS_scheduling[scheduling](device, interface, duplex='FDD')
 			return result_mapping[scheduling](device, show)
+
 		elif scheduling in LBPS_scheduling.keys() and TDD:
 			LBPS_scheduling[scheduling](device, interface, duplex='TDD')
 			result = result_mapping[scheduling](device, show=False)
 			map_result = M3(device, interface, result)
 			return result_mapping[scheduling+"-tdd"](device, result, map_result, show)
+
 	except Exception as e:
 		msg_fail(str(e), pre="schedule_result\t\t")
 		return
