@@ -89,7 +89,7 @@ class Device(Bearer):
 				return self._virtualCapacity
 			elif self._tdd_config and self._link:
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
-				# self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
+				self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
 				msg_execute(str(self._virtualCapacity), pre=prefix)
 				return self._virtualCapacity
 			elif self._tdd_config:
