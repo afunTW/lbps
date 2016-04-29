@@ -41,14 +41,14 @@ base_station.connect(status='D', interface='backhaul', bandwidth=BANDWIDTH, CQI_
 # TestRN = copy.deepcopy(relays[0])
 # result = LBPS(TestRN, 'merge', 'access', show=True)
 
-TestBS = copy.deepcopy(base_station)
-result = LBPS(TestBS, 'aggr', 'backhaul', show=True)
+# TestBS = copy.deepcopy(base_station)
+# result = LBPS(TestBS, 'aggr', 'backhaul', show=True)
 
-TestBS = copy.deepcopy(base_station)
-result = LBPS(TestBS, 'split', 'backhaul', show=True)
+# TestBS = copy.deepcopy(base_station)
+# result = LBPS(TestBS, 'split', 'backhaul', show=True)
 
-TestBS = copy.deepcopy(base_station)
-result = LBPS(TestBS, 'merge', 'backhaul', show=True)
+# TestBS = copy.deepcopy(base_station)
+# result = LBPS(TestBS, 'merge', 'backhaul', show=True)
 
 """[summary] LBPS basic scheme with TDD
 
@@ -74,3 +74,17 @@ only RN will be assign TDD configuration so far
 # TestRN = copy.deepcopy(relays[0])
 # TestRN.tdd_config = TDD_config
 # result = LBPS(TestRN, 'merge', 'access', TDD=True, show=True)
+
+"""[summary] proposed two-hop top-down LBPS in TDD
+
+[description]
+1. aggr-aggr
+2. split-aggr
+3. merge-aggr
+"""
+
+TDD_config = ONE_HOP_TDD_CONFIG[1]
+
+TestBS = copy.deepcopy(base_station)
+TestBS.tdd_config = TDD_config
+result = LBPS(TestBS, 'aggr-aggr', 'backhaul', TDD=False, show=True)

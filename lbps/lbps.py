@@ -59,19 +59,20 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
 	return result
 
-def load_based_power_saving(device, scheduling, interface, RN=None, TDD=False, show=False):
+def load_based_power_saving(device, scheduling, interface, TDD=False, show=False):
 
 	try:
-		if not RN and not TDD:
-			LBPS_scheduling[scheduling](device, interface)
+		if scheduling in LBPS_scheduling.keys() and not TDD:
+			LBPS_scheduling[scheduling](device, interface, duplex='FDD')
 			return result_mapping[scheduling](device, show)
-		elif not RN and TDD:
+		elif scheduling in LBPS_scheduling.keys() and TDD:
 			LBPS_scheduling[scheduling](device, interface, duplex='TDD')
 			result = result_mapping[scheduling](device, show=False)
 			map_result = M3(device, interface, result)
 			return result_mapping[scheduling+"-tdd"](device, result, map_result, show)
 	except Exception as e:
-		msg_fail(e, pre="schedule_result\t")
+		msg_fail(str(e), pre="schedule_result\t\t")
+		return
 
 """[summary] basic LBPS scheduling
 
@@ -211,8 +212,27 @@ def merge(device, interface, duplex='FDD'):
 		msg_fail(str(e), pre=prefix)
 		return
 
+def aggr_aggr(device, interface, duplex='FDD'):
+	prefix = "lbps::TopDown::aggr::%s \t" % device.name
+
+	try:
+
+		# backhaul lbps
+		backhaul_K = aggr(device, interface, duplex)
+
+		# # access scheduliability
+		# for i in device.childs:
+		# 	capacity = getCapacity(device, interface, duplex)
+		# 	DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
+
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
+
 LBPS_scheduling = {
 	'aggr': aggr,
 	'split': split,
-	'merge': merge
+	'merge': merge,
+	'aggr-aggr': aggr_aggr
 }
