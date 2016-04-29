@@ -45,11 +45,14 @@ def aggr_result(device, show=False):
 	try:
 		pre = "%s::aggr::result\t" % device.name
 
-		deivce_K = [i.sleepCycle for i in device.childs]
+		deivce_K = device.sleepCycle
 		result = []
 
-		for i in range(deivce_K[0]):
-			result.append([i.name for i in device.childs])
+		for i in range(deivce_K):
+			if i % deivce_K is 0:
+				result.append([i.name for i in device.childs])
+			else:
+				result.append([])
 
 		if show:
 			for i in range(len(result)):
