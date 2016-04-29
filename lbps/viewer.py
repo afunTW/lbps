@@ -2,7 +2,7 @@
 #!/usr/bin/python3
 
 # import matplotlib.pyplot as plt
-from config import bcolors
+from config import bcolors, MODE
 
 from pprint import pprint
 
@@ -12,7 +12,7 @@ from pprint import pprint
 """
 
 def msg_execute(context, pre='', suf='', end='\n'):
-	print(bcolors.OKBLUE + pre + context + suf + bcolors.ENDC, end=end)
+	print(bcolors.OKBLUE + pre + context + suf + bcolors.ENDC, end=end) if MODE is "DEBUG" else print(end='')
 def msg_success(context, pre='', suf='', end='\n'):
 	print(bcolors.OKGREEN + pre + context + suf + bcolors.ENDC, end=end)
 def msg_warning(context, pre='', suf='', end='\n'):

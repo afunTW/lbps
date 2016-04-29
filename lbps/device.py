@@ -26,6 +26,7 @@ class Device(Bearer):
 
 	@property
 	def buf(self):
+		msg_execute(str(self._buf), pre="%s::buf\t\t" % self._name)
 		return self._buf
 
 	@buf.setter
@@ -51,6 +52,7 @@ class Device(Bearer):
 
 	@property
 	def lambd(self):
+		msg_execute(str(self._lambd), pre="%s::lambd\t\t" % self._name)
 		return self._lambd
 
 	# Calculate capacity based on interface
@@ -64,10 +66,12 @@ class Device(Bearer):
 
 		try:
 			if self._capacity['access'] and self._capacity['backhaul']:
+				msg_execute(str(self._capacity), pre=prefix)
 				return self._capacity
 			elif self._link:
 				self._capacity['access'] = wideband_capacity(self, 'access')
 				self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
+				msg_execute(str(self._capacity), pre=prefix)
 				return self._capacity
 			else:
 				msg_warning("no capacity", pre=pre)
@@ -81,10 +85,12 @@ class Device(Bearer):
 
 		try:
 			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
+				msg_execute(str(self._virtualCapacity), pre=prefix)
 				return self._virtualCapacity
 			elif self._tdd_config and self._link:
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
 				# self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
+				msg_execute(str(self._virtualCapacity), pre=prefix)
 				return self._virtualCapacity
 			elif self._tdd_config:
 				msg_fail("there's no connection to estimate CQI calue", pre=prefix)
@@ -97,6 +103,7 @@ class Device(Bearer):
 
 	@property
 	def sleepCycle(self):
+		msg_execute(str(self._sleepCycle), pre="%s::sleepCycle \t" % self._name)
 		return self._sleepCycle
 
 	@sleepCycle.setter
@@ -105,6 +112,7 @@ class Device(Bearer):
 
 	@property
 	def lbpsGroup(self):
+		msg_execute("Group number: %s" % str(self._lbpsGroup), pre="%s::lbpsGroup\t\t" % self._name)
 		return self._lbpsGroup
 
 	@lbpsGroup.setter
@@ -113,6 +121,7 @@ class Device(Bearer):
 
 	@property
 	def tdd_config(self):
+		msg_execute(str(self._tdd_config), pre="%s::tdd_config \t" % self._name)
 		return self._tdd_config
 
 	@tdd_config.setter
@@ -144,17 +153,14 @@ class Device(Bearer):
 			CQI_range = getCQIByType(CQI_type)
 			CQI = random.choice(CQI_range) if CQI_range else 0
 
-			# if self._link[interface]:
-			# 	msg_warning("disconnect previous conneciton", pre=pre)
-
 			self._link[interface].append(Bearer(self, dest, status, interface, bandwidth, CQI, flow))
 			dest._link[interface].append(Bearer(dest, self, status, interface, bandwidth, CQI, flow))
 
 			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
 			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
 
-			# msg_execute("%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
-			# 		% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=pre)
+			msg_execute("%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
+					% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=prefix)
 
 		except Exception as e:
 			msg_fail(str(e), pre=prefix);
