@@ -68,13 +68,13 @@ class Device(Bearer):
 		try:
 
 			if self._capacity['access'] and self._capacity['backhaul']:
-				msg_execute(str(self._capacity), pre=pre)
+				# msg_execute(str(self._capacity), pre=pre)
 				return self._capacity
 
 			elif self._link:
 				self._capacity['access'] = wideband_capacity(self, 'access')
 				self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
-				msg_execute(str(self._capacity), pre=pre)
+				# msg_execute(str(self._capacity), pre=pre)
 				return self._capacity
 
 			else:
@@ -91,13 +91,13 @@ class Device(Bearer):
 		try:
 
 			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
-				msg_execute(str(self._virtualCapacity), pre=pre)
+				# msg_execute(str(self._virtualCapacity), pre=pre)
 				return self._virtualCapacity
 
 			elif self._tdd_config and self._link:
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
 				self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
-				msg_execute(str(self._virtualCapacity), pre=pre)
+				# msg_execute(str(self._virtualCapacity), pre=pre)
 				return self._virtualCapacity
 
 			elif self._tdd_config:
