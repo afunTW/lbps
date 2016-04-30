@@ -63,19 +63,32 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
 	return result
 
-def load_based_power_saving(device, scheduling, interface, TDD=False, show=False):
+def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False):
 
 	try:
+		# NOTE: this process can not use in direct link (eNB-UE)
+		# interface = 'backhaul' if isinstance(device, eNB) else 'access'
+		interface = 'backhaul' if device.name[0:3] == 'eNB' else 'access'
+		scheduling = backhaul+'-'+access if backhaul else access
+		check = scheduling in LBPS_scheduling.keys()
+		result = None
 
-		if scheduling in LBPS_scheduling.keys() and not TDD:
+		if check and not TDD:
 			LBPS_scheduling[scheduling](device, interface, duplex='FDD')
 			return result_mapping[scheduling](device, show)
 
-		elif scheduling in LBPS_scheduling.keys() and TDD:
+		elif check and TDD:
 			LBPS_scheduling[scheduling](device, interface, duplex='TDD')
-			result = result_mapping[scheduling](device, show=False)
-			map_result = M3(device, interface, result)
-			return result_mapping[scheduling+"-tdd"](device, result, map_result, show)
+
+			# two hop, TopDown
+			if backhaul:
+				result = result_mapping[scheduling](device, backhaul, show)
+
+			# one hop
+			else:
+				result = result_mapping[scheduling](device, show=False)
+				map_result = M3(device, interface, result)
+				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
 
 	except Exception as e:
 		msg_fail(str(e), pre="schedule_result\t\t")
@@ -248,6 +261,9 @@ def aggr_aggr(device, interface, duplex='FDD'):
 
 			for j in i.childs:
 				j.sleepCycle = backhaul_K
+				j.wakeUpTimes = subframe_count
+
+		return backhaul_K
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
