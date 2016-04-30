@@ -89,3 +89,11 @@ TDD_config = ONE_HOP_TDD_CONFIG[1]
 TestBS = copy.deepcopy(base_station)
 TestBS.tdd_config = TDD_config
 result = LBPS(TestBS, 'aggr', backhaul='aggr', TDD=True, show=True)
+
+# TestBS = copy.deepcopy(base_station)
+# TestBS.tdd_config = TDD_config
+# result = LBPS(TestBS, 'aggr', backhaul='split', TDD=True, show=True)
+
+# TestBS = copy.deepcopy(base_station)
+# TestBS.tdd_config = TDD_config
+# result = LBPS(TestBS, 'aggr', backhaul='merge', TDD=True, show=True)
