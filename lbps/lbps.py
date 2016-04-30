@@ -1,7 +1,7 @@
 import copy
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
-from poisson import getDataTH, LengthAwkSlpCyl
+from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
 from config import bcolors
 from viewer import *
 
@@ -230,11 +230,15 @@ def aggr_aggr(device, interface, duplex='FDD'):
 		# backhaul lbps
 		backhaul_K = aggr(device, interface, duplex)
 
-		# # access scheduliability
-		# for i in device.childs:
-		# 	capacity = getCapacity(device, interface, duplex)
-		# 	DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
+		# access scheduliability
+		for i in device.childs:
+			capacity = getCapacity(device, interface, duplex)
+			DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
+			access_K = DataAcc(i.lambd[interface], backhaul_K)
+			subframe_count = int((DATA_TH/access_K)+1)
 
+			if subframe_count > backhaul_K:
+				raise Exception("%s: scheduling failed" % i.name)
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
