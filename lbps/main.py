@@ -84,7 +84,7 @@ only RN will be assign TDD configuration so far
 3. merge-aggr
 """
 
-TDD_config = ONE_HOP_TDD_CONFIG[1]
+TDD_config = TWO_HOP_TDD_CONFIG[0]
 
 TestBS = copy.deepcopy(base_station)
 TestBS.tdd_config = TDD_config

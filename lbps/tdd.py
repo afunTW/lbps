@@ -8,6 +8,7 @@ def virtual_subframe_capacity(device, interface, TDD_config):
 
 	if device.link[interface]:
 		status = device.link[interface][0].status
+		TDD_config = TDD_config[interface] if type(TDD_config) is dict else TDD_config
 		real_subframe_count = len(list(filter(lambda x: x  if x == status else '', TDD_config)))
 		VSC = {interface:device.capacity[interface]*real_subframe_count/len(TDD_config)}
 		return VSC
@@ -23,7 +24,8 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 		RSC = device.capacity[interface]
 		VSC = device.virtualCapacity[interface]
 
-		real_subframe = device.tdd_config*(ceil(len(schedule_result)/len(device.tdd_config)))
+		TDD_config = device.tdd_config[interface] if type(device.tdd_config) is dict else device.tdd_config
+		real_subframe = TDD_config*(ceil(len(schedule_result)/len(TDD_config)))
 		real_subframe = real_subframe[:len(schedule_result)]
 
 		mapping_to_realtimeline = [[] for i in range(len(real_subframe))]
