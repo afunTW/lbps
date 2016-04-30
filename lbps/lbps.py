@@ -14,8 +14,7 @@ def getLoad(device, interface, duplex="FDD"):
 
 	try:
 		RSC = device.capacity[interface]
-		VSC = device.virtualCapacity[interface]
-		capacity = VSC if duplex is "TDD" else RSC
+		capacity = device.virtualCapacity[interface] if duplex == "TDD" else RSC
 		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
 
 	except Exception as e:
@@ -26,14 +25,12 @@ def getCapacity(device, interface, duplex):
 
 	try:
 		duplex = duplex.upper() if type(duplex) is str else ""
-		RSC = device.capacity[interface]
-		VSC = device.virtualCapacity[interface]
 
-		if duplex is 'FDD':
-			return RSC
+		if duplex == 'FDD':
+			return device.capacity[interface]
 
-		elif duplex is 'TDD':
-			return VSC
+		elif duplex == 'TDD':
+			return device.virtualCapacity[interface]
 
 		else:
 			return 0
@@ -94,7 +91,6 @@ def aggr(device, interface, duplex='FDD'):
 	prefix = "lbps::aggr::%s \t" % device.name
 
 	try:
-
 		capacity = getCapacity(device, interface, duplex)
 		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
 		msg_success("load= %g\t" % getLoad(device, interface), pre=prefix)
@@ -223,7 +219,7 @@ def merge(device, interface, duplex='FDD'):
 		return
 
 def aggr_aggr(device, interface, duplex='FDD'):
-	prefix = "lbps::TopDown::aggr::%s \t" % device.name
+	prefix = "lbps::aggr-aggr::%s \t" % device.name
 
 	try:
 
@@ -231,14 +227,20 @@ def aggr_aggr(device, interface, duplex='FDD'):
 		backhaul_K = aggr(device, interface, duplex)
 
 		# access scheduliability
+		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
 		for i in device.childs:
 			capacity = getCapacity(device, interface, duplex)
 			DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
 			access_K = DataAcc(i.lambd[interface], backhaul_K)
-			subframe_count = int((DATA_TH/access_K)+1)
+			subframe_count = int((access_K/DATA_TH)+1)
 
 			if subframe_count > backhaul_K:
 				raise Exception("%s: scheduling failed" % i.name)
+
+			if subframe_count > 1:
+				msg_warning("%s: wake up %d subframe" % (i.name, subframe_count), pre=prefix)
+
+			i.sleepCycle = backhaul_K
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
