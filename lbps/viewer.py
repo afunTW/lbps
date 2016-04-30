@@ -45,12 +45,13 @@ def aggr_result(device, show=False):
 	try:
 		pre = "%s::aggr::result\t" % device.name
 
-		deivce_K = device.sleepCycle
+		device_K = device.sleepCycle
 		result = []
 
-		for i in range(deivce_K):
-			if i % deivce_K is 0:
-				result.append([i.name for i in device.childs])
+		for i in range(device_K):
+			if i % device_K is 0:
+				result.append([j.name for j in device.childs])
+				result[i].insert(0, device.name)
 			else:
 				result.append([])
 
@@ -77,6 +78,7 @@ def split_result(device, show=False):
 
 		for i in groups:
 			result.append(groups[i])
+			result[i].insert(0, device.name)
 
 		if show:
 			for i in range(device.sleepCycle):
@@ -115,6 +117,7 @@ def merge_result(device, show=False):
 
 			if queue:
 				result.append(groups[queue[0]])
+				result[len(result)-1].insert(0, device.name)
 				del queue[0]
 			else:
 				result.append(None)
@@ -143,6 +146,7 @@ def M3_result(device, schedule_result, map_result, show=False):
 			if schedule_result[i]:
 				for j in map_result[i]:
 					result[j] += schedule_result[i]
+					result[j].insert(0, device.name)
 					result[j] = list(set(result[j]))
 
 		if show:
