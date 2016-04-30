@@ -123,7 +123,7 @@ class Device(Bearer):
 
 	@property
 	def wakeUpTimes(self):
-		msg_execute(str(self._wakeUpTimes), pre="%s::wakeUpTimes\t" % self._name)
+		# msg_execute(str(self._wakeUpTimes), pre="%s::wakeUpTimes\t" % self._name)
 		return self._wakeUpTimes
 
 	@wakeUpTimes.setter

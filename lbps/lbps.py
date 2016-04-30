@@ -101,6 +101,7 @@ def aggr(device, interface, duplex='FDD'):
 		# record
 		for i in device.childs:
 			i.sleepCycle = sleep_cycle_length
+			i.wakeUpTimes = 1
 			# msg_execute("%s.sleepCycle = %d" % (i.name, i.sleepCycle), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
@@ -145,6 +146,7 @@ def split(device, interface, duplex='FDD'):
 			for j in groups[i]:
 				j.sleepCycle = groups_K[i]
 				j.lbpsGroup = i
+				j.wakeUpTimes = 1
 				# msg_execute("%s.sleepCycle = %d\tin Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
@@ -208,6 +210,8 @@ def merge(device, interface, duplex='FDD'):
 			for j in groups[i]:
 				j.sleepCycle = K_merge[i]
 				j.lbpsGroup = i
+				j.wakeUpTimes = int(max(K_merge)/K_merge[i])
+				j.wakeUpTimes
 				# msg_execute("%s.sleepCycle = %d\t in Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
 		device.sleepCycle = max(K_merge)
@@ -241,6 +245,9 @@ def aggr_aggr(device, interface, duplex='FDD'):
 				msg_warning("%s: wake up %d subframe" % (i.name, subframe_count), pre=prefix)
 
 			i.sleepCycle = backhaul_K
+
+			for j in i.childs:
+				j.sleepCycle = backhaul_K
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
