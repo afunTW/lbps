@@ -20,6 +20,7 @@ class Device(Bearer):
 		self._capacity = {'access':None, 'backhaul':None}
 		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._sleepCycle = 0
+		self._wakeUpTimes = 0
 		self._lbpsGroup = None
 		self._tdd_config = None
 
@@ -119,6 +120,15 @@ class Device(Bearer):
 	@sleepCycle.setter
 	def sleepCycle(self, K):
 		self._sleepCycle = K
+
+	@property
+	def wakeUpTimes(self):
+		msg_execute(str(self._wakeUpTimes), pre="%s::wakeUpTimes\t" % self._name)
+		return self._wakeUpTimes
+
+	@wakeUpTimes.setter
+	def wakeUpTimes(self, n):
+		self._wakeUpTimes = n if type(n) is int else 0
 
 	@property
 	def lbpsGroup(self):
