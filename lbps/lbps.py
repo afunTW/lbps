@@ -82,7 +82,9 @@ def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False
 
 			# two hop, TopDown
 			if backhaul:
-				result = result_mapping[scheduling](device, backhaul, show)
+				result = result_mapping[scheduling](device, backhaul, show=False)
+				map_result = M3(device, interface, result)
+				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
 
 			# one hop
 			else:

@@ -170,7 +170,6 @@ def TopDown_result(device, backhaul, show=False):
 		queue = []
 
 		while any(wakeUpTimes):
-
 			tmp = []
 
 			for i in range(len(wakeUpTimes)):
@@ -203,5 +202,6 @@ result_mapping = {
 	"aggr-tdd": M3_result,
 	"split-tdd": M3_result,
 	"merge-tdd": M3_result,
-	"aggr-aggr": TopDown_result
+	"aggr-aggr": TopDown_result,
+	"aggr-aggr-tdd": M3_result
 }
