@@ -33,22 +33,22 @@ base_station.connect(status='D', interface='backhaul', bandwidth=BANDWIDTH, CQI_
 """
 
 # TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'aggr', 'access', show=True)
+# result = LBPS(TestRN, 'aggr', show=True)
 
 # TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'split', 'access', show=True)
+# result = LBPS(TestRN, 'split', show=True)
 
 # TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'merge', 'access', show=True)
+# result = LBPS(TestRN, 'merge', show=True)
 
 # TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'aggr', 'backhaul', show=True)
+# result = LBPS(TestBS, 'aggr', show=True)
 
 # TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'split', 'backhaul', show=True)
+# result = LBPS(TestBS, 'split', show=True)
 
 # TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'merge', 'backhaul', show=True)
+# result = LBPS(TestBS, 'merge', show=True)
 
 """[summary] LBPS basic scheme with TDD
 
@@ -63,17 +63,18 @@ only RN will be assign TDD configuration so far
 
 # TDD_config = ONE_HOP_TDD_CONFIG[1]
 
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'aggr', 'access', TDD=True, show=True)
 
 # TestRN = copy.deepcopy(relays[0])
 # TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'split', 'access', TDD=True, show=True)
+# result = LBPS(TestRN, 'aggr', TDD=True, show=True)
 
 # TestRN = copy.deepcopy(relays[0])
 # TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'merge', 'access', TDD=True, show=True)
+# result = LBPS(TestRN, 'split', TDD=True, show=True)
+
+# TestRN = copy.deepcopy(relays[0])
+# TestRN.tdd_config = TDD_config
+# result = LBPS(TestRN, 'merge', TDD=True, show=True)
 
 """[summary] proposed two-hop top-down LBPS in TDD
 
@@ -87,4 +88,4 @@ TDD_config = ONE_HOP_TDD_CONFIG[1]
 
 TestBS = copy.deepcopy(base_station)
 TestBS.tdd_config = TDD_config
-result = LBPS(TestBS, 'aggr-aggr', 'backhaul', TDD=False, show=True)
+result = LBPS(TestBS, 'aggr', backhaul='aggr', TDD=True, show=True)
