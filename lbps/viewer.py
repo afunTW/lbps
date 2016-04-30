@@ -156,11 +156,52 @@ def M3_result(device, schedule_result, map_result, show=False):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
+def TopDown_result(device, backhaul, show=False):
+
+	try:
+		pre = "%s::TopDown::%s\t" % (device.name, backhaul)
+		result = []
+
+		# backhaul (by case)
+		result = result_mapping[backhaul](device, False)
+
+		# access (aggr)
+		wakeUpTimes = [i.childs[0].wakeUpTimes for i in device.childs]
+		queue = []
+
+		while any(wakeUpTimes):
+
+			tmp = []
+
+			for i in range(len(wakeUpTimes)):
+				if wakeUpTimes[i]:
+					tmp += [device.childs[i].name]
+					tmp += [j.name for j in device.childs[i].childs]
+					wakeUpTimes[i] -= 1
+
+			queue.append(tmp)
+
+		for i in result:
+			if not i and queue:
+				i += queue[0]
+				queue.pop(0)
+
+		if show:
+			for i in range(len(result)):
+				if result[i]:
+					msg_execute("subframe %d:\t%s" % (i,str(result[i])), pre=pre)
+
+		return result
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
 result_mapping = {
 	"aggr": aggr_result,
 	"split": split_result,
 	"merge": merge_result,
 	"aggr-tdd": M3_result,
 	"split-tdd": M3_result,
-	"merge-tdd": M3_result
+	"merge-tdd": M3_result,
+	"aggr-aggr": TopDown_result
 }
