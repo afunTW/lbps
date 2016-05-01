@@ -150,7 +150,7 @@ class Device(Bearer):
 
 		try:
 
-			if config in ONE_HOP_TDD_CONFIG.values() or config in TWO_HOP_TDD_CONFIG.values():
+			if config in ONE_HOP_TDD_CONFIG.values():
 				self._tdd_config = config
 
 			self.virtualCapacity
@@ -286,6 +286,26 @@ class eNB(Device):
 			if all(check):
 				self.__childs = childs
 				msg_success("binding Done", pre=pre)
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
+	@Device.tdd_config.setter
+	def tdd_config(self, config):
+		pre = "%s::tdd_config.setter\t" % self._name
+
+		try:
+
+			if config in ONE_HOP_TDD_CONFIG.values():
+				self._tdd_config = config
+
+			elif config in TWO_HOP_TDD_CONFIG.values() and self.__childs:
+				self._tdd_config = config['backhaul']
+
+				for i in self.__childs:
+					i._tdd_config = config['access']
+
+			self.virtualCapacity
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
