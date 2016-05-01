@@ -245,6 +245,26 @@ class RN(Device):
 	def parent(self, parent):
 		self.__parent = parent if isinstance(parent, eNB) else None
 
+	@Device.tdd_config.setter
+	def tdd_config(self, config):
+		pre = "%s::tdd_config.setter\t" % self._name
+
+		try:
+
+			if config in ONE_HOP_TDD_CONFIG.values() and self.__childs:
+
+				self._tdd_config = config
+
+				if self.__childs:
+					for i in self.__childs:
+						i.tdd_config = config
+
+
+			self.virtualCapacity
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
 	def connect(self, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
 		pre = "%s::childs.connect\t" % self.__name
 
@@ -299,11 +319,12 @@ class eNB(Device):
 			if config in ONE_HOP_TDD_CONFIG.values():
 				self._tdd_config = config
 
-			elif config in TWO_HOP_TDD_CONFIG.values() and self.__childs:
+			elif config in TWO_HOP_TDD_CONFIG.values():
 				self._tdd_config = config['backhaul']
 
-				for i in self.__childs:
-					i._tdd_config = config['access']
+				if self.__childs:
+					for i in self.__childs:
+						i._tdd_config = config['access']
 
 			self.virtualCapacity
 
