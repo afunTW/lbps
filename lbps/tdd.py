@@ -1,4 +1,5 @@
 import copy
+import re
 from viewer import msg_fail, msg_warning, M3_result
 from math import ceil
 from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
@@ -14,6 +15,17 @@ def virtual_subframe_capacity(device, interface, TDD_config):
 		return VSC
 	else:
 		return {interface:None}
+
+
+def isBackhaulResult(devices):
+	pre = "isBackhaulResult\t"
+
+	if type(devices) is list:
+		check = list(map(lambda x: re.search('eNB*', x), devices))
+		return True if any(check) else False
+
+	else:
+		msg_fail("input type should be a list of device name", pre=pre)
 
 def one_to_one_first_mapping(device, interface, schedule_result):
 
