@@ -15,6 +15,10 @@ from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
 def isBackhaulResult(devices):
 	pre = "isBackhaulResult\t"
 
+	if not devices:
+		# msg_warning("input value is an empty list", pre=pre)
+		return
+
 	if type(devices) is list:
 		devices = [item for sublist in devices for item in sublist] if type(devices[0]) is list else devices
 		check = list(map(lambda x: re.search('UE*', x), devices))
@@ -23,21 +27,36 @@ def isBackhaulResult(devices):
 	else:
 		msg_fail("input type should be a list of device name", pre=pre)
 
+def filterByInterface(schedule_result, map_result, interface):
+	pre = "filterByInterface\t"
+
+	try:
+		check = list(map(lambda x: isBackhaulResult(x), schedule_result))
+
+		for i in range(len(schedule_result)):
+
+			if interface == 'backhaul':
+				map_result[i] = map_result[i] if check[i] else []
+			else:
+				map_result[i] = map_result[i] if not check[i] else []
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
 def mergeList(target, resource):
 	pre = "mergeList\t\t"
 
 	try:
 
+		# init
 		if not target and len(resource) > len(target):
 			target = resource
 
 		elif len(target) == len(resource):
-			for i in range(len(target)):
+			for i in range(len(resource)):
+				target[i].append(resource[i]) if resource[i] else target[i]
 
-				if target[i] and resource[i]:
-					msg_warning("collision", pre=pre)
-
-				target[i] = resource[i] if not target[i] else target[i]
+		return target
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
@@ -68,37 +87,84 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 
 	try:
 		status = device.link[interface][0].status
-		RSC = device.capacity[interface]
-		VSC = device.virtualCapacity[interface]
+		TDD_config = device.tdd_config
+		backhaul_subframe = []
+		tracking_RN = 0
+		result = []
 
-		TDD_config = device.tdd_config[interface] if type(device.tdd_config) is dict else device.tdd_config
-		real_subframe = TDD_config*(ceil(len(schedule_result)/len(TDD_config)))
-		real_subframe = real_subframe[:len(schedule_result)]
+		while tracking_RN != len(device.childs):
 
-		mapping_to_realtimeline = [[] for i in range(len(real_subframe))]
-		check_list = {i:RSC for i in range(len(real_subframe)) if real_subframe[i] is status}
-		tracking_list = list(sorted(check_list.keys()))
-		tracking_index = 0
+			# two hop: backhaul then access
+			if interface == 'backhaul':
+				RSC = device.capacity[interface]
+				VSC = device.virtualCapacity[interface]
+				TDD_config = device.tdd_config
 
-		# mapping
-		for i in range(len(schedule_result)):
-			if check_list[tracking_list[tracking_index]] >= VSC:
-				mapping_to_realtimeline[i].append(tracking_list[tracking_index])
-				check_list[tracking_list[tracking_index]] -= VSC
-				tracking_index = (tracking_index+1)%len(tracking_list)
-				continue
+			# one hop: access
 			else:
-				tmp = copy.deepcopy(VSC)
+				relay = device.childs[tracking_RN]
+				RSC = relay.capacity[interface]
+				VSC = relay.virtualCapacity[interface]
+				TDD_config = relay.tdd_config
 
-				while any(check_list[i] is not 0 for i in tracking_list) and tmp >0:
-					mapping_to_realtimeline[i].append(tracking_list[tracking_index])
-					tmp -= check_list[tracking_list[tracking_index]]
-					check_list[tracking_list[tracking_index]] = 0
+			real_subframe = TDD_config*(ceil(len(schedule_result)/len(TDD_config)))
+			real_subframe = real_subframe[:len(schedule_result)]
+			real_timeline = [[] for i in range(len(real_subframe))]
+			real_timeline_RSC = {i:RSC for i in range(len(real_subframe)) \
+								if real_subframe[i] is status and i not in backhaul_subframe}
+			tracking_list = list(sorted(real_timeline_RSC.keys()))
+			tracking_index = 0
+
+			# print(TDD_config)
+			# print(real_subframe)
+			# print(real_timeline)
+			# print(real_timeline_RSC)
+			# print(tracking_list)
+
+			# mapping
+			for i in range(len(schedule_result)):
+				if real_timeline_RSC[tracking_list[tracking_index]] >= VSC:
+					real_timeline[i].append(tracking_list[tracking_index])
+					real_timeline_RSC[tracking_list[tracking_index]] -= VSC
 					tracking_index = (tracking_index+1)%len(tracking_list)
-				if tmp > 0:
-					msg_warning("needs more %g bits capacity" % tmp, pre=pre)
+					continue
+				else:
+					tmp = copy.deepcopy(VSC)
 
-		return mapping_to_realtimeline
+					while any(real_timeline_RSC[i] is not 0 for i in tracking_list) and tmp >0:
+						real_timeline[i].append(tracking_list[tracking_index])
+						tmp -= real_timeline_RSC[tracking_list[tracking_index]]
+						real_timeline_RSC[tracking_list[tracking_index]] = 0
+						tracking_index = (tracking_index+1)%len(tracking_list)
+					if tmp > 0:
+						msg_warning("needs more %g bits capacity" % tmp, pre=pre)
+
+			filterByInterface(schedule_result, real_timeline, interface)
+
+			if interface == 'backhaul':
+				backhaul_subframe = [item for sublist in real_timeline for item in sublist]
+
+			result = mergeList(result, real_timeline)
+
+			# filter
+			for i in range(len(result)):
+				result[i] = result[i] if schedule_result[i] else []
+
+			tracking_RN = tracking_RN+1 if interface == 'access' else 0
+			interface = 'access'
+			# print(schedule_result)
+			# print(result)
+			# print(tracking_RN)
+			# print(len(device.childs))
+			# print(tracking_RN != len(device.childs))
+			# print(not result)
+			# print("------------------------------------------------------------------------------------------------------------------end of once loop")
+			# break
+
+
+
+		# print(result)
+		return result
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)

@@ -143,6 +143,14 @@ def M3_result(device, schedule_result, map_result, show=False):
 		result = { i:[] for i in range(len(schedule_result))}
 
 		for i in range(len(map_result)):
+
+			if map_result[i] and type(map_result[i][0]) is list:
+				map_result[i] = [item for sublist in map_result[i] for item in sublist]
+				map_result[i] = list(set(map_result[i]))
+
+			if schedule_result[i] and type(schedule_result[i][0]) is list:
+				schedule_result[i] = [item for sublist in schedule_result[i] for item in sublist]
+
 			if schedule_result[i]:
 				for j in map_result[i]:
 					result[j] += schedule_result[i]
