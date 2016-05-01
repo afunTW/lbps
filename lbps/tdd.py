@@ -123,7 +123,7 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 
 def one_to_one_first_mapping_2hop(device, interface, schedule_result):
 
-	pre = "mapping::M3\t\t"
+	pre = "mapping::M3_2hop\t"
 
 	try:
 		status = device.link[interface][0].status

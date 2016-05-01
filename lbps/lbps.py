@@ -1,7 +1,7 @@
 import copy
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
-from tdd import one_to_one_first_mapping as M3_2hop
+from tdd import one_to_one_first_mapping_2hop as M3_2hop
 
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
 from config import bcolors
