@@ -16,6 +16,7 @@ def isBackhaulResult(devices):
 	pre = "isBackhaulResult\t"
 
 	if type(devices) is list:
+		devices = [item for sublist in devices for item in sublist] if type(devices[0]) is list else devices
 		check = list(map(lambda x: re.search('UE*', x), devices))
 		return True if not any(check) else False
 
