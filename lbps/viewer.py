@@ -139,7 +139,7 @@ def M3_result(device, schedule_result, map_result, show=False):
 	try:
 		pre = "%s::M3::result\t" % device.name
 
-		TDD_config = device.tdd_config['access'] if type(device.tdd_config) is dict else device.tdd_config
+		TDD_config = device.childs[0].tdd_config if device.name[0:3] == 'eNB' else device.tdd_config
 		result = { i:[] for i in range(len(schedule_result))}
 
 		for i in range(len(map_result)):

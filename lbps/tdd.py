@@ -115,12 +115,6 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 			tracking_list = list(sorted(real_timeline_RSC.keys()))
 			tracking_index = 0
 
-			# print(TDD_config)
-			# print(real_subframe)
-			# print(real_timeline)
-			# print(real_timeline_RSC)
-			# print(tracking_list)
-
 			# mapping
 			for i in range(len(schedule_result)):
 				if real_timeline_RSC[tracking_list[tracking_index]] >= VSC:
@@ -140,30 +134,18 @@ def one_to_one_first_mapping(device, interface, schedule_result):
 						msg_warning("needs more %g bits capacity" % tmp, pre=pre)
 
 			filterByInterface(schedule_result, real_timeline, interface)
-
-			if interface == 'backhaul':
-				backhaul_subframe = [item for sublist in real_timeline for item in sublist]
-
 			result = mergeList(result, real_timeline)
 
 			# filter
 			for i in range(len(result)):
 				result[i] = result[i] if schedule_result[i] else []
 
+			if interface == 'backhaul':
+				backhaul_subframe = [item for sublist in real_timeline for item in sublist]
+
 			tracking_RN = tracking_RN+1 if interface == 'access' else 0
 			interface = 'access'
-			# print(schedule_result)
-			# print(result)
-			# print(tracking_RN)
-			# print(len(device.childs))
-			# print(tracking_RN != len(device.childs))
-			# print(not result)
-			# print("------------------------------------------------------------------------------------------------------------------end of once loop")
-			# break
 
-
-
-		# print(result)
 		return result
 
 	except Exception as e:
