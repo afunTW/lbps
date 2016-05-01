@@ -2,7 +2,7 @@
 #!/usr/bin/python3
 
 # import matplotlib.pyplot as plt
-from config import bcolors
+from config import bcolors, MODE
 
 from pprint import pprint
 
@@ -12,7 +12,7 @@ from pprint import pprint
 """
 
 def msg_execute(context, pre='', suf='', end='\n'):
-	print(bcolors.OKBLUE + pre + context + suf + bcolors.ENDC, end=end)
+	print(bcolors.OKBLUE + pre + context + suf + bcolors.ENDC, end=end) if MODE is "DEBUG" else print(end='')
 def msg_success(context, pre='', suf='', end='\n'):
 	print(bcolors.OKGREEN + pre + context + suf + bcolors.ENDC, end=end)
 def msg_warning(context, pre='', suf='', end='\n'):
@@ -45,15 +45,20 @@ def aggr_result(device, show=False):
 	try:
 		pre = "%s::aggr::result\t" % device.name
 
-		deivce_K = [i.sleepCycle for i in device.childs]
+		device_K = device.sleepCycle
 		result = []
 
-		for i in range(deivce_K[0]):
-			result.append([i.name for i in device.childs])
+		for i in range(device_K):
+			if i % device_K is 0:
+				result.append([j.name for j in device.childs])
+				result[i].insert(0, device.name)
+			else:
+				result.append([])
 
 		if show:
 			for i in range(len(result)):
-				msg_execute("subframe %d:\t%s" % (i,str(result[i])), pre=pre)
+				if result[i]:
+					msg_execute("subframe %d:\t%s" % (i,str(result[i])), pre=pre)
 
 		return result
 
@@ -73,11 +78,13 @@ def split_result(device, show=False):
 
 		for i in groups:
 			result.append(groups[i])
+			result[i].insert(0, device.name)
 
 		if show:
 			for i in range(device.sleepCycle):
-				suf = "Group %d:\t%s" % (i, str(result[i])) if i < len(result) else "None"
-				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
+				if i<len(result) and result[i]:
+					suf = "Group %d:\t%s" % (i, str(result[i]))
+					msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
 
@@ -110,15 +117,17 @@ def merge_result(device, show=False):
 
 			if queue:
 				result.append(groups[queue[0]])
+				result[len(result)-1].insert(0, device.name)
 				del queue[0]
 			else:
 				result.append(None)
 
 		if show:
 			for i in range(device.sleepCycle):
-				group_number = list(groups.keys())[list(groups.values()).index(result[i])] if result[i] else None
-				suf = "Group %d:\t%s" % (group_number, str(result[i])) if group_number is not None else "None"
-				msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
+				if result[i]:
+					group_number = list(groups.keys())[list(groups.values()).index(result[i])]
+					suf = "Group %d:\t%s" % (group_number, str(result[i]))
+					msg_execute("subframe %d:\t" % i, pre=pre, suf=suf)
 
 		return result
 
@@ -128,20 +137,69 @@ def merge_result(device, show=False):
 def M3_result(device, schedule_result, map_result, show=False):
 
 	try:
-		pre = "%s::M3::result\t\t" % device.name
+		pre = "%s::M3::result\t" % device.name
 
-		TDD_config = device.tdd_config
+		TDD_config = device.childs[0].tdd_config if device.name[0:3] == 'eNB' else device.tdd_config
 		result = { i:[] for i in range(len(schedule_result))}
 
 		for i in range(len(map_result)):
+
+			if map_result[i] and type(map_result[i][0]) is list:
+				map_result[i] = [item for sublist in map_result[i] for item in sublist]
+				map_result[i] = list(set(map_result[i]))
+
+			if schedule_result[i] and type(schedule_result[i][0]) is list:
+				schedule_result[i] = [item for sublist in schedule_result[i] for item in sublist]
+
 			if schedule_result[i]:
 				for j in map_result[i]:
 					result[j] += schedule_result[i]
+					result[j].insert(0, device.name)
 					result[j] = list(set(result[j]))
+					result[j] = sorted(result[j])
 
 		if show:
 			for i in range(len(result)):
 				msg_execute("subframe %d\t[%s]:\t%s" % (i, TDD_config[i%len(TDD_config)], str(result[i])), pre=pre)
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
+def TopDown_result(device, backhaul, show=False):
+
+	try:
+		pre = "%s::TopDown::%s\t" % (device.name, backhaul)
+		result = []
+
+		# backhaul (by case)
+		result = result_mapping[backhaul](device, False)
+
+		# access (aggr)
+		wakeUpTimes = [i.childs[0].wakeUpTimes for i in device.childs]
+		queue = []
+
+		while any(wakeUpTimes):
+			tmp = []
+
+			for i in range(len(wakeUpTimes)):
+				if wakeUpTimes[i]:
+					tmp.append([device.childs[i].name]+[j.name for j in device.childs[i].childs])
+					# tmp += [j.name for j in device.childs[i].childs]
+					wakeUpTimes[i] -= 1
+
+			queue.append(tmp)
+
+		for i in result:
+			if not i and queue:
+				i += queue[0]
+				queue.pop(0)
+
+		if show:
+			for i in range(len(result)):
+				if result[i]:
+					msg_execute("subframe %d:\t%s" % (i,str(result[i])), pre=pre)
+
+		return result
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
@@ -152,5 +210,7 @@ result_mapping = {
 	"merge": merge_result,
 	"aggr-tdd": M3_result,
 	"split-tdd": M3_result,
-	"merge-tdd": M3_result
+	"merge-tdd": M3_result,
+	"aggr-aggr": TopDown_result,
+	"aggr-aggr-tdd": M3_result
 }

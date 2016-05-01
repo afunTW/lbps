@@ -28,6 +28,10 @@ N_TTI_RE = N_TTI_RE * N_RBG
 def wideband_capacity(device, interface):
 	try:
 		link_count = len(device.link[interface])
+
+		if link_count is 0:
+			return None
+
 		return sum(N_TTI_RE * T_CQI[device.link[interface][i].CQI]['eff'] for i in range(link_count)) / link_count
 	except Exception as e:
 		print("W-capacity\t\t%s"%e)
@@ -75,25 +79,44 @@ ONE_HOP_TDD_CONFIG = {
 };
 
 TWO_HOP_TDD_CONFIG = {
-		0:[None, None, None, None, 'D', None, None, None, 'U', None],
-		1:[None, None, None, 'U', None, None, None, None, None, 'D'],
-		2:[None, None, None, None, 'D', None, None, None, 'U', 'D'],
-		3:[None, None, None, 'U', 'D', None, None, None, None, 'D'],
-		4:[None, None, None, 'U', 'D', None, None, None, 'U', 'D'],
-		5:[None, None, 'U', None, None, None, None, None, 'D', None],
-		6:[None, None, None, 'D', None, None, None, 'U', None, None],
-		7:[None, None, 'U', None, 'D', None, None, None, 'D', None],
-		8:[None, None, None, 'D', None, None, None, 'U', None, 'D'],
-		9:[None, None, 'U', 'D', 'D', None, None, None, 'D', None],
-		10:[None, None, None, 'D', None, None, None, 'U', 'D', 'D'],
-		11:[None, None, None, 'U', None, None, None, 'D', None, 'D'],
-		12:[None, None, None, 'U', None, None, None, 'D', 'D', 'D'],
-		13:[None, None, None, 'U', None, None, None, None, None, 'D'],
-		14:[None, None, None, 'U', None, None, None, 'D', None, 'D'],
-		15:[None, None, None, 'U', None, None, None, None, 'D', 'D'],
-		16:[None, None, None, 'U', None, None, None, 'D', 'D', 'D'],
-		17:[None, None, None, 'U', 'D', None, None, 'D', 'D', 'D'],
-		18:[None, None, None, None, 'U', None, None, None, None, 'D']
+		0: {'backhaul': [None, None, None, None, 'D', None, None, None, 'U', None],
+			'access': ONE_HOP_TDD_CONFIG[1]},
+		1: {'backhaul': [None, None, None, 'U', None, None, None, None, None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[1]},
+		2: {'backhaul': [None, None, None, None, 'D', None, None, None, 'U', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[1]},
+		3: {'backhaul': [None, None, None, 'U', 'D', None, None, None, None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[1]},
+		4: {'backhaul': [None, None, None, 'U', 'D', None, None, None, 'U', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[1]},
+		5: {'backhaul': [None, None, 'U', None, None, None, None, None, 'D', None],
+			'access': ONE_HOP_TDD_CONFIG[2]},
+		6: {'backhaul': [None, None, None, 'D', None, None, None, 'U', None, None],
+			'access': ONE_HOP_TDD_CONFIG[2]},
+		7: {'backhaul': [None, None, 'U', None, 'D', None, None, None, 'D', None],
+			'access': ONE_HOP_TDD_CONFIG[2]},
+		8: {'backhaul': [None, None, None, 'D', None, None, None, 'U', None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[2]},
+		9: {'backhaul': [None, None, 'U', 'D', 'D', None, None, None, 'D', None],
+			'access': ONE_HOP_TDD_CONFIG[2]},
+		10: {'backhaul': [None, None, None, 'D', None, None, None, 'U', 'D', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[2]},
+		11: {'backhaul': [None, None, None, 'U', None, None, None, 'D', None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[3]},
+		12: {'backhaul': [None, None, None, 'U', None, None, None, 'D', 'D', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[3]},
+		13: {'backhaul': [None, None, None, 'U', None, None, None, None, None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[4]},
+		14: {'backhaul': [None, None, None, 'U', None, None, None, 'D', None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[4]},
+		15: {'backhaul': [None, None, None, 'U', None, None, None, None, 'D', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[4]},
+		16: {'backhaul': [None, None, None, 'U', None, None, None, 'D', 'D', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[4]},
+		17: {'backhaul': [None, None, None, 'U', 'D', None, None, 'D', 'D', 'D'],
+			'access': ONE_HOP_TDD_CONFIG[4]},
+		18: {'backhaul': [None, None, None, None, 'U', None, None, None, None, 'D'],
+			'access': ONE_HOP_TDD_CONFIG[5]}
 };
 
 """
@@ -136,3 +159,6 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+MODE = "DEBUG"
+# MODE = "RELEASE"

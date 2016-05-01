@@ -1,7 +1,9 @@
 import copy
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
-from poisson import getDataTH, LengthAwkSlpCyl
+from tdd import one_to_one_first_mapping as M3_2hop
+
+from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
 from config import bcolors
 from viewer import *
 
@@ -13,7 +15,8 @@ from viewer import *
 def getLoad(device, interface, duplex="FDD"):
 
 	try:
-		capacity = device.virtualCapacity[interface] if duplex is "TDD" and device.virtualCapacity[interface] else device.capacity[interface]
+		RSC = device.capacity[interface]
+		capacity = device.virtualCapacity[interface] if duplex == "TDD" else RSC
 		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
 
 	except Exception as e:
@@ -27,8 +30,10 @@ def getCapacity(device, interface, duplex):
 
 		if duplex == 'FDD':
 			return device.capacity[interface]
-		elif duplex == 'TDD' and device.virtualCapacity[interface]:
+
+		elif duplex == 'TDD':
 			return device.virtualCapacity[interface]
+
 		else:
 			return 0
 
@@ -41,6 +46,7 @@ def schedulability(check_list):
 
 	if result:
 		msg_success("Check schedulability:\tTrue")
+
 	else:
 		msg_warning("Check schedulability:\tFalse")
 
@@ -59,19 +65,38 @@ def non_degraded(groups_1, groups_2, interface, DATA_TH):
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
 	return result
 
-def load_based_power_saving(device, scheduling, interface, RN=None, TDD=False, show=False):
+def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False):
 
 	try:
-		if not RN and not TDD:
-			LBPS_scheduling[scheduling](device, interface)
+		# NOTE: this process can not use in direct link (eNB-UE)
+		# interface = 'backhaul' if isinstance(device, eNB) else 'access'
+		interface = 'backhaul' if device.name[0:3] == 'eNB' else 'access'
+		scheduling = backhaul+'-'+access if backhaul else access
+		check = scheduling in LBPS_scheduling.keys()
+		result = None
+
+		if check and not TDD:
+			LBPS_scheduling[scheduling](device, interface, duplex='FDD')
 			return result_mapping[scheduling](device, show)
-		elif not RN and TDD:
-			LBPS_scheduling[scheduling](device, interface)
-			result = result_mapping[scheduling](device, show=False)
-			map_result = M3(device, interface, result)
-			return result_mapping[scheduling+"-tdd"](device, result, map_result, show)
+
+		elif check and TDD:
+			LBPS_scheduling[scheduling](device, interface, duplex='TDD')
+
+			# two hop, TopDown
+			if backhaul:
+				result = result_mapping[scheduling](device, backhaul, show=False)
+				map_result = M3_2hop(device, interface, result)
+				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
+
+			# one hop
+			else:
+				result = result_mapping[scheduling](device, show=False)
+				map_result = M3(device, interface, result)
+				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
+
 	except Exception as e:
-		msg_fail(e, pre="schedule_result\t")
+		msg_fail(str(e), pre="schedule_result\t\t")
+		return
 
 """[summary] basic LBPS scheduling
 
@@ -80,10 +105,9 @@ def load_based_power_saving(device, scheduling, interface, RN=None, TDD=False, s
 
 def aggr(device, interface, duplex='FDD'):
 
-	prefix = "lbps::aggr::%s\t\t" % device.name
+	prefix = "lbps::aggr::%s \t" % device.name
 
 	try:
-
 		capacity = getCapacity(device, interface, duplex)
 		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
 		msg_success("load= %g\t" % getLoad(device, interface), pre=prefix)
@@ -94,6 +118,7 @@ def aggr(device, interface, duplex='FDD'):
 		# record
 		for i in device.childs:
 			i.sleepCycle = sleep_cycle_length
+			i.wakeUpTimes = 1
 			# msg_execute("%s.sleepCycle = %d" % (i.name, i.sleepCycle), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
@@ -138,6 +163,7 @@ def split(device, interface, duplex='FDD'):
 			for j in groups[i]:
 				j.sleepCycle = groups_K[i]
 				j.lbpsGroup = i
+				j.wakeUpTimes = 1
 				# msg_execute("%s.sleepCycle = %d\tin Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
 		device.sleepCycle = sleep_cycle_length
@@ -201,6 +227,8 @@ def merge(device, interface, duplex='FDD'):
 			for j in groups[i]:
 				j.sleepCycle = K_merge[i]
 				j.lbpsGroup = i
+				j.wakeUpTimes = int(max(K_merge)/K_merge[i])
+				j.wakeUpTimes
 				# msg_execute("%s.sleepCycle = %d\t in Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
 		device.sleepCycle = max(K_merge)
@@ -211,8 +239,43 @@ def merge(device, interface, duplex='FDD'):
 		msg_fail(str(e), pre=prefix)
 		return
 
+def aggr_aggr(device, interface, duplex='FDD'):
+	prefix = "lbps::aggr-aggr::%s \t" % device.name
+
+	try:
+
+		# backhaul lbps
+		backhaul_K = aggr(device, interface, duplex)
+
+		# access scheduliability
+		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
+		for i in device.childs:
+			capacity = getCapacity(device, interface, duplex)
+			DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
+			access_K = DataAcc(i.lambd[interface], backhaul_K)
+			subframe_count = int((access_K/DATA_TH)+1)
+
+			if subframe_count > backhaul_K:
+				raise Exception("%s: scheduling failed" % i.name)
+
+			if subframe_count > 1:
+				msg_warning("%s: wake up %d subframe" % (i.name, subframe_count), pre=prefix)
+
+			i.sleepCycle = backhaul_K
+
+			for j in i.childs:
+				j.sleepCycle = backhaul_K
+				j.wakeUpTimes = subframe_count
+
+		return backhaul_K
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
+
 LBPS_scheduling = {
 	'aggr': aggr,
 	'split': split,
-	'merge': merge
+	'merge': merge,
+	'aggr-aggr': aggr_aggr
 }
