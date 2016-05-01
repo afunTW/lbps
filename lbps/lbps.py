@@ -1,6 +1,8 @@
 import copy
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
+from tdd import one_to_one_first_mapping as M3_2hop
+
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
 from config import bcolors
 from viewer import *
@@ -83,7 +85,7 @@ def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False
 			# two hop, TopDown
 			if backhaul:
 				result = result_mapping[scheduling](device, backhaul, show=False)
-				map_result = M3(device, interface, result)
+				map_result = M3_2hop(device, interface, result)
 				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
 
 			# one hop
