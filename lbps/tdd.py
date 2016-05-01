@@ -4,18 +4,13 @@ from viewer import msg_fail, msg_warning, M3_result
 from math import ceil
 from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
 
-# one hop test first
-def virtual_subframe_capacity(device, interface, TDD_config):
+"""[summary] internal support function
 
-	if device.link[interface]:
-		status = device.link[interface][0].status
-		TDD_config = TDD_config[interface] if type(TDD_config) is dict else TDD_config
-		real_subframe_count = len(list(filter(lambda x: x  if x == status else '', TDD_config)))
-		VSC = {interface:device.capacity[interface]*real_subframe_count/len(TDD_config)}
-		return VSC
-	else:
-		return {interface:None}
+[description]
+1. isBackhaulResult: check if a list of device name is belong to backhaul link
+2. mergeList: in M3 mapping, for update the final result [pass by reference]
 
+"""
 
 def isBackhaulResult(devices):
 	pre = "isBackhaulResult\t"
@@ -26,6 +21,45 @@ def isBackhaulResult(devices):
 
 	else:
 		msg_fail("input type should be a list of device name", pre=pre)
+
+def mergeList(target, resource):
+	pre = "mergeList\t\t"
+
+	try:
+
+		if not target and len(resource) > len(target):
+			target = resource
+
+		elif len(target) == len(resource):
+			for i in range(len(target)):
+
+				if target[i] and resource[i]:
+					msg_warning("collision", pre=pre)
+
+				target[i] = resource[i] if not target[i] else target[i]
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
+
+"""[summary] external function
+
+[description]
+1. virtual_subframe_capacity: calc the virtual subframe capacity
+2. one_to_one_first_mapping: M3 mapping back to real timeline
+
+"""
+
+def virtual_subframe_capacity(device, interface, TDD_config):
+
+	if device.link[interface]:
+		status = device.link[interface][0].status
+		TDD_config = TDD_config[interface] if type(TDD_config) is dict else TDD_config
+		real_subframe_count = len(list(filter(lambda x: x  if x == status else '', TDD_config)))
+		VSC = {interface:device.capacity[interface]*real_subframe_count/len(TDD_config)}
+		return VSC
+	else:
+		return {interface:None}
 
 def one_to_one_first_mapping(device, interface, schedule_result):
 
