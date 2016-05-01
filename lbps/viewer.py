@@ -175,8 +175,8 @@ def TopDown_result(device, backhaul, show=False):
 
 			for i in range(len(wakeUpTimes)):
 				if wakeUpTimes[i]:
-					tmp += [device.childs[i].name]
-					tmp += [j.name for j in device.childs[i].childs]
+					tmp.append([device.childs[i].name]+[j.name for j in device.childs[i].childs])
+					# tmp += [j.name for j in device.childs[i].childs]
 					wakeUpTimes[i] -= 1
 
 			queue.append(tmp)
