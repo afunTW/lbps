@@ -16,8 +16,8 @@ def isBackhaulResult(devices):
 	pre = "isBackhaulResult\t"
 
 	if type(devices) is list:
-		check = list(map(lambda x: re.search('eNB*', x), devices))
-		return True if any(check) else False
+		check = list(map(lambda x: re.search('UE*', x), devices))
+		return True if not any(check) else False
 
 	else:
 		msg_fail("input type should be a list of device name", pre=pre)
