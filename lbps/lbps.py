@@ -76,11 +76,14 @@ def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False
 		result = None
 
 		if check and not TDD:
-			LBPS_scheduling[scheduling](device, interface, duplex='FDD')
-			return result_mapping[scheduling](device, show)
+			K = LBPS_scheduling[scheduling](device, interface, duplex='FDD')
+			return result_mapping[scheduling](device, show) if K else None
 
 		elif check and TDD:
-			LBPS_scheduling[scheduling](device, interface, duplex='TDD')
+			K = LBPS_scheduling[scheduling](device, interface, duplex='TDD')
+
+			if not K:
+				return
 
 			# two hop, TopDown
 			if backhaul:
