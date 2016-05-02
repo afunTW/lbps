@@ -16,23 +16,27 @@ BANDWIDTH = 20
 
 N_TTI_OFDM = 14
 N_CTRL_OFDM = 2
-N_RBG = int(BANDWIDTH / 0.2)
+# N_RBG = int(BANDWIDTH / 0.2)
 N_S_RBG = 8
 
 # one TTI, one RBG
 N_TTI_RE = (N_TTI_OFDM - N_CTRL_OFDM) * 12
 
-# one TTI, total RBGs = total REs
-N_TTI_RE = N_TTI_RE * N_RBG
+# # one TTI, total RBGs = total REs
+# N_TTI_RE = N_TTI_RE * N_RBG
 
 def wideband_capacity(device, interface):
+
 	try:
 		link_count = len(device.link[interface])
+		RB = [ device.link[interface][i].bandwidth for i in range(link_count)]
+		RE = [ N_TTI_RE * RB[i] for i in range(link_count)]
 
 		if link_count is 0:
 			return None
 
-		return sum(N_TTI_RE * T_CQI[device.link[interface][i].CQI]['eff'] for i in range(link_count)) / link_count
+		return sum(RE[i] * T_CQI[device.link[interface][i].CQI]['eff'] for i in range(link_count)) / link_count
+
 	except Exception as e:
 		print("W-capacity\t\t%s"%e)
 
