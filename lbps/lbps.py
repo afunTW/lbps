@@ -2,6 +2,7 @@ import copy
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
 from tdd import one_to_one_first_mapping_2hop as M3_2hop
+from device import UE, RN, eNB
 
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
 from config import bcolors
@@ -69,8 +70,7 @@ def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False
 
 	try:
 		# NOTE: this process can not use in direct link (eNB-UE)
-		# interface = 'backhaul' if isinstance(device, eNB) else 'access'
-		interface = 'backhaul' if device.name[0:3] == 'eNB' else 'access'
+		interface = 'backhaul' if isinstance(device, eNB) else 'access'
 		scheduling = backhaul+'-'+access if backhaul else access
 		check = scheduling in LBPS_scheduling.keys()
 		result = None
