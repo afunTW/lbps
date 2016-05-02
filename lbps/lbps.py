@@ -16,12 +16,18 @@ from viewer import *
 def getLoad(device, interface, duplex="FDD"):
 
 	try:
+		# RSC = sum([i.capacity[interface] for i in devices])
+		# capacity = sum([i.virtualCapacity[interface] for i in devices]) if duplex == "TDD" else RSC
+		# lambd = sum([i.lambd[interface] for i in devices])
+		# pkt_size = [i.link[interface][j].pkt_size for j in range(len(i.link[interface])) for i in devices]
+		# print(pkt_size)
+
 		RSC = device.capacity[interface]
 		capacity = device.virtualCapacity[interface] if duplex == "TDD" else RSC
 		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
 
 	except Exception as e:
-		msg_fail(str(e), pre="%s::getLoad\t\t" % device.name)
+		msg_fail(str(e), pre="getLoad\t\t\t")
 		return
 
 def getCapacity(device, interface, duplex):
@@ -53,14 +59,21 @@ def schedulability(check_list):
 
 	return result
 
-def non_degraded(groups_1, groups_2, interface, DATA_TH):
+def non_degraded(G1, G2, interface, DATA_TH):
 
-	sleep_cycle_length_1 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_1]), DATA_TH)
+	# calc the load of merged group
+	# merged_group = G1['devices'] + G2['devices']
+	# merged_load = getLoad(merged_group, interface)
+
+	# calc the sleepCycle of merged group
+	# check if the sleepCycle still the same
+
+	sleep_cycle_length_1 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in G1]), DATA_TH)
 	sleep_cycle_length_1 = 2**floor(log(sleep_cycle_length_1, 2))
-	sleep_cycle_length_2 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_2]), DATA_TH)
+	sleep_cycle_length_2 = LengthAwkSlpCyl(sum([i.lambd[interface] for i in G2]), DATA_TH)
 	sleep_cycle_length_2 = 2**floor(log(sleep_cycle_length_2, 2))
 
-	merge_sleep_cycle = LengthAwkSlpCyl(sum([i.lambd[interface] for i in groups_1 + groups_2]), DATA_TH)
+	merge_sleep_cycle = LengthAwkSlpCyl(sum([i.lambd[interface] for i in G1 + G2]), DATA_TH)
 	merge_sleep_cycle = 2**floor(log(merge_sleep_cycle, 2))
 
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
@@ -241,56 +254,103 @@ def merge(device, interface, duplex='FDD'):
 		if load < 1:
 			msg_success("load= %g\t" % load, pre=prefix)
 
-			groups = [[i] for i in device.childs]
-			groups_load = [i.lambd[interface] for i in device.childs]
-			K_original = [LengthAwkSlpCyl(i, DATA_TH) for i in groups_load]
-			K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_original))
+			# init merge groups
+			groups = {
+				i:{
+					'devices': [device.childs[i]],
+					'load': device.childs[i].lambd[interface],
+					'sleepCycle': LengthAwkSlpCyl(device.childs[i].lambd[interface], DATA_TH)
+				} for i in range(len(device.childs))
+			}
 
-			# merge process
-			while not schedulability(K_merge):
-				min_load = groups_load.index(min(groups_load))
+			for i in groups:
+				groups[i]['sleepCycle'] = 2**floor(log(groups[i]['sleepCycle'], 2))
 
-				# non-degraded merge
-				non_degraded_success = False
-				for i in groups:
-					if i is groups[min_load]:
-						continue
-					if non_degraded(groups[min_load], i, interface, DATA_TH):
-						non_degraded_success = True
-						i += groups[min_load]
-						del groups[min_load]
-						break
+			non_degraded(groups[0], groups[1], interface, DATA_TH)
 
-				# degraded merge
-				if not non_degraded_success and len(groups) > 1:
-					msg_execute("degraded merge process", pre=prefix)
+			# # merge process
+			# while not schedulability([groups[i]['sleepCycle'] for i in groups]):
 
-					groups = [d for (k,d) in sorted(zip(K_merge, groups), key=lambda x: x[0], reverse=True)]
-					groups[0] += groups[1]
-					del groups[1]
+			# 	# find the merge group
+			# 	min_load_group = min([groups[i]['sleepCycle'] for i in groups])
+			# 	for i in groups:
+			# 		if groups[i]['sleepCycle'] == min_load_group:
+			# 			min_load_group = groups[i]
+			# 			break
 
-					K_merge = [sum([dev.lambd[interface] for dev in subgroup]) for subgroup in groups]
-					K_merge = [LengthAwkSlpCyl(i, DATA_TH) for i in K_merge]
-					K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_merge))
+			# 	# non-degraded merge
+			# 	non_degraded_success = False
+			# 	for i in groups:
+			# 		if i == min_load_group:
+			# 			continue
+			# 		if non_degraded(min_load_group, i, interface, DATA_TH):
+			# 			non_degraded_success = True
 
-				elif non_degraded_success and len(groups) > 1:
-					msg_execute("non-degraded merge process", pre=prefix)
-				else:
-					msg_warning("reamain only one group", pre=prefix)
+			# groups = [[i] for i in device.childs]
+			# groups_load = [i.lambd[interface] for i in device.childs]
+			# K_original = [LengthAwkSlpCyl(i, DATA_TH) for i in groups_load]
+			# K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_original))
 
-			# record
-			for i in range(len(groups)):
-				# msg_execute("Group %d, wake up %d times" % (i, max(K_merge)/K_merge[i]), pre=prefix)
-				for j in groups[i]:
-					j.sleepCycle = K_merge[i]
-					j.lbpsGroup = i
-					j.wakeUpTimes = int(max(K_merge)/K_merge[i])
-					j.wakeUpTimes
-					# msg_execute("%s.sleepCycle = %d\t in Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
+			# # merge process
+			# while not schedulability(K_merge):
+			# 	min_load = groups_load.index(min(groups_load))
 
-			msg_success("sleep cycle length = %d with %d groups" % (max(K_merge), len(groups)), pre=prefix)
-			device.sleepCycle = max(K_merge)
-			return K_merge
+			# 	# non-degraded merge
+			# 	non_degraded_success = False
+			# 	for i in groups:
+			# 		if i is groups[min_load]:
+			# 			continue
+			# 		if non_degraded(groups[min_load], i, interface, DATA_TH):
+			# 			non_degraded_success = True
+			# 			i += groups[min_load]
+			# 			del groups[min_load]
+			# 			break
+
+			# 	# degraded merge
+			# 	if not non_degraded_success and len(groups) > 1:
+			# 		msg_execute("degraded merge process", pre=prefix)
+
+			# 		groups = [d for (k,d) in sorted(zip(K_merge, groups), key=lambda x: x[0], reverse=True)]
+			# 		groups[0] += groups[1]
+			# 		del groups[1]
+
+			# 		K_merge = [sum([dev.lambd[interface] for dev in subgroup]) for subgroup in groups]
+			# 		K_merge = [LengthAwkSlpCyl(i, DATA_TH) for i in K_merge]
+			# 		K_merge = list(map(lambda x: 2**floor(log(x, 2)), K_merge))
+
+			# 	elif non_degraded_success and len(groups) > 1:
+			# 		msg_execute("non-degraded merge process", pre=prefix)
+			# 	else:
+			# 		msg_warning("reamain only one group", pre=prefix)
+
+			# msg_success("sleep cycle length = %d with %d groups" % (max(K_merge), len(groups)), pre=prefix)
+
+			# # record
+			# device.sleepCycle = max(K_merge)
+			# for i in range(len(groups)):
+			# 	for j in groups[i]:
+			# 		j.sleepCycle = K_merge[i]
+			# 		j.lbpsGroup = i
+			# 		j.wakeUpTimes = int(max(K_merge)/K_merge[i])
+			# 		j.wakeUpTimes
+
+			# """
+			# encapsulate:
+			# {
+			# 	subframe: {
+			# 		'devices': wakeUpDevice,
+			# 		'load': groupLoad,
+			# 		'sleepCycle': groupRealSleepCycle
+			# 		'wakeUpTimes': groupWakeUpTimes
+			# 	}
+			# }
+			# """
+			# result = {i:None for i in range(sleep_cycle_length)}
+			# print(len(groups))
+			# print(len(groups_load))
+			# print(len(K_merge))
+
+			# return K_merge
 
 		else:
 			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
