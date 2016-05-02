@@ -125,7 +125,6 @@ def aggr(device, interface, duplex='FDD'):
 
 			# record
 			device.sleepCycle = sleep_cycle_length
-
 			for i in device.childs:
 				i.sleepCycle = sleep_cycle_length
 				i.wakeUpTimes = 1
@@ -184,17 +183,36 @@ def split(device, interface, duplex='FDD'):
 
 				sleep_cycle_length = min(groups_K) if min(groups_K) > 0 else sleep_cycle_length
 
+			msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
+
 			# record
+			device.sleepCycle = sleep_cycle_length
 			for i in range(len(groups)):
 				for j in groups[i]:
 					j.sleepCycle = groups_K[i]
 					j.lbpsGroup = i
 					j.wakeUpTimes = 1
-					# msg_execute("%s.sleepCycle = %d\tin Group %d" % (j.name, j.sleepCycle, j.lbpsGroup), pre=prefix)
 
-			msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
-			device.sleepCycle = sleep_cycle_length
-			return sleep_cycle_length
+			"""
+			encapsulate:
+			{
+				subframe: {
+					'devices': wakeUpDevice,
+					'load': groupLoad,
+					'sleepCycle': groupRealSleepCycle
+				}
+			}
+			"""
+			result = {i:None for i in range(sleep_cycle_length)}
+			for i in range(len(groups)):
+				G = {
+					'devices': groups[i],
+					'load': groups_load[i],
+					'sleepCycle': groups_K[i]
+				}
+				result[i] = G
+
+			return result
 
 		else:
 			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
