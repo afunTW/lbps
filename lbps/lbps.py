@@ -111,23 +111,32 @@ def aggr(device, interface, duplex='FDD'):
 	prefix = "lbps::aggr::%s \t" % device.name
 
 	try:
+		# duplex will only affect the capacity, not related to mapping
 		capacity = getCapacity(device, interface, duplex)
 		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
 		load = getLoad(device, interface)
 
 		if load < 1:
 			msg_success("load= %g\t" % load, pre=prefix)
+
+			# aggr process
 			sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
+			msg_success("sleepCycle = %d" % sleep_cycle_length ,pre=prefix)
 
 			# record
+			device.sleepCycle = sleep_cycle_length
+
 			for i in device.childs:
 				i.sleepCycle = sleep_cycle_length
 				i.wakeUpTimes = 1
-				# msg_execute("%s.sleepCycle = %d" % (i.name, i.sleepCycle), pre=prefix)
 
-			device.sleepCycle = sleep_cycle_length
-			msg_success("sleepCycle = %d" % i.sleepCycle ,pre=prefix)
-			return sleep_cycle_length
+			# encapsulate: { subframe: wakeUpDevice }
+			result = {i:None for i in range(sleep_cycle_length)}
+			result[0] = [i for i in device.childs]
+			result[0].append(device)
+			result[0] = sorted(result[0], key=lambda d: d.name)
+
+			return result
 
 		else:
 			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
