@@ -68,12 +68,12 @@ def getCQIByType(CQI_type):
 	"""
 	CQI_range = []
 
-	if type(CQI_type) is not list or len(CQI_type) is 0:
-		return
-
-	for i in CQI_type:
-		if i.upper() in DEVICE_CQI_TYPE:
+	if type(CQI_type) is list and len(CQI_type) is not 0 and \
+		set(CQI_type) <= set(list(DEVICE_CQI_TYPE.keys())):
+		for i in CQI_type:
 			list(map(CQI_range.append, DEVICE_CQI_TYPE[i]))
+	else:
+		return None
 
 	# remove duplicate value in list
 	return list(set(CQI_range));
