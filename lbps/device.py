@@ -124,6 +124,17 @@ class Device(Bearer):
 	def CQI(self):
 		return self._CQI
 
+	@CQI.setter
+	def CQI(self, typeCQI):
+		try:
+			pre="%s::CQI.setter\t\t" % self._name
+			CQI_range = getCQIByType(typeCQI)
+			self._CQI = random.choice(CQI_range) if CQI_range else 0
+			msg_execute(str(self._CQI), pre=pre)
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
 	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
 
 		me = self._name
@@ -205,12 +216,9 @@ class RN(Device):
 		try:
 
 			if config in ONE_HOP_TDD_CONFIG.values() and self.__childs:
-
 				self._tdd_config = config
-
-				if self.__childs:
-					for i in self.__childs:
-						i.tdd_config = config
+				for i in self.__childs:
+					i.tdd_config = config
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
@@ -256,12 +264,8 @@ class eNB(Device):
 
 			elif config in TWO_HOP_TDD_CONFIG.values():
 				self._tdd_config = config['backhaul']
-
-				if self.__childs:
-					for i in self.__childs:
-						i._tdd_config = config['access']
-
-			self.virtualCapacity
+				for i in self.__childs:
+					i._tdd_config = config['access']
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
