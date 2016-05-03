@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-import inspect
 import random
 from network import Bearer, getCQIByType
 from config import  traffic, wideband_capacity
@@ -130,7 +129,6 @@ class Device(Bearer):
 			pre="%s::CQI.setter\t\t" % self._name
 			CQI_range = getCQIByType(typeCQI)
 			self._CQI = random.choice(CQI_range) if CQI_range else 0
-			msg_execute(str(self._CQI), pre=pre)
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
