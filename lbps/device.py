@@ -20,6 +20,7 @@ class Device(Bearer):
 		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._tdd_config = None
 		self._CQI = 0
+		self._sleep_mode = False
 
 	@property
 	def buf(self):
@@ -28,16 +29,12 @@ class Device(Bearer):
 
 	@buf.setter
 	def buf(self, buf):
-
 		pre = "%s::buf.setter\t\t" % self._name
-
 		try:
-
 			if type(buf) is dict:
 				buf = {k: v for k, v in buf.items() if k is 'U' or k is 'D'}
 				buf = {k: v for k, v in buf.items() if type(v) is int}
 				self._buf.update(buf)
-
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
@@ -132,6 +129,15 @@ class Device(Bearer):
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
+
+	@property
+	def sleep_mode(self):
+		return self._sleep_mode
+
+	@sleep_mode.setter
+	def sleep_mode(self, sw):
+		if type(sw) is bool:
+			self._sleep_mode = sw
 
 	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
 
