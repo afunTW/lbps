@@ -25,7 +25,7 @@ for i in base_station.childs:
 		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
 # calc pre-inter-arrival-time of packets (encapsulate)
-simulation_time = 1000
+simulation_time = 10
 timeline = { i:[] for i in range(simulation_time+1)}
 UE_lambda = [i.lambd for i in users]
 
@@ -57,7 +57,7 @@ for i in range(len(timeline)):
 msg_success("==========\tsimulation start\t==========")
 discard_pkt = []
 TTI = 1
-
+print(base_station.capacity)
 while TTI != simulation_time+1:
 
 	# check the arrival pkt from internet
@@ -66,12 +66,20 @@ while TTI != simulation_time+1:
 		continue
 
 	# discard timeout pkt and record
-	for pkt in base_station.queue['internet']:
-		if TTI - pkt['arrival_time'] > pkt['delay_budget']:
-			base_station.queue['internet'].remove(pkt)
-			discard_pkt.append(pkt)
+	for child in base_station.queue['backhaul']:
+		for pkt in base_station.queue['backhaul'][child]:
+			if TTI - pkt['arrival_time'] > pkt['delay_budget']:
+				base_station.queue['backhaul'][child].remove(pkt)
+				discard_pkt.append(pkt)
 
-	base_station.queue['internet'] += timeline[TTI]
+	# DeNB receive pkt from internet and classified
+	for arrPkt in timeline[TTI]:
+		base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
+
+	# check the sleep mode for each mode (apply LBPS)
+
+	# transmission scheduling: 2-hop FIFO
+
 
 	TTI += 1
 

@@ -249,7 +249,7 @@ class eNB(Device):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
-		self.__queue = {'internet': [], 'backhaul':{}}
+		self.__queue = {'backhaul':{}, 'access':[]}
 		self.__class__.count += 1
 		super().__init__(buf, self.__name)
 
