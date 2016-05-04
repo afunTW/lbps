@@ -26,18 +26,32 @@ for i in base_station.childs:
 
 # calc pre-inter-arrival-time of packets (encapsulate)
 simulation_time = 1000
+timeline = { i:[] for i in range(simulation_time+1)}
 UE_lambda = [i.lambd for i in users]
-interArrivalPkt = { i:[] for i in range(simulation_time)}
 
-# for i in range(len(users)):
-# 	for j in users[i].link['access']:
-# 		pkt = {
-# 			'device': users[i],
-# 			'flow': j.flow,
-# 			'delay_budget': config.traffic[j.flow]['delay_budget'],
-# 			'bitrate': config.traffic[j.flow]['bitrate'],
-# 			'arrival_time': random.expovariate(users[i].lambd)
-# 		}
+for i in range(len(users)):
+
+	for bearer in users[i].link['access']:
+		arrTimeByBearer = [0]
+
+		# random process of getting inter-arrival-time by bearer
+		while arrTimeByBearer[-1]<=simulation_time:
+			arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
+		arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
+		arrTimeByBearer.pop(0)
+
+		# assign pkt to real timeline
+		for arrTime in range(len(arrTimeByBearer)):
+			pkt = {
+				'device': users[i],
+				'flow': bearer.flow,
+				'delay_budget': traffic[bearer.flow]['delay_budget'],
+				'bitrate': traffic[bearer.flow]['bitrate'],
+				'arrival_time': arrTimeByBearer[arrTime]
+			}
+			timeline[math.ceil(pkt['arrival_time'])].append(pkt)
+
+pprint(timeline)
 
 """[summary] LBPS basic scheme
 
