@@ -18,7 +18,7 @@ for i in range(len(relays)):
 		users[j].parent = relays[i]
 		users[j].CQI = ['M', 'H']
 
-# build up the bearer
+# build up the bearer from parent to child
 for i in base_station.childs:
 	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 	for j in i.childs:
@@ -51,79 +51,25 @@ for i in range(len(users)):
 			}
 			timeline[math.ceil(pkt['arrival_time'])].append(pkt)
 
-pprint(timeline)
+msg_success("==========\tsimulation start\t==========")
+discard_pkt = []
+TTI = 1
 
-"""[summary] LBPS basic scheme
+while TTI != simulation_time+1:
 
-[description]
-1. Aggr
-2. Split
-3. Merge
-4. test by eNB
-"""
+	# check the arrival pkt from internet
+	if not timeline[TTI]:
+		TTI += 1
+		continue
 
-# TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'aggr', show=True)
+	# discard timeout pkt and record
+	for pkt in base_station.queue['internet']:
+		if TTI - pkt['arrival_time'] > pkt['delay_budget']:
+			base_station.queue['internet'].remove(pkt)
+			discard_pkt.append(pkt)
 
-# TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'split', show=True)
+	base_station.queue['internet'] += timeline[TTI]
 
-# TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'merge', show=True)
+	TTI += 1
 
-# TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'aggr', show=True)
-
-# TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'split', show=True)
-
-# TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'merge', show=True)
-
-"""[summary] LBPS basic scheme with TDD
-
-[description]
-1. Aggr in TDD
-2. Split in TDD
-3. Merge in TDD
-
-only RN will be assign TDD configuration so far
-
-"""
-
-# TDD_config = ONE_HOP_TDD_CONFIG[1]
-
-
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'aggr', TDD=True, show=True)
-
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'split', TDD=True, show=True)
-
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'merge', TDD=True, show=True)
-
-"""[summary] proposed two-hop top-down LBPS in TDD
-
-[description]
-1. aggr-aggr
-2. split-aggr
-3. merge-aggr
-"""
-
-# TDD_config = TWO_HOP_TDD_CONFIG[0]
-
-# TestBS = copy.deepcopy(base_station)
-# TestBS.tdd_config = TDD_config
-# result = LBPS(TestBS, 'aggr', backhaul='aggr', TDD=True, show=True)
-
-# TestBS = copy.deepcopy(base_station)
-# TestBS.tdd_config = TDD_config
-# result = LBPS(TestBS, 'aggr', backhaul='split', TDD=True, show=True)
-
-# TestBS = copy.deepcopy(base_station)
-# TestBS.tdd_config = TDD_config
-# result = LBPS(TestBS, 'aggr', backhaul='merge', TDD=True, show=True)
+msg_success("==========\tsimulation end\t\t==========")
