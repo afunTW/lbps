@@ -201,7 +201,7 @@ class RN(Device):
 
 			if all(check):
 				self.__childs = childs
-				msg_success("success", pre=pre)
+				# msg_success("success", pre=pre)
 
 		except Exception as e:
 			msg_fail(e, pre=pre)
@@ -268,7 +268,7 @@ class eNB(Device):
 
 			if all(check):
 				self.__childs = childs
-				msg_success("success", pre=pre)
+				# msg_success("success", pre=pre)
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)

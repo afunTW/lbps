@@ -51,6 +51,9 @@ for i in range(len(users)):
 			}
 			timeline[math.ceil(pkt['arrival_time'])].append(pkt)
 
+for i in range(len(timeline)):
+	timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
+
 msg_success("==========\tsimulation start\t==========")
 discard_pkt = []
 TTI = 1
