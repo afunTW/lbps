@@ -61,9 +61,8 @@ class Device(Bearer):
 				# msg_execute(str(self._capacity), pre=pre)
 				return self._capacity
 
-			elif self._link:
-				self._capacity['access'] = wideband_capacity(self, 'access')
-				self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
+			elif self.childs:
+				self._capacity['access'] = wideband_capacity(self)
 				# msg_execute(str(self._capacity), pre=pre)
 				return self._capacity
 
