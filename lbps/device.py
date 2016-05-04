@@ -176,6 +176,7 @@ class RN(Device):
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
 		self.__parent = None
+		self.__queue = {'backhaul':[], 'access':{}}
 		self.__class__.count += 1
 		super().__init__(buf, self.__name)
 
@@ -203,6 +204,10 @@ class RN(Device):
 	def parent(self):
 		return self.__parent
 
+	@property
+	def queue(self):
+		return self.__queue
+
 	@parent.setter
 	def parent(self, parent):
 		self.__parent = parent if isinstance(parent, eNB) else None
@@ -221,6 +226,16 @@ class RN(Device):
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
+	# override Device.connect
+	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
+		try:
+			pre = "%s::connect\t\t" % self.name
+			super().connect(dest, status, interface, bandwidth, flow)
+			interface == 'access' and self.__queue[interface].update({dest.name:[]})
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
 class eNB(Device):
 	count = 0
 
@@ -228,6 +243,7 @@ class eNB(Device):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
+		self.__queue = {'internet': [], 'backhaul':{}}
 		self.__class__.count += 1
 		super().__init__(buf, self.__name)
 
@@ -251,6 +267,10 @@ class eNB(Device):
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
+	@property
+	def queue(self):
+		return self.__queue
+
 	@Device.tdd_config.setter
 	def tdd_config(self, config):
 		pre = "%s::tdd_config.setter\t" % self._name
@@ -264,6 +284,16 @@ class eNB(Device):
 				self._tdd_config = config['backhaul']
 				for i in self.__childs:
 					i._tdd_config = config['access']
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
+	# override Device.connect
+	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
+		try:
+			pre = "%s::connect\t\t" % self.name
+			super().connect(dest, status, interface, bandwidth, flow)
+			interface == 'backhaul' and self.__queue[interface].update({dest.name:[]})
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
