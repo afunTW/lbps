@@ -2,9 +2,8 @@ import copy
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
 from tdd import one_to_one_first_mapping as M3_2hop
-
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
-from config import bcolors
+from config import *
 from viewer import *
 
 """[summary] supported function
@@ -279,3 +278,96 @@ LBPS_scheduling = {
 	'merge': merge,
 	'aggr-aggr': aggr_aggr
 }
+
+if __name__ == '__main__':
+
+	# create device instance
+	base_station = eNB(M_BUF)
+	relays = [RN(M_BUF) for i in range(6)]
+	users = [UE(M_BUF) for i in range(240)]
+
+	# assign the relationship and CQI
+	base_station.childs = relays
+	for i in range(len(relays)):
+		relays[i].childs = users[i*40:i*40+40]
+		relays[i].parent = base_station
+		relays[i].CQI = ['H']
+		for j in range(i*40, i*40+40):
+			users[j].parent = relays[i]
+			users[j].CQI = ['M', 'H']
+
+	# build up the bearer from parent to child
+	for i in base_station.childs:
+		base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
+		for j in i.childs:
+			i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
+
+	"""[summary] LBPS basic scheme
+	[description]
+	1. Aggr
+	2. Split
+	3. Merge
+	4. test by eNB
+	"""
+
+	# TestRN = copy.deepcopy(relays[0])
+	# result = load_based_power_saving(TestRN, 'aggr', show=True)
+
+	# TestRN = copy.deepcopy(relays[0])
+	# result = load_based_power_saving(TestRN, 'split', show=True)
+
+	# TestRN = copy.deepcopy(relays[0])
+	# result = load_based_power_saving(TestRN, 'merge', show=True)
+
+	# TestBS = copy.deepcopy(base_station)
+	# result = load_based_power_saving(TestBS, 'aggr', show=True)
+
+	# TestBS = copy.deepcopy(base_station)
+	# result = load_based_power_saving(TestBS, 'split', show=True)
+
+	# TestBS = copy.deepcopy(base_station)
+	# result = load_based_power_saving(TestBS, 'merge', show=True)
+
+	"""[summary] LBPS basic scheme with TDD
+	[description]
+	1. Aggr in TDD
+	2. Split in TDD
+	3. Merge in TDD
+	only RN will be assign TDD configuration so far
+	"""
+
+	# TDD_config = ONE_HOP_TDD_CONFIG[1]
+
+
+	# TestRN = copy.deepcopy(relays[0])
+	# TestRN.tdd_config = TDD_config
+	# result = load_based_power_saving(TestRN, 'aggr', TDD=True, show=True)
+
+	# TestRN = copy.deepcopy(relays[0])
+	# TestRN.tdd_config = TDD_config
+	# result = load_based_power_saving(TestRN, 'split', TDD=True, show=True)
+
+	# TestRN = copy.deepcopy(relays[0])
+	# TestRN.tdd_config = TDD_config
+	# result = load_based_power_saving(TestRN, 'merge', TDD=True, show=True)
+
+	"""[summary] proposed two-hop top-down LBPS in TDD
+	[description]
+	1. aggr-aggr
+	2. split-aggr
+	3. merge-aggr
+	"""
+
+	# TDD_config = TWO_HOP_TDD_CONFIG[0]
+
+	# TestBS = copy.deepcopy(base_station)
+	# TestBS.tdd_config = TDD_config
+	# result = load_based_power_saving(TestBS, 'aggr', backhaul='aggr', TDD=True, show=True)
+
+	# TestBS = copy.deepcopy(base_station)
+	# TestBS.tdd_config = TDD_config
+	# result = load_based_power_saving(TestBS, 'aggr', backhaul='split', TDD=True, show=True)
+
+	# TestBS = copy.deepcopy(base_station)
+	# TestBS.tdd_config = TDD_config
+	# result = load_based_power_saving(TestBS, 'aggr', backhaul='merge', TDD=True, show=True)
