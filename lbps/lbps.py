@@ -17,8 +17,9 @@ from pprint import pprint
 def getLoad(device, duplex="FDD"):
 
 	try:
-		capacity = device.capacity if duplex == 'FDD' else device.virtualCapacity
 		interface = 'backhaul' if isinstance(device, eNB) else 'access'
+		capacity = device.capacity if duplex == 'FDD' else device.virtualCapacity
+		capacity = capacity[interface] if type(capacity) is dict else capacity
 		return device.lambd[interface]*getAvgPktSize(device)/capacity
 
 	except Exception as e:
@@ -72,11 +73,12 @@ def aggr(device, duplex='FDD', show='False'):
 		if duplex is not 'FDD' and duplex is not 'TDD':
 			return
 
-		if not isinstance(device, eNB) and not isinstance(devices, RN):
+		if not isinstance(device, eNB) and not isinstance(device, RN):
 			return
 
 		interface = 'backhaul' if isinstance(device, eNB) else 'access'
 		capacity = device.capacity if duplex == 'FDD' else device.virtualCapacity
+		capacity = capacity[interface] if type(capacity) is dict else capacity
 		pkt_size = getAvgPktSize(device)
 		DATA_TH = int(getDataTH(capacity, pkt_size))
 		load = getLoad(device, duplex)
