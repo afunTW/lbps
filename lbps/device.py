@@ -16,8 +16,6 @@ class Device(Bearer):
 		self._buf = {'D': [], 'U': []}
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
-		self._capacity = None
-		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._tdd_config = None
 		self._CQI = 0
 		self._sleep_mode = False
@@ -58,35 +56,18 @@ class Device(Bearer):
 		if self._CQI:
 			return N_TTI_RE*T_CQI[self._CQI]['eff']
 
-		msg_fail(str(e), pre=pre)
+		msg_fail("failed", pre=pre)
 		return
 
 	@property
 	def virtualCapacity(self):
 		pre = "%s::virtualCapacity\t" % self._name
 
-		try:
+		if self.tdd_config:
+			return self.tdd_config.count('D')*self.capacity/10
 
-			if self._virtualCapacity['access'] or self._virtualCapacity['backhaul']:
-				# msg_execute(str(self._virtualCapacity), pre=pre)
-				return self._virtualCapacity
-
-			elif self._tdd_config and self._link:
-				self._virtualCapacity.update(virtual_subframe_capacity(self, 'access', self._tdd_config))
-				self._virtualCapacity.update(virtual_subframe_capacity(self, 'backhaul', self._tdd_config))
-				# msg_execute(str(self._virtualCapacity), pre=pre)
-				return self._virtualCapacity
-
-			elif self._tdd_config:
-				msg_fail("there's no connection to estimate CQI calue", pre=pre)
-				return
-
-			else:
-				msg_fail("there's no TDD configuration", pre=pre)
-				return
-
-		except Exception as e:
-			msg_fail(str(e), pre=pre)
+		msg_fail("failed", pre=pre)
+		return
 
 	@property
 	def tdd_config(self):
@@ -218,6 +199,16 @@ class RN(Device):
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
+	@Device.virtualCapacity.getter
+	def virtualCapacity(self):
+		pre = "%s::virtualCapacity\t" % self._name
+
+		if self.tdd_config:
+			return self.tdd_config.count('D')*self.capacity['access']/10
+
+		msg_fail("failed", pre=pre)
+		return
+
 	@Device.tdd_config.setter
 	def tdd_config(self, config):
 		pre = "%s::tdd_config.setter\t" % self._name
@@ -287,7 +278,7 @@ class eNB(Device):
 
 	@Device.tdd_config.setter
 	def tdd_config(self, config):
-		pre = "%s::tdd_config.setter\t" % self._name
+		pre = "%s::tdd_config.setter\t" % self.name
 
 		try:
 
@@ -303,6 +294,15 @@ class eNB(Device):
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
+
+	@Device.CQI.getter
+	def CQI(self):
+		pre = "%s::CQI\t\t" % self.name
+
+		if self.childs:
+			return int(sum([rn.CQI for rn in self.childs])/len(self.childs))
+
+		msg_fail("failed", pre=pre)
 
 	# override Device.connect
 	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
