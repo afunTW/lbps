@@ -224,7 +224,7 @@ class RN(Device):
 
 		try:
 
-			if config in ONE_HOP_TDD_CONFIG.values() and self.__childs:
+			if config in ONE_HOP_TDD_CONFIG.values():
 				self._tdd_config = config
 				for i in self.__childs:
 					i.tdd_config = config
@@ -297,7 +297,9 @@ class eNB(Device):
 			elif config in TWO_HOP_TDD_CONFIG.values():
 				self._tdd_config = config['backhaul']
 				for i in self.__childs:
-					i._tdd_config = config['access']
+					i.tdd_config = config['access']
+					for j in i.childs:
+						j.tdd_config = config['access']
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
