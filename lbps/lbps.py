@@ -5,7 +5,7 @@ from tdd import one_to_one_first_mapping_2hop as M3_2hop
 from device import UE, RN, eNB
 
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
-from config import bcolors
+from config import *
 from viewer import *
 
 """[summary] supported function
@@ -16,12 +16,6 @@ from viewer import *
 def getLoad(device, interface, duplex="FDD"):
 
 	try:
-		# RSC = sum([i.capacity[interface] for i in devices])
-		# capacity = sum([i.virtualCapacity[interface] for i in devices]) if duplex == "TDD" else RSC
-		# lambd = sum([i.lambd[interface] for i in devices])
-		# pkt_size = [i.link[interface][j].pkt_size for j in range(len(i.link[interface])) for i in devices]
-		# print(pkt_size)
-
 		RSC = device.capacity[interface]
 		capacity = device.virtualCapacity[interface] if duplex == "TDD" else RSC
 		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)

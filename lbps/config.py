@@ -16,26 +16,20 @@ BANDWIDTH = 20
 
 N_TTI_OFDM = 14
 N_CTRL_OFDM = 2
-# N_RBG = int(BANDWIDTH / 0.2)
+N_RBG = int(BANDWIDTH / 0.2)
 N_S_RBG = 8
 
 # one TTI, one RBG
 N_TTI_RE = (N_TTI_OFDM - N_CTRL_OFDM) * 12
 
-# # one TTI, total RBGs = total REs
-# N_TTI_RE = N_TTI_RE * N_RBG
+# one TTI, total RBGs = total REs
+N_TTI_RE = N_TTI_RE * N_RBG
 
-def wideband_capacity(device, interface):
-
+def wideband_capacity(device):
 	try:
-		link_count = len(device.link[interface])
-		RB = [ device.link[interface][i].bandwidth for i in range(link_count)]
-		RE = [ N_TTI_RE * RB[i] for i in range(link_count)]
-
-		if link_count is 0:
+		if len(device.childs) == 0:
 			return None
-
-		return sum(RE[i] * T_CQI[device.link[interface][i].CQI]['eff'] for i in range(link_count)) / link_count
+		return sum(N_TTI_RE * T_CQI[i.CQI]['eff'] for i in device.childs) / len(device.childs)
 
 	except Exception as e:
 		print("W-capacity\t\t%s"%e)
@@ -146,13 +140,6 @@ traffic = {
 		'delay_budget': 300
 	}
 }
-
-"""
-Device config
-BUF = {'D': [bits], 'U': [bits]}
-"""
-M_BUF = {'D': 8000, 'U': 8000}
-H_BUF = {'D': 80000, 'U': 80000}
 
 class bcolors:
     HEADER = '\033[95m'

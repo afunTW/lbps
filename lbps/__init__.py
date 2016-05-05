@@ -2,6 +2,7 @@
 #!/usr/bin/python3
 
 import random
+import math
 import copy
 from device import UE, RN, eNB
 from config import *

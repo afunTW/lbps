@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-import inspect
 import random
 from network import Bearer, getCQIByType
-from config import  traffic, wideband_capacity
+from config import *
 from tdd import *
 from viewer import *
 
@@ -12,17 +11,16 @@ def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(e
 
 class Device(Bearer):
 
-	def __init__(self, buf={}, name=None):
-		self._buf = buf
+	def __init__(self, name=None):
 		self._name = name
+		self._buf = {'D': [], 'U': []}
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
-		self._capacity = {'access':None, 'backhaul':None}
+		self._capacity = None
 		self._virtualCapacity = {'access':None, 'backhaul':None}
-		self._sleepCycle = 0
-		self._wakeUpTimes = 0
-		self._lbpsGroup = None
 		self._tdd_config = None
+		self._CQI = 0
+		self._sleep_mode = False
 
 	@property
 	def buf(self):
@@ -31,16 +29,12 @@ class Device(Bearer):
 
 	@buf.setter
 	def buf(self, buf):
-
 		pre = "%s::buf.setter\t\t" % self._name
-
 		try:
-
 			if type(buf) is dict:
 				buf = {k: v for k, v in buf.items() if k is 'U' or k is 'D'}
 				buf = {k: v for k, v in buf.items() if type(v) is int}
 				self._buf.update(buf)
-
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
@@ -57,33 +51,15 @@ class Device(Bearer):
 		# msg_execute(str(self._lambd), pre="%s::lambd\t\t" % self._name)
 		return self._lambd
 
-	# Calculate capacity based on interface
 	@property
 	def capacity(self):
-		"""[summary] get the capacity
-
-		[description] using wideband in this simulation
-		"""
 		pre = "%s::capacity\t\t" % self._name
 
-		try:
+		if self._CQI:
+			return N_TTI_RE*T_CQI[self._CQI]['eff']
 
-			if self._capacity['access'] and self._capacity['backhaul']:
-				# msg_execute(str(self._capacity), pre=pre)
-				return self._capacity
-
-			elif self._link:
-				self._capacity['access'] = wideband_capacity(self, 'access')
-				self._capacity['backhaul'] = wideband_capacity(self, 'backhaul')
-				# msg_execute(str(self._capacity), pre=pre)
-				return self._capacity
-
-			else:
-				msg_warning("no capacity", pre=pre)
-				return
-
-		except Exception as e:
-			msg_fail(str(e), pre=pre)
+		msg_fail(str(e), pre=pre)
+		return
 
 	@property
 	def virtualCapacity(self):
@@ -113,35 +89,7 @@ class Device(Bearer):
 			msg_fail(str(e), pre=pre)
 
 	@property
-	def sleepCycle(self):
-		# msg_execute(str(self._sleepCycle), pre="%s::sleepCycle \t" % self._name)
-		return self._sleepCycle
-
-	@sleepCycle.setter
-	def sleepCycle(self, K):
-		self._sleepCycle = K
-
-	@property
-	def wakeUpTimes(self):
-		# msg_execute(str(self._wakeUpTimes), pre="%s::wakeUpTimes\t" % self._name)
-		return self._wakeUpTimes
-
-	@wakeUpTimes.setter
-	def wakeUpTimes(self, n):
-		self._wakeUpTimes = n if type(n) is int else 0
-
-	@property
-	def lbpsGroup(self):
-		# msg_execute("Group number: %s" % str(self._lbpsGroup), pre="%s::lbpsGroup\t\t" % self._name)
-		return self._lbpsGroup
-
-	@lbpsGroup.setter
-	def lbpsGroup(self, group):
-		self._lbpsGroup = group if type(group) is int else None
-
-	@property
 	def tdd_config(self):
-		# msg_execute(str(self._tdd_config), pre="%s::tdd_config \t" % self._name)
 		return self._tdd_config
 
 	@tdd_config.setter
@@ -149,54 +97,61 @@ class Device(Bearer):
 		pre = "%s::tdd_config.setter\t" % self._name
 
 		try:
-
 			if config in ONE_HOP_TDD_CONFIG.values():
 				self._tdd_config = config
-
-			self.virtualCapacity
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
-	def connect(self, dest, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
-		"""[summary] build up a connection one by one
+	@property
+	def CQI(self):
+		return self._CQI
 
-		[description]
-			1. build up a bearer between two device
-			2. append to link list
-			3. calculate lambda
-		"""
+	@CQI.setter
+	def CQI(self, typeCQI):
+		try:
+			pre="%s::CQI.setter\t\t" % self._name
+			CQI_range = getCQIByType(typeCQI)
+			self._CQI = random.choice(CQI_range) if CQI_range else 0
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
+	@property
+	def sleep_mode(self):
+		return self._sleep_mode
+
+	@sleep_mode.setter
+	def sleep_mode(self, sw):
+		if type(sw) is bool:
+			self._sleep_mode = sw
+
+	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
 
 		me = self._name
 		you = dest._name
 		pre = "%s::connect\t\t" % me
 
 		try:
-
-			CQI_range = getCQIByType(CQI_type)
-			CQI = random.choice(CQI_range) if CQI_range else 0
-
-			self._link[interface].append(Bearer(self, dest, status, interface, bandwidth, CQI, flow))
-			dest._link[interface].append(Bearer(dest, self, status, interface, bandwidth, CQI, flow))
-
-			self._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in self._link[interface])
-			dest._lambd[interface] = sum(tmp.bitrate/tmp.pkt_size for tmp in dest._link[interface])
-
-			# msg_execute("%s.lambd = {'access': %g, 'backhaul': %g}\t%s.lambd = {'access': %g, 'backhaul': %g}\t(pkt_size/ms)" \
-			# 		% (me, self.lambd['access'], self.lambd['backhaul'], you, dest.lambd['access'], dest.lambd['backhaul']), pre=pre)
+			bearer = Bearer(self, dest, status, interface, bandwidth, flow)
+			self._link[interface].append(bearer)
+			self._lambd[interface] = sum(traffic[l.flow]['bitrate']/traffic[l.flow]['pkt_size'] for l in self._link[interface])
+			dest.link[interface].append(bearer)
+			dest.lambd[interface] = sum(traffic[l.flow]['bitrate']/traffic[l.flow]['pkt_size'] for l in dest.link[interface])
+			# msg_success("connect to %s success" % you, pre=pre)
 
 		except Exception as e:
-			msg_fail(str(e), pre=pre);
+			msg_fail("failed: " + str(e), pre=pre);
 
 class UE(Device):
 	count = 0
 
-	def __init__(self, buf={}):
+	def __init__(self):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__parent = None
 		self.__class__.count += 1
-		super().__init__(buf, self.__name)
+		super().__init__(self.__name)
 
 	@property
 	def parent(self):
@@ -209,13 +164,14 @@ class UE(Device):
 class RN(Device):
 	count = 0
 
-	def __init__(self, buf={}):
+	def __init__(self):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
 		self.__parent = None
+		self.__queue = {'backhaul':[], 'access':{}}
 		self.__class__.count += 1
-		super().__init__(buf, self.__name)
+		super().__init__(self.__name)
 
 	@property
 	def childs(self):
@@ -232,7 +188,7 @@ class RN(Device):
 
 			if all(check):
 				self.__childs = childs
-				msg_success("Done", pre=pre)
+				# msg_success("success", pre=pre)
 
 		except Exception as e:
 			msg_fail(e, pre=pre)
@@ -241,9 +197,26 @@ class RN(Device):
 	def parent(self):
 		return self.__parent
 
+	@property
+	def queue(self):
+		return self.__queue
+
 	@parent.setter
 	def parent(self, parent):
 		self.__parent = parent if isinstance(parent, eNB) else None
+
+	@Device.capacity.getter
+	def capacity(self):
+		pre = "%s::capacity\t" % self.name
+
+		try:
+			return {
+				'backhaul': super().capacity,
+				'access': wideband_capacity(self)
+			}
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
 
 	@Device.tdd_config.setter
 	def tdd_config(self, config):
@@ -252,30 +225,19 @@ class RN(Device):
 		try:
 
 			if config in ONE_HOP_TDD_CONFIG.values() and self.__childs:
-
 				self._tdd_config = config
-
-				if self.__childs:
-					for i in self.__childs:
-						i.tdd_config = config
-
-
-			self.virtualCapacity
+				for i in self.__childs:
+					i.tdd_config = config
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
-	def connect(self, status='D', interface='access', bandwidth=0, CQI_type=[], flow='VoIP'):
-		pre = "%s::childs.connect\t" % self.__name
-
+	# override Device.connect
+	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
 		try:
-
-			if interface is 'access' and self.__childs:
-				for i in self.__childs:
-					super().connect(i, status, interface, bandwidth, CQI_type, flow)
-
-			elif interface is 'backhaul' and self.__parent:
-				super().connect(self.__parent, status, interface, bandwidth, CQI_type, flow)
+			pre = "%s::connect\t\t" % self.name
+			super().connect(dest, status, interface, bandwidth, flow)
+			interface == 'access' and self.__queue[interface].update({dest.name:[]})
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
@@ -283,12 +245,13 @@ class RN(Device):
 class eNB(Device):
 	count = 0
 
-	def __init__(self, buf={}):
+	def __init__(self):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
+		self.__queue = {'backhaul':{}, 'access':[]}
 		self.__class__.count += 1
-		super().__init__(buf, self.__name)
+		super().__init__(self.__name)
 
 	@property
 	def childs(self):
@@ -301,12 +264,24 @@ class eNB(Device):
 		try:
 
 			childs = list(childs) if type(childs) is not list else childs
-			check = list(map(lambda x: Device.isDevice(x, RN), childs))
+			check = list(map(lambda x: isinstance(x, RN), childs))
 
 			if all(check):
 				self.__childs = childs
-				msg_success("binding Done", pre=pre)
+				# msg_success("success", pre=pre)
 
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
+	@property
+	def queue(self):
+		return self.__queue
+
+	@Device.capacity.getter
+	def capacity(self):
+		pre = "%s::capacity\t" % self.name
+		try:
+			return wideband_capacity(self)
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
@@ -321,24 +296,18 @@ class eNB(Device):
 
 			elif config in TWO_HOP_TDD_CONFIG.values():
 				self._tdd_config = config['backhaul']
-
-				if self.__childs:
-					for i in self.__childs:
-						i._tdd_config = config['access']
-
-			self.virtualCapacity
+				for i in self.__childs:
+					i._tdd_config = config['access']
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
-	def connect(self, status='D', interface='backhaul', bandwidth=0, CQI_type=[], flow='VoIP'):
-		pre = "%s::childs.connect\t" % self.__name
-
+	# override Device.connect
+	def connect(self, dest, status='D', interface='access', bandwidth=0, flow='VoIP'):
 		try:
-
-			if interface is 'backhaul' and self.__childs:
-				for i in self.__childs:
-					super().connect(i, status, interface, bandwidth, CQI_type, flow)
+			pre = "%s::connect\t\t" % self.name
+			super().connect(dest, status, interface, bandwidth, flow)
+			interface == 'backhaul' and self.__queue[interface].update({dest.name:[]})
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)

@@ -3,97 +3,97 @@
 from __init__ import *
 from pprint import pprint
 
-"""[summary] init
+# create device instance
+base_station = eNB()
+relays = [RN() for i in range(6)]
+users = [UE() for i in range(240)]
 
-[description]
-1. 6 RNs, 240 UEs with given buffer
-2. build up bearer between two devices
-3. calculate capacity
-"""
-
-base_station = eNB(M_BUF)
-relays = [RN(M_BUF) for i in range(6)]
-users = [UE(M_BUF) for i in range(240)]
-
+# assign the relationship and CQI
+base_station.childs = relays
 for i in range(len(relays)):
 	relays[i].childs = users[i*40:i*40+40]
-	relays[i].connect(status='D', interface='access', bandwidth=BANDWIDTH, CQI_type=['M', 'H'], flow='Video')
 	relays[i].parent = base_station
-	base_station.childs.append(relays[i])
+	relays[i].CQI = ['H']
+	for j in range(i*40, i*40+40):
+		users[j].parent = relays[i]
+		users[j].CQI = ['M', 'H']
 
-base_station.connect(status='D', interface='backhaul', bandwidth=BANDWIDTH, CQI_type=['H'], flow='Video')
+# build up the bearer from parent to child
+for i in base_station.childs:
+	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
+	for j in i.childs:
+		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
-"""[summary] LBPS basic scheme
+# calc pre-inter-arrival-time of packets (encapsulate)
+simulation_time = 10
+timeline = { i:[] for i in range(simulation_time+1)}
+UE_lambda = [i.lambd for i in users]
 
-[description]
-1. Aggr
-2. Split
-3. Merge
-4. test by eNB
-"""
+for i in range(len(users)):
 
-# TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'aggr', show=True)
+	for bearer in users[i].link['access']:
+		arrTimeByBearer = [0]
 
-# TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'split', show=True)
+		# random process of getting inter-arrival-time by bearer
+		while arrTimeByBearer[-1]<=simulation_time:
+			arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
+		arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
+		arrTimeByBearer.pop(0)
 
-# TestRN = copy.deepcopy(relays[0])
-# result = LBPS(TestRN, 'merge', show=True)
+		# assign pkt to real timeline
+		for arrTime in range(len(arrTimeByBearer)):
+			pkt = {
+				'device': users[i],
+				'flow': bearer.flow,
+				'delay_budget': traffic[bearer.flow]['delay_budget'],
+				'bitrate': traffic[bearer.flow]['bitrate'],
+				'arrival_time': arrTimeByBearer[arrTime]
+			}
+			timeline[math.ceil(pkt['arrival_time'])].append(pkt)
 
-# TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'aggr', show=True)
+for i in range(len(timeline)):
+	timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
 
-# TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'split', show=True)
+# decide 2-hop TDD configuration (DL)(fixed)
+candidate = TWO_HOP_TDD_CONFIG.copy()
+pprint(candidate)
+radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
+total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
 
-# TestBS = copy.deepcopy(base_station)
-# result = LBPS(TestBS, 'merge', show=True)
+# backhaul and access filter for TDD configuration decision
+n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
+candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
+n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
+candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
 
-"""[summary] LBPS basic scheme with TDD
+msg_success("==========\tsimulation start\t==========")
+TDD_CONFIG = random.choice(candidate)
+discard_pkt = []
+TTI = 1
 
-[description]
-1. Aggr in TDD
-2. Split in TDD
-3. Merge in TDD
+while TTI != simulation_time+1:
 
-only RN will be assign TDD configuration so far
+	# check the arrival pkt from internet
+	if not timeline[TTI]:
+		TTI += 1
+		continue
 
-"""
+	# discard timeout pkt and record
+	for child in base_station.queue['backhaul']:
+		for pkt in base_station.queue['backhaul'][child]:
+			if TTI - pkt['arrival_time'] > pkt['delay_budget']:
+				base_station.queue['backhaul'][child].remove(pkt)
+				discard_pkt.append(pkt)
 
-# TDD_config = ONE_HOP_TDD_CONFIG[1]
+	# DeNB receive pkt from internet and classified
+	for arrPkt in timeline[TTI]:
+		base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
+
+	# check the sleep mode for each mode (apply LBPS)
+
+	# transmission scheduling: 2-hop FIFO
 
 
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'aggr', TDD=True, show=True)
+	TTI += 1
 
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'split', TDD=True, show=True)
-
-# TestRN = copy.deepcopy(relays[0])
-# TestRN.tdd_config = TDD_config
-# result = LBPS(TestRN, 'merge', TDD=True, show=True)
-
-"""[summary] proposed two-hop top-down LBPS in TDD
-
-[description]
-1. aggr-aggr
-2. split-aggr
-3. merge-aggr
-"""
-
-TDD_config = TWO_HOP_TDD_CONFIG[0]
-
-TestBS = copy.deepcopy(base_station)
-TestBS.tdd_config = TDD_config
-result = LBPS(TestBS, 'aggr', backhaul='aggr', TDD=True, show=True)
-
-# TestBS = copy.deepcopy(base_station)
-# TestBS.tdd_config = TDD_config
-# result = LBPS(TestBS, 'aggr', backhaul='split', TDD=True, show=True)
-
-# TestBS = copy.deepcopy(base_station)
-# TestBS.tdd_config = TDD_config
-# result = LBPS(TestBS, 'aggr', backhaul='merge', TDD=True, show=True)
+msg_success("==========\tsimulation end\t\t==========")
