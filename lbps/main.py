@@ -70,6 +70,9 @@ msg_success("==========\tsimulation start\t==========")
 discard_pkt = []
 TTI = 1
 
+# apply LBPS
+result = LBPS.aggr(base_station, duplex='FDD', show=True)
+
 while TTI != simulation_time+1:
 
 	# check the arrival pkt from internet
@@ -88,7 +91,7 @@ while TTI != simulation_time+1:
 	for arrPkt in timeline[TTI]:
 		base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
 
-	# check the sleep mode for each mode (apply LBPS)
+	# check the sleep mode for each mode
 
 	# transmission scheduling: 2-hop FIFO
 

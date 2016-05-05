@@ -7,39 +7,29 @@ from device import UE, RN, eNB
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
 from config import *
 from viewer import *
+from pprint import pprint
 
 """[summary] supported function
 
 [description]
 """
 
-def getLoad(device, interface, duplex="FDD"):
+def getLoad(device, duplex="FDD"):
 
 	try:
-		RSC = device.capacity[interface]
-		capacity = device.virtualCapacity[interface] if duplex == "TDD" else RSC
-		return device.lambd[interface]/(capacity/device.link[interface][0].pkt_size)
+		capacity = device.capacity if duplex == 'FDD' else device.virtualCapacity
+		interface = 'backhaul' if isinstance(device, eNB) else 'access'
+		return device.lambd[interface]*getAvgPktSize(device)/capacity
 
 	except Exception as e:
-		msg_fail(str(e), pre="getLoad\t\t\t")
+		msg_fail(str(e), pre="%s::getLoad\t\t" % device.name)
 		return
 
-def getCapacity(device, interface, duplex):
-
-	try:
-		duplex = duplex.upper() if type(duplex) is str else ""
-
-		if duplex == 'FDD':
-			return device.capacity[interface]
-
-		elif duplex == 'TDD':
-			return device.virtualCapacity[interface]
-
-		else:
-			return 0
-
-	except Exception as e:
-		msg_fail(str(e), pre="%s::getCapacity\t" % device.name)
+def getAvgPktSize(device):
+	interface = 'backhaul' if isinstance(device, eNB) else 'access'
+	total_pkt = [bearer.flow for bearer in device.link[interface]]
+	total_pkt = [traffic[i]['pkt_size'] for i in total_pkt]
+	return sum(total_pkt)/len(total_pkt)
 
 def schedulability(check_list):
 
@@ -73,58 +63,26 @@ def non_degraded(G1, G2, interface, DATA_TH):
 	result = True if merge_sleep_cycle in [sleep_cycle_length_1, sleep_cycle_length_2] else False
 	return result
 
-def load_based_power_saving(device, access, backhaul=None, TDD=False, show=False):
-
-	try:
-		# NOTE: this process can not use in direct link (eNB-UE)
-		interface = 'backhaul' if isinstance(device, eNB) else 'access'
-		scheduling = backhaul+'-'+access if backhaul else access
-		check = scheduling in LBPS_scheduling.keys()
-		result = None
-
-		if check and not TDD:
-			K = LBPS_scheduling[scheduling](device, interface, duplex='FDD')
-			return result_mapping[scheduling](device, show) if K else None
-
-		elif check and TDD:
-			K = LBPS_scheduling[scheduling](device, interface, duplex='TDD')
-
-			if not K:
-				return
-
-			# two hop, TopDown
-			if backhaul:
-				result = result_mapping[scheduling](device, backhaul, show=False)
-				map_result = M3_2hop(device, interface, result)
-				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
-
-			# one hop
-			else:
-				result = result_mapping[scheduling](device, show=False)
-				map_result = M3(device, interface, result)
-				return result_mapping[scheduling+'-tdd'](device, result, map_result, show)
-
-	except Exception as e:
-		msg_fail(str(e), pre="schedule_result\t\t")
-		return
-
-"""[summary] basic LBPS scheduling
-
-[description]
-"""
-
-def aggr(device, interface, duplex='FDD'):
+def aggr(device, duplex='FDD', show='False'):
 
 	prefix = "lbps::aggr::%s \t" % device.name
 
 	try:
 		# duplex will only affect the capacity, not related to mapping
-		capacity = getCapacity(device, interface, duplex)
-		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
-		load = getLoad(device, interface)
+		if duplex is not 'FDD' and duplex is not 'TDD':
+			return
+
+		if not isinstance(device, eNB) and not isinstance(devices, RN):
+			return
+
+		interface = 'backhaul' if isinstance(device, eNB) else 'access'
+		capacity = device.capacity if duplex == 'FDD' else device.virtualCapacity
+		pkt_size = getAvgPktSize(device)
+		DATA_TH = int(getDataTH(capacity, pkt_size))
+		load = getLoad(device, duplex)
 
 		if load < 1:
-			msg_success("load= %g\t" % load, pre=prefix)
+			msg_execute("load= %g\t" % load, pre=prefix)
 
 			# aggr process
 			sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)

@@ -119,7 +119,6 @@ class Device(Bearer):
 			self._lambd[interface] = sum(traffic[l.flow]['bitrate']/traffic[l.flow]['pkt_size'] for l in self._link[interface])
 			dest.link[interface].append(bearer)
 			dest.lambd[interface] = sum(traffic[l.flow]['bitrate']/traffic[l.flow]['pkt_size'] for l in dest.link[interface])
-			# msg_success("connect to %s success" % you, pre=pre)
 
 		except Exception as e:
 			msg_fail("failed: " + str(e), pre=pre);

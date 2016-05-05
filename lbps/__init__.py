@@ -4,7 +4,8 @@
 import random
 import math
 import copy
+import lbps as LBPS
 from device import UE, RN, eNB
 from config import *
 from viewer import *
-from lbps import load_based_power_saving as LBPS
+# from lbps import aggr, split, merge, aggr_aggr
