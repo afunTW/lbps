@@ -24,9 +24,6 @@ for i in base_station.childs:
 	for j in i.childs:
 		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
-# decide 2-hop TDD configuration (fixed)
-
-
 # calc pre-inter-arrival-time of packets (encapsulate)
 simulation_time = 10
 timeline = { i:[] for i in range(simulation_time+1)}
@@ -57,10 +54,23 @@ for i in range(len(users)):
 for i in range(len(timeline)):
 	timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
 
+# decide 2-hop TDD configuration (DL)(fixed)
+candidate = TWO_HOP_TDD_CONFIG.copy()
+pprint(candidate)
+radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
+total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
+
+# backhaul and access filter for TDD configuration decision
+n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
+candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
+n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
+candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
+
 msg_success("==========\tsimulation start\t==========")
+TDD_CONFIG = random.choice(candidate)
 discard_pkt = []
 TTI = 1
-print(base_station.capacity)
+
 while TTI != simulation_time+1:
 
 	# check the arrival pkt from internet
