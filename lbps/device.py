@@ -3,7 +3,7 @@
 
 import random
 from network import Bearer, getCQIByType
-from config import  traffic, wideband_capacity
+from config import *
 from tdd import *
 from viewer import *
 
@@ -16,7 +16,7 @@ class Device(Bearer):
 		self._buf = {'D': [], 'U': []}
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
-		self._capacity = {'access':None, 'backhaul':None}
+		self._capacity = None
 		self._virtualCapacity = {'access':None, 'backhaul':None}
 		self._tdd_config = None
 		self._CQI = 0
@@ -55,23 +55,11 @@ class Device(Bearer):
 	def capacity(self):
 		pre = "%s::capacity\t\t" % self._name
 
-		try:
+		if self._CQI:
+			return N_TTI_RE*T_CQI[self._CQI]['eff']
 
-			if self._capacity['access'] and self._capacity['backhaul']:
-				# msg_execute(str(self._capacity), pre=pre)
-				return self._capacity
-
-			elif self.childs:
-				self._capacity['access'] = wideband_capacity(self)
-				# msg_execute(str(self._capacity), pre=pre)
-				return self._capacity
-
-			else:
-				msg_warning("no capacity", pre=pre)
-				return
-
-		except Exception as e:
-			msg_fail(str(e), pre=pre)
+		msg_fail(str(e), pre=pre)
+		return
 
 	@property
 	def virtualCapacity(self):
@@ -217,6 +205,19 @@ class RN(Device):
 	def parent(self, parent):
 		self.__parent = parent if isinstance(parent, eNB) else None
 
+	@Device.capacity.getter
+	def capacity(self):
+		pre = "%s::capacity\t" % self.name
+
+		try:
+			return {
+				'backhaul': super().capacity,
+				'access': wideband_capacity(self)
+			}
+
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
+
 	@Device.tdd_config.setter
 	def tdd_config(self, config):
 		pre = "%s::tdd_config.setter\t" % self._name
@@ -275,6 +276,14 @@ class eNB(Device):
 	@property
 	def queue(self):
 		return self.__queue
+
+	@Device.capacity.getter
+	def capacity(self):
+		pre = "%s::capacity\t" % self.name
+		try:
+			return wideband_capacity(self)
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
 
 	@Device.tdd_config.setter
 	def tdd_config(self, config):
