@@ -11,9 +11,9 @@ def raiser(err): raise err if type(err) is Exception else raiser(Exception(str(e
 
 class Device(Bearer):
 
-	def __init__(self, buf={}, name=None):
-		self._buf = buf
+	def __init__(self, name=None):
 		self._name = name
+		self._buf = {'D': [], 'U': []}
 		self._link = {'access':[], 'backhaul':[]}
 		self._lambd = {'access':0, 'backhaul':0}
 		self._capacity = {'access':None, 'backhaul':None}
@@ -158,12 +158,12 @@ class Device(Bearer):
 class UE(Device):
 	count = 0
 
-	def __init__(self, buf={}):
+	def __init__(self):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__parent = None
 		self.__class__.count += 1
-		super().__init__(buf, self.__name)
+		super().__init__(self.__name)
 
 	@property
 	def parent(self):
@@ -176,14 +176,14 @@ class UE(Device):
 class RN(Device):
 	count = 0
 
-	def __init__(self, buf={}):
+	def __init__(self):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
 		self.__parent = None
 		self.__queue = {'backhaul':[], 'access':{}}
 		self.__class__.count += 1
-		super().__init__(buf, self.__name)
+		super().__init__(self.__name)
 
 	@property
 	def childs(self):
@@ -244,13 +244,13 @@ class RN(Device):
 class eNB(Device):
 	count = 0
 
-	def __init__(self, buf={}):
+	def __init__(self):
 		self.__id = self.__class__.count
 		self.__name = self.__class__.__name__ + str(self.__id)
 		self.__childs = []
 		self.__queue = {'backhaul':{}, 'access':[]}
 		self.__class__.count += 1
-		super().__init__(buf, self.__name)
+		super().__init__(self.__name)
 
 	@property
 	def childs(self):

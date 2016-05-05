@@ -4,9 +4,9 @@ from __init__ import *
 from pprint import pprint
 
 # create device instance
-base_station = eNB(M_BUF)
-relays = [RN(M_BUF) for i in range(6)]
-users = [UE(M_BUF) for i in range(240)]
+base_station = eNB()
+relays = [RN() for i in range(6)]
+users = [UE() for i in range(240)]
 
 # assign the relationship and CQI
 base_station.childs = relays
@@ -23,6 +23,9 @@ for i in base_station.childs:
 	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 	for j in i.childs:
 		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
+
+# decide 2-hop TDD configuration (fixed)
+
 
 # calc pre-inter-arrival-time of packets (encapsulate)
 simulation_time = 10

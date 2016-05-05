@@ -141,13 +141,6 @@ traffic = {
 	}
 }
 
-"""
-Device config
-BUF = {'D': [bits], 'U': [bits]}
-"""
-M_BUF = {'D': 8000, 'U': 8000}
-H_BUF = {'D': 80000, 'U': 80000}
-
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
