@@ -83,36 +83,23 @@ def aggr(device, duplex='FDD', show='False'):
 		DATA_TH = int(getDataTH(capacity, pkt_size))
 		load = getLoad(device, duplex)
 
-		if load < 1:
-			msg_execute("load= %g\t" % load, pre=prefix)
-
-			# aggr process
-			sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
-			msg_success("sleepCycle = %d" % sleep_cycle_length ,pre=prefix)
-
-			# record
-			device.sleepCycle = sleep_cycle_length
-			for i in device.childs:
-				i.sleepCycle = sleep_cycle_length
-				i.wakeUpTimes = 1
-
-			# encapsulate: { subframe: wakeUpDevice }
-			result = {i:None for i in range(sleep_cycle_length)}
-			result[0] = [i for i in device.childs]
-			result[0].append(device)
-			result[0] = sorted(result[0], key=lambda d: d.name)
-
-			return result
-
-		else:
+		if load > 1:
 			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
-			sleep_cycle_length = 1
-			device.sleepCycle = sleep_cycle_length
+			return False
 
-			for i in device.childs:
-				i.sleepCycle = sleep_cycle_length
+		msg_execute("load= %g\t" % load, pre=prefix)
 
-			return
+		# aggr process
+		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
+		msg_execute("sleepCycle = %d" % sleep_cycle_length ,pre=prefix)
+
+		# encapsulate result: { subframe: wakeUpDevice }
+		result = {i+1:None for i in range(sleep_cycle_length)}
+		result[1] = [i for i in device.childs]
+		result[1].append(device)
+		result[1] = sorted(result[1], key=lambda d: d.name)
+
+		return result
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
@@ -353,10 +340,3 @@ def aggr_aggr(device, interface, duplex='FDD'):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
-
-LBPS_scheduling = {
-	'aggr': aggr,
-	'split': split,
-	'merge': merge,
-	'aggr-aggr': aggr_aggr
-}
