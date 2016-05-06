@@ -1,4 +1,4 @@
-import copy
+import random
 from math import log, floor
 from tdd import one_to_one_first_mapping as M3
 from tdd import one_to_one_first_mapping_2hop as M3_2hop
@@ -24,7 +24,6 @@ def getLoad(device, duplex="FDD"):
 
 	except Exception as e:
 		msg_fail(str(e), pre="%s::getLoad\t\t" % device.name)
-		return
 
 def getAvgPktSize(device):
 	interface = 'backhaul' if isinstance(device, eNB) else 'access'
@@ -105,78 +104,81 @@ def aggr(device, duplex='FDD', show='False'):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def split(device, interface, duplex='FDD'):
+def split(device, duplex='FDD', show='False'):
 
 	prefix = "lbps::split::%s\t" % device.name
 
 	try:
-		# init
-		capacity = getCapacity(device, interface, duplex)
-		DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
-		load = getLoad(device, interface)
+		# duplex will only affect the capacity, not related to mapping
+		if duplex is not 'FDD' and duplex is not 'TDD':
+			return
 
-		if load < 1:
-			msg_success("load= %g\t" % load, pre=prefix)
+		if not isinstance(device, eNB) and not isinstance(device, RN):
+			return
 
-			sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
-			groups = [copy.deepcopy(device.childs)]
-			old_groupsLength = 0
+		interface = 'backhaul' if isinstance(device, eNB) else 'access'
+		capacity = device.capacity if duplex == 'FDD' else device.virtualCapacity
+		capacity = capacity[interface] if type(capacity) is dict else capacity
+		pkt_size = getAvgPktSize(device)
+		DATA_TH = int(getDataTH(capacity, pkt_size))
+		load = getLoad(device, duplex)
 
-			# Split process
-			while old_groupsLength is not len(groups):
-				old_groupsLength = len(groups)
-				groups = [[] for i in range(min(sleep_cycle_length, len(device.childs)))]
-				groups_load = [0 for i in range(len(groups))]
-				groups_K = [0 for i in range(len(groups))]
-
-				for i in device.childs:
-					min_load = groups_load.index(min(groups_load))
-					groups[min_load].append(i)
-					groups_load[min_load] += i.lambd[interface]
-					groups_K[min_load] = LengthAwkSlpCyl(groups_load[min_load], DATA_TH)
-
-				sleep_cycle_length = min(groups_K) if min(groups_K) > 0 else sleep_cycle_length
-
-			msg_success("sleep cycle length = %d with %d groups" % (sleep_cycle_length, len(groups)), pre=prefix)
-
-			# record
-			device.sleepCycle = sleep_cycle_length
-			for i in range(len(groups)):
-				for j in groups[i]:
-					j.sleepCycle = groups_K[i]
-					j.lbpsGroup = i
-					j.wakeUpTimes = 1
-
-			"""
-			encapsulate:
-			{
-				subframe: {
-					'devices': wakeUpDevice,
-					'load': groupLoad,
-					'sleepCycle': groupRealSleepCycle
-				}
-			}
-			"""
-			result = {i:None for i in range(sleep_cycle_length)}
-			for i in range(len(groups)):
-				G = {
-					'devices': groups[i],
-					'load': groups_load[i],
-					'sleepCycle': groups_K[i]
-				}
-				result[i] = G
-
-			return result
-
-		else:
+		if load > 1:
 			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
-			sleep_cycle_length = 1
-			device.sleepCycle = sleep_cycle_length
+			return False
+
+		msg_execute("load= %g\t" % load, pre=prefix)
+		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
+
+		groups = {
+			0: {
+				'device': [ch for ch in device.childs],
+				'lambda': device.lambd[interface],
+				'K': sleep_cycle_length
+			}
+		}
+
+		# Split process
+		while len(groups) < sleep_cycle_length:
+
+			groups = {
+				i:{
+					'device': [],
+					'lambda':0,
+					'K': 0
+				}
+				for i in range(min(sleep_cycle_length, len(device.childs)))
+			}
 
 			for i in device.childs:
-				i.sleepCycle = sleep_cycle_length
 
-			return
+				# find the minimum lambda group
+				min_lambd = min([groups[G]['lambda'] for G in groups])
+				min_lambd_G = [G for G in groups if groups[G]['lambda'] == min_lambd]
+				min_lambd_G = random.choice(min_lambd_G)
+
+				# append the device to the minimum lambda group
+				# FIXME: performance issue
+				groups[min_lambd_G]['device'].append(i)
+				groups[min_lambd_G]['lambda'] += i.lambd[interface]
+				groups[min_lambd_G]['K'] = LengthAwkSlpCyl(groups[min_lambd_G]['lambda'], DATA_TH)
+
+			K = min([groups[G]['K'] for G in groups])
+
+			if K == sleep_cycle_length:
+				break
+			else:
+				sleep_cycle_length = K if K > 0 else sleep_cycle_length
+
+		msg_execute("sleep cycle length = %d with %d groups" % \
+			(sleep_cycle_length, len(groups)), pre=prefix)
+
+		# encapsulate result: { subframe: wakeUpDevice }
+		result = {i+1:None for i in range(sleep_cycle_length)}
+		for i in groups:
+			result[i+1] = groups[i]['device'] if groups[i]['device'] else None
+
+		return result
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
