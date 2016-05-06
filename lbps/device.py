@@ -15,7 +15,6 @@ class Device(Bearer):
 		self._name = name
 		self._buf = {'D': [], 'U': []}
 		self._link = {'access':[], 'backhaul':[]}
-		self._lambd = {'access':0, 'backhaul':0}
 		self._tdd_config = None
 		self._CQI = 0
 		self._sleep_mode = False
@@ -46,8 +45,10 @@ class Device(Bearer):
 
 	@property
 	def lambd(self):
-		# msg_execute(str(self._lambd), pre="%s::lambd\t\t" % self._name)
-		return self._lambd
+		return {
+			'backhaul': sum([traffic[b.flow]['lambda'] for b in self.link['backhaul']]),
+			'access': sum([traffic[a.flow]['lambda'] for a in self.link['access']])
+		}
 
 	@property
 	def capacity(self):
@@ -116,9 +117,7 @@ class Device(Bearer):
 		try:
 			bearer = Bearer(self, dest, status, interface, bandwidth, flow)
 			self._link[interface].append(bearer)
-			self._lambd[interface] = sum(traffic[l.flow]['bitrate']/traffic[l.flow]['pkt_size'] for l in self._link[interface])
 			dest.link[interface].append(bearer)
-			dest.lambd[interface] = sum(traffic[l.flow]['bitrate']/traffic[l.flow]['pkt_size'] for l in dest.link[interface])
 
 		except Exception as e:
 			msg_fail("failed: " + str(e), pre=pre);
@@ -140,6 +139,12 @@ class UE(Device):
 	@parent.setter
 	def parent(self, pD):
 		self.__parent = pD if isinstance(pD, RN) else None
+
+	@Device.lambd.getter
+	def lambd(self):
+		return {
+			'access': sum([traffic[a.flow]['lambda'] for a in self.link['access']])
+		}
 
 class RN(Device):
 	count = 0
@@ -184,6 +189,14 @@ class RN(Device):
 	@parent.setter
 	def parent(self, parent):
 		self.__parent = parent if isinstance(parent, eNB) else None
+
+	@Device.lambd.getter
+	def lambd(self):
+		lambd = sum([ue.lambd['access'] for ue in self.childs])
+		return {
+			'backhaul': lambd,
+			'access': lambd
+		}
 
 	@Device.capacity.getter
 	def capacity(self):
@@ -266,6 +279,13 @@ class eNB(Device):
 	@property
 	def queue(self):
 		return self.__queue
+
+	@Device.lambd.getter
+	def lambd(self):
+		lambd = sum([rn.lambd['backhaul'] for rn in self.childs])
+		return {
+			'backhaul': lambd
+		}
 
 	@Device.capacity.getter
 	def capacity(self):

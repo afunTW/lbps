@@ -20,9 +20,9 @@ for i in range(len(relays)):
 
 # build up the bearer from parent to child
 for i in base_station.childs:
-	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 	for j in i.childs:
 		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
+	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 
 # calc pre-inter-arrival-time of packets (encapsulate)
 simulation_time = 10
@@ -35,7 +35,7 @@ for i in range(len(users)):
 		arrTimeByBearer = [0]
 
 		# random process of getting inter-arrival-time by bearer
-		while arrTimeByBearer[-1]<=simulation_time:
+		while arrTimeByBearer[-1]<=simulation_time and users[i].lambd['access']:
 			arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
 		arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
 		arrTimeByBearer.pop(0)
@@ -71,7 +71,7 @@ discard_pkt = []
 TTI = 1
 
 # apply LBPS
-result = LBPS.aggr(base_station, duplex='FDD', show=True)
+result = LBPS.aggr(base_station.childs[0], duplex='FDD', show=True)
 
 while TTI != simulation_time+1:
 

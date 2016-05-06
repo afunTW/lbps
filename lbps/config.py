@@ -127,17 +127,20 @@ traffic = {
 	'VoIP':{
 		'bitrate': 10,
 		'pkt_size': 800,
-		'delay_budget': 50
+		'delay_budget': 50,
+		'lambda': 10/800
 	},
 	'Video':{
 		'bitrate': 250,
 		'pkt_size': 8000,
-		'delay_budget': 300
+		'delay_budget': 300,
+		'lambda': 250/8000
 	},
 	'OnlineVideo':{
 		'bitrate': 10,
 		'pkt_size': 800,
-		'delay_budget': 300
+		'delay_budget': 300,
+		'lambda': 10/800
 	}
 }
 
