@@ -64,7 +64,10 @@ n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
 candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
 n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
 candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
-base_station.tdd_config = random.choice(candidate)
+base_station.tdd_config = random.choice(candidate) if candidate else None
+
+if not base_station.tdd_config:
+	msg_fail("no suitable TDD configuration")
 
 msg_success("==========\tsimulation start\t==========")
 discard_pkt = []
@@ -73,6 +76,7 @@ TTI = 1
 # apply LBPS
 # result = LBPS.aggr(base_station, duplex='FDD', show=True)
 # result = LBPS.split(base_station, duplex='FDD', show=True)
+result = LBPS.merge(base_station, duplex='FDD', show=True)
 pprint(result)
 
 while TTI != simulation_time+1:
