@@ -89,9 +89,9 @@ def aggr(device, duplex='FDD', show=False):
 
 		# encapsulate result: { subframe: wakeUpDevice }
 		result = {i+1:None for i in range(sleep_cycle_length)}
-		result[1] = [i for i in device.childs]
-		result[1].append(device)
-		result[1] = sorted(result[1], key=lambda d: d.name)
+		result[sleep_cycle_length] = [i for i in device.childs]
+		result[sleep_cycle_length].append(device)
+		result[sleep_cycle_length] = sorted(result[sleep_cycle_length], key=lambda d: d.name)
 
 		return result
 
@@ -171,7 +171,8 @@ def split(device, duplex='FDD', show=False):
 		# encapsulate result: { subframe: wakeUpDevice }
 		result = {i+1:None for i in range(sleep_cycle_length)}
 		for i in groups:
-			result[i+1] = groups[i]['device'] if groups[i]['device'] else None
+			groups[i]['device'] and groups[i]['device'].append(device)
+			result[sleep_cycle_length-i] = groups[i]['device'] if groups[i]['device'] else None
 
 		return result
 
@@ -232,7 +233,6 @@ def merge(device, duplex='FDD', show=False):
 
 		# calc the times of waking up for group
 		max_K = max([G['K'] for G in groups])
-		# groups.extend([G for G in groups for i in range(int((max_K/G['K'])-1))])
 		groups.sort(key=lambda x: x['K'])
 
 		# encapsulate result: { subframe: wakeUpDevice }
@@ -241,14 +241,13 @@ def merge(device, duplex='FDD', show=False):
 		for G in groups:
 			base = 0
 
-			for i in result:
+			for i in list(reversed(list(result.keys()))):
 				if result[i] is None:
 					base = i
 					break
 
-			for TTI in range(base, max_K+1, G['K']):
-				result[TTI] = G
-
+			for TTI in range(base, 1, -G['K']):
+				result[TTI] = G['device'] + [device]
 
 		return result
 
