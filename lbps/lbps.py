@@ -267,10 +267,8 @@ def aggr_aggr(device, duplex='TDD', show=False):
 		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
 		if b_result:
 			for rn in device.childs:
-				print(rn.name, end='\t')
-				print(rn.capacity)
 				b_TTI = None
-				a_subframe = ceil(rn.capacity['access']/rn.capacity['backhaul'])
+				a_subframe = ceil(rn.capacity['access']/device.capacity)
 
 				# find the backhaul transmission time
 				for i in list(reversed(list(b_result.keys()))):
