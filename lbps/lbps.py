@@ -1,5 +1,5 @@
 import random
-from math import log, floor
+from math import log, floor, ceil
 from tdd import one_to_one_first_mapping as M3
 from tdd import one_to_one_first_mapping_2hop as M3_2hop
 from device import UE, RN, eNB
@@ -255,35 +255,42 @@ def merge(device, duplex='FDD', show=False):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def aggr_aggr(device, interface, duplex='FDD'):
+def aggr_aggr(device, duplex='TDD', show=False):
 	prefix = "lbps::aggr-aggr::%s \t" % device.name
 
 	try:
 
 		# backhaul lbps
-		backhaul_K = aggr(device, interface, duplex)
+		b_result = aggr(device, duplex)
 
 		# access scheduliability
 		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
-		for i in device.childs:
-			capacity = getCapacity(device, interface, duplex)
-			DATA_TH = getDataTH(capacity, device.link[interface][0].pkt_size)
-			access_K = DataAcc(i.lambd[interface], backhaul_K)
-			subframe_count = int((access_K/DATA_TH)+1)
+		if b_result:
+			for rn in device.childs:
+				print(rn.name, end='\t')
+				print(rn.capacity)
+				b_TTI = None
+				a_subframe = ceil(rn.capacity['access']/rn.capacity['backhaul'])
 
-			if subframe_count > backhaul_K:
-				raise Exception("%s: scheduling failed" % i.name)
+				# find the backhaul transmission time
+				for i in list(reversed(list(b_result.keys()))):
+					if b_result[i] and rn in b_result[i]:
+						b_TTI = i
+						break
 
-			if subframe_count > 1:
-				msg_warning("%s: wake up %d subframe" % (i.name, subframe_count), pre=prefix)
+				# find the access transmission time
+				if not b_TTI:
+					raise Exception("backhaul scheduling goes wrong")
 
-			i.sleepCycle = backhaul_K
+				trace = [(b_TTI+i-1)%len(b_result)+1 for i in b_result]
+				trace = trace[0:a_subframe]
+				queue = [ch for ch in rn.childs]
+				queue.append(rn)
 
-			for j in i.childs:
-				j.sleepCycle = backhaul_K
-				j.wakeUpTimes = subframe_count
+				for i in trace:
+					b_result[i] = b_result[i]+queue if b_result[i] else queue
 
-		return backhaul_K
+		return b_result
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)

@@ -76,7 +76,8 @@ TTI = 1
 # apply LBPS
 # result = LBPS.aggr(base_station, duplex='FDD', show=True)
 # result = LBPS.split(base_station, duplex='FDD', show=True)
-result = LBPS.merge(base_station, duplex='FDD', show=True)
+# result = LBPS.merge(base_station, duplex='FDD', show=True)
+result = LBPS.aggr_aggr(base_station, duplex='FDD', show=True)
 pprint(result)
 
 while TTI != simulation_time+1:
