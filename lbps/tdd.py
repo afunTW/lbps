@@ -69,12 +69,12 @@ def mergeList(target, resource):
 
 """
 
-def one_to_one_first_mapping(FDD_result, TDD_config):
+def one_to_one_first_mapping(TDD_config):
 
 	pre = "mapping::M3\t\t"
 
 	try:
-		v_timeline = list(FDD_result.keys())[0:len(TDD_config)]
+		v_timeline = [0 for i in range(10)]
 
 		RSC = 10
 		VSC = TDD_config.count('D')*RSC/len(v_timeline)
