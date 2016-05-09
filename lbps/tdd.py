@@ -3,6 +3,7 @@ import re
 from viewer import msg_fail, msg_warning, M3_result
 from math import ceil
 from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
+from pprint import pprint
 
 """[summary] internal support function
 
@@ -61,62 +62,61 @@ def mergeList(target, resource):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-
 """[summary] external function
 
 [description]
-1. virtual_subframe_capacity: calc the virtual subframe capacity
-2. one_to_one_first_mapping: M3 mapping back to real timeline
+1. one_to_one_first_mapping: M3 mapping back to real timeline
 
 """
 
-def virtual_subframe_capacity(device, interface, TDD_config):
-
-	if device.link[interface]:
-		status = device.link[interface][0].status
-		TDD_config = TDD_config[interface] if type(TDD_config) is dict else TDD_config
-		real_subframe_count = len(list(filter(lambda x: x  if x == status else '', TDD_config)))
-		VSC = {interface:device.capacity[interface]*real_subframe_count/len(TDD_config)}
-		return VSC
-	else:
-		return {interface:None}
-
-def one_to_one_first_mapping(device, interface, schedule_result):
+def one_to_one_first_mapping(FDD_result, TDD_config):
 
 	pre = "mapping::M3\t\t"
 
 	try:
-		status = device.link[interface][0].status
-		RSC = device.capacity[interface]
-		VSC = device.virtualCapacity[interface]
+		# align the timeline
+		v_timeline = list(FDD_result.keys())
+		TDD_config *= ceil(len(v_timeline)/len(TDD_config))
+		v_timeline = (v_timeline*2)[0:len(TDD_config)]
 
-		real_subframe = device.tdd_config*(ceil(len(schedule_result)/len(device.tdd_config)))
-		real_subframe = real_subframe[:len(schedule_result)]
+		RSC = 10
+		VSC = TDD_config.count('D')*RSC/len(v_timeline)
+		v_timeline = [{'TTI':[], 'VSC':VSC} for i in range(len(v_timeline))]
+		track_index = 0
 
-		mapping_to_realtimeline = [[] for i in range(len(real_subframe))]
-		check_list = {i:RSC for i in range(len(real_subframe)) if real_subframe[i] is status}
-		tracking_list = list(sorted(check_list.keys()))
-		tracking_index = 0
+
+		for i in range(len(TDD_config)):
+			TDD_config[i] = {'TTI':i+1, 'RSC':RSC} if TDD_config[i] is 'D' else 0
+		TDD_config = [i for i in TDD_config if type(i) is dict]
 
 		# mapping
-		for i in range(len(schedule_result)):
-			if check_list[tracking_list[tracking_index]] >= VSC:
-				mapping_to_realtimeline[i].append(tracking_list[tracking_index])
-				check_list[tracking_list[tracking_index]] -= VSC
-				tracking_index = (tracking_index+1)%len(tracking_list)
+		for i in range(len(v_timeline)):
+
+			if TDD_config[track_index]['RSC'] >= v_timeline[i]['VSC']:
+				v_timeline[i]['TTI'].append(TDD_config[track_index]['TTI'])
+				TDD_config[track_index]['RSC'] -= v_timeline[i]['VSC']
+				v_timeline[i]['VSC'] = 0
+				track_index = (track_index+1)%len(TDD_config)
 				continue
-			else:
-				tmp = copy.deepcopy(VSC)
 
-				while any(check_list[i] is not 0 for i in tracking_list) and tmp >0:
-					mapping_to_realtimeline[i].append(tracking_list[tracking_index])
-					tmp -= check_list[tracking_list[tracking_index]]
-					check_list[tracking_list[tracking_index]] = 0
-					tracking_index = (tracking_index+1)%len(tracking_list)
-				if tmp > 0:
-					msg_warning("needs more %g bits capacity" % tmp, pre=pre)
+			for j in [(track_index+t)%len(TDD_config) for t in range(len(TDD_config))]:
+				if v_timeline[i]['VSC'] == 0:
+					break
+				if TDD_config[j]['RSC'] == 0:
+					continue
 
-		return mapping_to_realtimeline
+				v_timeline[i]['TTI'].append(TDD_config[j]['TTI'])
+
+				if TDD_config[j]['RSC']<=v_timeline[i]['VSC']:
+					v_timeline[i]['VSC'] -= TDD_config[j]['RSC']
+					TDD_config[j]['RSC'] = 0
+				else :
+					TDD_config[j]['RSC'] -= v_timeline[i]['VSC']
+					v_timeline[i]['VSC'] =0
+
+			track_index = (track_index+1)%len(TDD_config)
+
+		return v_timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
