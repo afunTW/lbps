@@ -288,7 +288,47 @@ def aggr_aggr(device, duplex='TDD', show=False):
 				for i in trace:
 					b_result[i] = b_result[i]+queue if b_result[i] else queue
 
-		return b_result
+		# align
+		mapping_result = [i for i in list(b_result.keys())]
+		padding = ceil(len(mapping_result)/10)*10-len(mapping_result)
+		padding = [None for i in range(padding)]
+		mapping_result += padding
+
+		cycle = {i:[] for i in range(1,1+len(mapping_result))}
+		mapping_pattern = [[] for i in range(len(cycle))]
+
+		# TDD mapping
+		b_mapping = [i for i in device.tdd_config]
+		a_mapping = [i for i in device.childs[0].tdd_config]
+
+		for i in range(len(a_mapping)):
+			a_mapping[i] = None if a_mapping[i] is device.tdd_config[i] else a_mapping[i]
+
+		b_mapping = list(reversed(M3(b_mapping)))
+		a_mapping = list(reversed(M3(a_mapping)))
+
+		for i in range(10):
+			b_mapping[i] = b_mapping[i] if device.tdd_config[i] else None
+			a_mapping[i] = a_mapping[i] if not device.tdd_config[i] else None
+
+		for i in range(len(mapping_pattern)):
+			if i%10 is 0 and i is not 0:
+				b_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, b_mapping))
+				a_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, a_mapping))
+			mapping_pattern[i] += b_mapping[i%10] if b_mapping[i%10] else a_mapping[i%10]
+
+		mapping_pattern = list(map(lambda x: list(map(lambda y: y+1, x)), mapping_pattern))
+		keys = list(b_result.keys())
+
+		for i in range(len(keys)):
+			if b_result[keys[i]]:
+				for sf in mapping_pattern[i]:
+					cycle[sf] += b_result[keys[i]]
+
+		for i in cycle:
+			cycle[i] = cycle[i] if cycle[i] else None
+
+		return cycle
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
