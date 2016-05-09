@@ -74,16 +74,12 @@ def one_to_one_first_mapping(FDD_result, TDD_config):
 	pre = "mapping::M3\t\t"
 
 	try:
-		# align the timeline
-		v_timeline = list(FDD_result.keys())
-		TDD_config *= ceil(len(v_timeline)/len(TDD_config))
-		v_timeline = (v_timeline*2)[0:len(TDD_config)]
+		v_timeline = list(FDD_result.keys())[0:len(TDD_config)]
 
 		RSC = 10
 		VSC = TDD_config.count('D')*RSC/len(v_timeline)
 		v_timeline = [{'TTI':[], 'VSC':VSC} for i in range(len(v_timeline))]
 		track_index = 0
-
 
 		for i in range(len(TDD_config)):
 			TDD_config[i] = {'TTI':i+1, 'RSC':RSC} if TDD_config[i] is 'D' else 0
@@ -116,7 +112,7 @@ def one_to_one_first_mapping(FDD_result, TDD_config):
 
 			track_index = (track_index+1)%len(TDD_config)
 
-		return v_timeline
+		return [i['TTI'] for i in v_timeline]
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
