@@ -25,7 +25,7 @@ for i in base_station.childs:
 	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 
 # calc pre-inter-arrival-time of packets (encapsulate)
-simulation_time = 10
+simulation_time = 1000
 timeline = { i:[] for i in range(simulation_time+1)}
 UE_lambda = [i.lambd for i in users]
 
@@ -88,11 +88,6 @@ result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True)
 
 while TTI != simulation_time+1:
 
-	# check the arrival pkt from internet
-	if not timeline[TTI]:
-		TTI += 1
-		continue
-
 	# # ignore, cause lbps doesn't consider delay budget so far
 	# # discard timeout pkt and record
 	# for child in base_station.queue['backhaul']:
@@ -101,14 +96,37 @@ while TTI != simulation_time+1:
 	# 			base_station.queue['backhaul'][child].remove(pkt)
 	# 			discard_pkt.append(pkt)
 
-	# DeNB receive pkt from internet and classified
-	for arrPkt in timeline[TTI]:
-		base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
+	# check the arrival pkt from internet
+	if timeline[TTI]:
+		for arrPkt in timeline[TTI]:
+			base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
 
-	# check the sleep mode for each mode
+	# check each RN operation by sleep mode or backhaul/access transmission
+	for rn in base_station.childs:
+		r_pos = (TTI-1)%len(result)+1
+		available_cap = 0
 
-	# transmission scheduling: 2-hop FIFO
+		# check if RN awake
+		if result[r_pos] and rn in result[r_pos]:
+			interface = 'backhaul' if base_station in result[r_pos] else 'access'
+			available_cap += rn.capacity[interface]
+			check_queue = base_station.queue['backhaul'][rn.name] \
+				if interface == 'backhaul' else rn.queue['backhaul']
 
+			# calc avaliable pkt for transmission
+			for pkt in check_queue:
+				if available_cap < traffic[pkt['flow']]['pkt_size']:
+						break
+
+				if interface == 'backhaul':
+					rn.queue[interface].append(pkt)
+					base_station.queue['backhaul'][rn.name].remove(pkt)
+
+				elif interface == 'access':
+					rn.queue['access'][pkt['device'].name].append(pkt)
+					rn.queue['backhaul'].remove(pkt)
+
+				available_cap -= traffic[pkt['flow']]['pkt_size']
 
 	TTI += 1
 
