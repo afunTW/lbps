@@ -64,6 +64,12 @@ n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
 candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
 n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
 candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
+b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
+b_sort = candidate[b_sort[0]]['backhaul'].count('D')
+candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
+a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
+a_sort = candidate[a_sort[0]]['access'].count('D')
+candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
 base_station.tdd_config = random.choice(candidate) if candidate else None
 
 if not base_station.tdd_config:
@@ -78,7 +84,7 @@ TTI = 1
 # result = LBPS.split(base_station, duplex='FDD', show=True)
 # result = LBPS.merge(base_station, duplex='FDD', show=True)
 result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True)
-pprint(result)
+# pprint(result)
 
 while TTI != simulation_time+1:
 
@@ -87,12 +93,13 @@ while TTI != simulation_time+1:
 		TTI += 1
 		continue
 
-	# discard timeout pkt and record
-	for child in base_station.queue['backhaul']:
-		for pkt in base_station.queue['backhaul'][child]:
-			if TTI - pkt['arrival_time'] > pkt['delay_budget']:
-				base_station.queue['backhaul'][child].remove(pkt)
-				discard_pkt.append(pkt)
+	# # ignore, cause lbps doesn't consider delay budget so far
+	# # discard timeout pkt and record
+	# for child in base_station.queue['backhaul']:
+	# 	for pkt in base_station.queue['backhaul'][child]:
+	# 		if TTI - pkt['arrival_time'] > pkt['delay_budget']:
+	# 			base_station.queue['backhaul'][child].remove(pkt)
+	# 			discard_pkt.append(pkt)
 
 	# DeNB receive pkt from internet and classified
 	for arrPkt in timeline[TTI]:

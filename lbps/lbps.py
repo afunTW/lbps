@@ -1,7 +1,6 @@
 import random
 from math import log, floor, ceil
 from tdd import one_to_one_first_mapping as M3
-from tdd import one_to_one_first_mapping_2hop as M3_2hop
 from device import UE, RN, eNB
 
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
@@ -96,8 +95,8 @@ def two_hop_mapping(device, schedule_result):
 	for i in range(len(a_mapping)):
 		a_mapping[i] = None if a_mapping[i] is device.tdd_config[i] else a_mapping[i]
 
-	b_mapping = list(reversed(M3(b_mapping)))
-	a_mapping = list(reversed(M3(a_mapping)))
+	b_mapping = M3(b_mapping)
+	a_mapping = M3(a_mapping)
 
 	for i in range(10):
 		b_mapping[i] = b_mapping[i] if device.tdd_config[i] else None
