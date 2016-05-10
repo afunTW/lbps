@@ -89,9 +89,9 @@ def aggr(device, duplex='FDD', show=False):
 
 		# encapsulate result: { subframe: wakeUpDevice }
 		result = {i+1:None for i in range(sleep_cycle_length)}
-		result[sleep_cycle_length] = [i for i in device.childs]
-		result[sleep_cycle_length].append(device)
-		result[sleep_cycle_length] = sorted(result[sleep_cycle_length], key=lambda d: d.name)
+		result[1] = [i for i in device.childs]
+		result[1].append(device)
+		result[1] = sorted(result[1], key=lambda d: d.name)
 
 		return result
 
@@ -172,7 +172,7 @@ def split(device, duplex='FDD', show=False):
 		result = {i+1:None for i in range(sleep_cycle_length)}
 		for i in groups:
 			groups[i]['device'] and groups[i]['device'].append(device)
-			result[sleep_cycle_length-i] = groups[i]['device'] if groups[i]['device'] else None
+			result[i] = groups[i]['device'] if groups[i]['device'] else None
 
 		return result
 
@@ -241,12 +241,12 @@ def merge(device, duplex='FDD', show=False):
 		for G in groups:
 			base = 0
 
-			for i in list(reversed(list(result.keys()))):
+			for i in list(result.keys()):
 				if result[i] is None:
 					base = i
 					break
 
-			for TTI in range(base, 1, -G['K']):
+			for TTI in range(base, len(result), G['K']):
 				result[TTI] = G['device'] + [device]
 
 		return result
@@ -317,7 +317,6 @@ def aggr_aggr(device, duplex='TDD', show=False):
 				a_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, a_mapping))
 			mapping_pattern[i] += b_mapping[i%10] if b_mapping[i%10] else a_mapping[i%10]
 
-		mapping_pattern = list(map(lambda x: list(map(lambda y: y+1, x)), mapping_pattern))
 		keys = list(b_result.keys())
 
 		for i in range(len(keys)):
