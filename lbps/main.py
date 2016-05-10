@@ -3,10 +3,13 @@
 from __init__ import *
 from pprint import pprint
 
+NUMBER_OF_RN = 6
+NUMBER_OF_UE = 240
+
 # create device instance
 base_station = eNB()
-relays = [RN() for i in range(6)]
-users = [UE() for i in range(240)]
+relays = [RN() for i in range(NUMBER_OF_RN)]
+users = [UE() for i in range(NUMBER_OF_UE)]
 
 # assign the relationship and CQI
 base_station.childs = relays
@@ -76,6 +79,8 @@ if not base_station.tdd_config:
 	msg_fail("no suitable TDD configuration")
 
 msg_success("==========\tsimulation start\t==========")
+performance = {rn.name:{'PSE':0} for rn in base_station.childs}
+performance.update({ue.name:{'PSE':0} for rn in base_station.childs for ue in rn.childs})
 discard_pkt = []
 TTI = 1
 
@@ -113,6 +118,10 @@ while TTI != simulation_time+1:
 			check_queue = base_station.queue['backhaul'][rn.name] \
 				if interface == 'backhaul' else rn.queue['backhaul']
 
+			if interface == 'backhaul':
+				for ue in rn.childs:
+						performance[ue.name]['PSE'] += 1/simulation_time
+
 			# calc avaliable pkt for transmission
 			for pkt in check_queue:
 				if available_cap < traffic[pkt['flow']]['pkt_size']:
@@ -127,7 +136,13 @@ while TTI != simulation_time+1:
 					rn.queue['backhaul'].remove(pkt)
 
 				available_cap -= traffic[pkt['flow']]['pkt_size']
+		else:
+			performance[rn.name]['PSE'] += 1/simulation_time
+			for ue in rn.childs:
+				performance[ue.name]['PSE'] += 1/simulation_time
 
 	TTI += 1
 
 msg_success("==========\tsimulation end\t\t==========")
+
+pprint(performance)
