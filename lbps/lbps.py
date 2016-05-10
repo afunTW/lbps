@@ -9,11 +9,6 @@ from config import *
 from viewer import *
 from pprint import pprint
 
-"""[summary] supported function
-
-[description]
-"""
-
 def getLoad(device, duplex="FDD"):
 
 	try:
@@ -57,6 +52,74 @@ def non_degraded(G, interface, DATA_TH):
 
 	not result and G.append(source_G)
 	return G.sort(key=lambda x: x['K'], reverse=True)
+
+def access_aggr(device, b_result):
+
+	if b_result:
+		for rn in device.childs:
+			b_TTI = None
+			a_subframe = ceil(rn.capacity['access']/device.capacity)
+
+			# find the backhaul transmission time
+			for i in list(reversed(list(b_result.keys()))):
+				if b_result[i] and rn in b_result[i]:
+					b_TTI = i
+					break
+
+			# find the access transmission time
+			if not b_TTI:
+				raise Exception("backhaul scheduling goes wrong")
+
+			trace = [(b_TTI+i-1)%len(b_result)+1 for i in b_result]
+			trace = trace[0:a_subframe]
+			queue = [ch for ch in rn.childs]
+			queue.append(rn)
+
+			for i in trace:
+				b_result[i] = b_result[i]+queue if b_result[i] else queue
+
+def two_hop_mapping(device, schedule_result):
+
+	# align
+	mapping_result = [i for i in list(schedule_result.keys())]
+	padding = ceil(len(mapping_result)/10)*10-len(mapping_result)
+	padding = [None for i in range(padding)]
+	mapping_result += padding
+
+	cycle = {i:[] for i in range(1,1+len(mapping_result))}
+	mapping_pattern = [[] for i in range(len(cycle))]
+
+	# TDD mapping
+	b_mapping = [i for i in device.tdd_config]
+	a_mapping = [i for i in device.childs[0].tdd_config]
+
+	for i in range(len(a_mapping)):
+		a_mapping[i] = None if a_mapping[i] is device.tdd_config[i] else a_mapping[i]
+
+	b_mapping = list(reversed(M3(b_mapping)))
+	a_mapping = list(reversed(M3(a_mapping)))
+
+	for i in range(10):
+		b_mapping[i] = b_mapping[i] if device.tdd_config[i] else None
+		a_mapping[i] = a_mapping[i] if not device.tdd_config[i] else None
+
+	for i in range(len(mapping_pattern)):
+		if i%10 is 0 and i is not 0:
+			b_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, b_mapping))
+			a_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, a_mapping))
+		mapping_pattern[i] += b_mapping[i%10] if b_mapping[i%10] else a_mapping[i%10]
+
+	keys = list(schedule_result.keys())
+
+	for i in range(len(keys)):
+		if schedule_result[keys[i]]:
+			for sf in mapping_pattern[i]:
+				cycle[sf] += schedule_result[keys[i]]
+
+	for i in cycle:
+		cycle[i] = cycle[i] if cycle[i] else None
+
+	return cycle
 
 def aggr(device, duplex='FDD', show=False):
 
@@ -265,69 +328,12 @@ def aggr_aggr(device, duplex='TDD', show=False):
 
 		# access scheduliability
 		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
-		if b_result:
-			for rn in device.childs:
-				b_TTI = None
-				a_subframe = ceil(rn.capacity['access']/device.capacity)
+		access_aggr(device, b_result)
 
-				# find the backhaul transmission time
-				for i in list(reversed(list(b_result.keys()))):
-					if b_result[i] and rn in b_result[i]:
-						b_TTI = i
-						break
+		# mapping to real timeline
+		timeline = two_hop_mapping(device, b_result)
 
-				# find the access transmission time
-				if not b_TTI:
-					raise Exception("backhaul scheduling goes wrong")
-
-				trace = [(b_TTI+i-1)%len(b_result)+1 for i in b_result]
-				trace = trace[0:a_subframe]
-				queue = [ch for ch in rn.childs]
-				queue.append(rn)
-
-				for i in trace:
-					b_result[i] = b_result[i]+queue if b_result[i] else queue
-
-		# align
-		mapping_result = [i for i in list(b_result.keys())]
-		padding = ceil(len(mapping_result)/10)*10-len(mapping_result)
-		padding = [None for i in range(padding)]
-		mapping_result += padding
-
-		cycle = {i:[] for i in range(1,1+len(mapping_result))}
-		mapping_pattern = [[] for i in range(len(cycle))]
-
-		# TDD mapping
-		b_mapping = [i for i in device.tdd_config]
-		a_mapping = [i for i in device.childs[0].tdd_config]
-
-		for i in range(len(a_mapping)):
-			a_mapping[i] = None if a_mapping[i] is device.tdd_config[i] else a_mapping[i]
-
-		b_mapping = list(reversed(M3(b_mapping)))
-		a_mapping = list(reversed(M3(a_mapping)))
-
-		for i in range(10):
-			b_mapping[i] = b_mapping[i] if device.tdd_config[i] else None
-			a_mapping[i] = a_mapping[i] if not device.tdd_config[i] else None
-
-		for i in range(len(mapping_pattern)):
-			if i%10 is 0 and i is not 0:
-				b_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, b_mapping))
-				a_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, a_mapping))
-			mapping_pattern[i] += b_mapping[i%10] if b_mapping[i%10] else a_mapping[i%10]
-
-		keys = list(b_result.keys())
-
-		for i in range(len(keys)):
-			if b_result[keys[i]]:
-				for sf in mapping_pattern[i]:
-					cycle[sf] += b_result[keys[i]]
-
-		for i in cycle:
-			cycle[i] = cycle[i] if cycle[i] else None
-
-		return cycle
+		return timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
