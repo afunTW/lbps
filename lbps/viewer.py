@@ -45,7 +45,7 @@ def export_csv(performance):
 	if input("Output the performance evaluation as .csv file? (T/F)"):
 		outfile = open("LBPS.csv", 'w')
 		output = csv.writer(outfile)
-		output.writerow(['LOAD', 'PSE', 'Delay'])
-		for i in range(len(performance['LOAD'])):
-			output.writerow([performance['LOAD'][i], performance['PSE'][i], performance['DELAY'][i]])
+		output.writerow(['LAMBDA', 'PSE', 'Delay'])
+		for i in range(len(performance['LAMBDA'])):
+			output.writerow([performance['LAMBDA'][i], performance['PSE'][i], performance['DELAY'][i]])
 		outfile.close()

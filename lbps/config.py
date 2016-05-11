@@ -122,25 +122,26 @@ Packets
 # bitrate(Kbps)
 # pkt_size(bits)
 # delay_budget(ms)
+# lambda = bitrate (Mbps)
 """
 traffic = {
 	'VoIP':{
 		'bitrate': 10,
 		'pkt_size': 800,
 		'delay_budget': 50,
-		'lambda': 10/800
+		'lambda': 10/1000
 	},
 	'Video':{
 		'bitrate': 250,
 		'pkt_size': 8000,
 		'delay_budget': 300,
-		'lambda': 250/8000
+		'lambda': 250/1000
 	},
 	'OnlineVideo':{
 		'bitrate': 10,
 		'pkt_size': 800,
 		'delay_budget': 300,
-		'lambda': 10/800
+		'lambda': 10/1000
 	}
 }
 

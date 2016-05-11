@@ -46,8 +46,8 @@ class Device(Bearer):
 	@property
 	def lambd(self):
 		return {
-			'backhaul': sum([traffic[b.flow]['lambda'] for b in self.link['backhaul']]),
-			'access': sum([traffic[a.flow]['lambda'] for a in self.link['access']])
+			'backhaul': round(sum([traffic[b.flow]['lambda'] for b in self.link['backhaul']]),2),
+			'access': round(sum([traffic[a.flow]['lambda'] for a in self.link['access']]),2)
 		}
 
 	@property
@@ -143,7 +143,7 @@ class UE(Device):
 	@Device.lambd.getter
 	def lambd(self):
 		return {
-			'access': sum([traffic[a.flow]['lambda'] for a in self.link['access']])
+			'access': round(sum([traffic[a.flow]['lambda'] for a in self.link['access']]), 2)
 		}
 
 class RN(Device):
@@ -192,7 +192,7 @@ class RN(Device):
 
 	@Device.lambd.getter
 	def lambd(self):
-		lambd = sum([ue.lambd['access'] for ue in self.childs])
+		lambd = round(sum([ue.lambd['access'] for ue in self.childs]), 2)
 		return {
 			'backhaul': lambd,
 			'access': lambd
@@ -282,7 +282,7 @@ class eNB(Device):
 
 	@Device.lambd.getter
 	def lambd(self):
-		lambd = sum([rn.lambd['backhaul'] for rn in self.childs])
+		lambd = round(sum([rn.lambd['backhaul'] for rn in self.childs]), 2)
 		return {
 			'backhaul': lambd
 		}
