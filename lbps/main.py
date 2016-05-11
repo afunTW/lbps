@@ -5,9 +5,9 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 12
+ITERATE_TIMES = 10
 SIMULATION_TIME = 1000
-PERFORMANCE = {'LOAD':[], 'PSE':[], 'DELAY':[]}
+PERFORMANCE = {'LAMBDA':[], 'PSE':[], 'DELAY':[]}
 
 # create device instance
 base_station = eNB()
@@ -26,17 +26,15 @@ for i in range(len(relays)):
 
 # build up the bearer from parent to child
 for i in base_station.childs:
-	for j in i.childs:
-		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 
 # loop for different data-rate
 for i in range(ITERATE_TIMES):
 
 	# dynamically adjust data rate
-	rn = base_station.childs[i%NUMBER_OF_RN]
-	for ue in [ue for ue in rn.childs[0:int(NUMBER_OF_UE/ITERATE_TIMES)]]:
-		rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
+	for rn in base_station.childs:
+		for ue in rn.childs:
+			rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
 	# calc pre-inter-arrival-time of packets (encapsulate)
 	timeline = { i:[] for i in range(SIMULATION_TIME+1)}
@@ -161,7 +159,7 @@ for i in range(ITERATE_TIMES):
 	# performance output
 	ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
 	deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
-	PERFORMANCE['LOAD'].append(LBPS.getLoad(base_station, 'TDD'))
+	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
 	PERFORMANCE['PSE'].append(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE)
 	PERFORMANCE['DELAY'].append(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt))
 
