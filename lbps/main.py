@@ -111,14 +111,6 @@ for i in range(ITERATE_TIMES):
 
 	while TTI != SIMULATION_TIME+1:
 
-		# # ignore, cause lbps doesn't consider delay budget so far
-		# # discard timeout pkt and record
-		# for child in base_station.queue['backhaul']:
-		# 	for pkt in base_station.queue['backhaul'][child]:
-		# 		if TTI - pkt['arrival_time'] > pkt['delay_budget']:
-		# 			base_station.queue['backhaul'][child].remove(pkt)
-		# 			discard_pkt.append(pkt)
-
 		# check the arrival pkt from internet
 		if timeline[TTI]:
 			for arrPkt in timeline[TTI]:
