@@ -79,8 +79,8 @@ if not base_station.tdd_config:
 	msg_fail("no suitable TDD configuration")
 
 msg_success("==========\tsimulation start\t==========")
-performance = {rn.name:{'PSE':0} for rn in base_station.childs}
-performance.update({ue.name:{'PSE':0} for rn in base_station.childs for ue in rn.childs})
+performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
+# performance.update({rn.name:{'PSE':0, 'delay':0} for rn in base_station.childs})
 discard_pkt = []
 TTI = 1
 
@@ -133,11 +133,12 @@ while TTI != simulation_time+1:
 
 				elif interface == 'access':
 					rn.queue['access'][pkt['device'].name].append(pkt)
+					performance[pkt['device'].name]['delay'] += TTI-math.ceil(pkt['arrival_time'])
 					rn.queue['backhaul'].remove(pkt)
 
 				available_cap -= traffic[pkt['flow']]['pkt_size']
 		else:
-			performance[rn.name]['PSE'] += 1/simulation_time
+			# performance[rn.name]['PSE'] += 1/simulation_time
 			for ue in rn.childs:
 				performance[ue.name]['PSE'] += 1/simulation_time
 
@@ -145,4 +146,8 @@ while TTI != simulation_time+1:
 
 msg_success("==========\tsimulation end\t\t==========")
 
-pprint(performance)
+# performance output
+ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
+deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
+PSE = sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE
+delay = sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt)
