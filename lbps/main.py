@@ -68,20 +68,28 @@ for i in range(ITERATE_TIMES):
 
 	# decide 2-hop TDD configuration (DL)(fixed)
 	candidate = TWO_HOP_TDD_CONFIG.copy()
+	max_b_subframe = max([candidate[i]['backhaul'].count('D') for i in candidate])
+	max_a_subframe = max([candidate[i]['access'].count('D') for i in candidate])
 	radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
 	total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
 
 	# backhaul and access filter for TDD configuration decision
 	n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
+	n_b_subframe = n_b_subframe if n_b_subframe <= max_b_subframe else max_b_subframe
+	n_a_subframe = max([math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs])
+	n_a_subframe = n_a_subframe if n_a_subframe <= max_a_subframe else max_a_subframe
+
 	candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
-	n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
-	candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
+	candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= n_a_subframe} \
+				if len(candidate) > 1 else candidate
+
 	b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
 	b_sort = candidate[b_sort[0]]['backhaul'].count('D')
 	candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
 	a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
 	a_sort = candidate[a_sort[0]]['access'].count('D')
 	candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
+
 	candidate_key = random.choice(list(candidate.keys()))
 	base_station.tdd_config = candidate[candidate_key] if candidate else None
 
