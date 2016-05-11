@@ -5,7 +5,7 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 10
+ITERATE_TIMES = 15
 SIMULATION_TIME = 1000
 PERFORMANCE = {'LAMBDA':[], 'PSE':[], 'DELAY':[]}
 
@@ -31,10 +31,11 @@ for i in base_station.childs:
 # loop for different data-rate
 for i in range(ITERATE_TIMES):
 
-	# dynamically adjust data rate
+	# dynamically adjust data rate and clear the queue history
 	for rn in base_station.childs:
 		for ue in rn.childs:
 			rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
+	base_station.clearQueue()
 
 	# calc pre-inter-arrival-time of packets (encapsulate)
 	timeline = { i:[] for i in range(SIMULATION_TIME+1)}
@@ -140,7 +141,9 @@ for i in range(ITERATE_TIMES):
 
 			# check if RN awake
 			if not isSleep[rn.name]:
-				interface = 'backhaul' if result[r_pos] and base_station in result[r_pos] else 'access'
+				interface = 'backhaul'\
+							if r_pos and result[r_pos] and base_station in result[r_pos]\
+							else 'access'
 				available_cap += rn.capacity[interface]
 				check_queue = base_station.queue['backhaul'][rn.name] \
 					if interface == 'backhaul' else rn.queue['backhaul']

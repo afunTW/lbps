@@ -332,3 +332,14 @@ class eNB(Device):
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
+
+	def clearQueue(self):
+		try:
+			pre = "%s::clearQueue\t\t" % self.name
+			for rn in self.childs:
+				self.__queue['backhaul'][rn.name] = []
+				rn.queue['backhaul'] = []
+				for ue in rn.childs:
+					rn.queue['access'][ue.name] = []
+		except Exception as e:
+			msg_fail(str(e), pre=pre)
