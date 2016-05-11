@@ -5,6 +5,8 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
+ITERATE_TIMES = 12
+PERFORMANCE = {'PSE':[], 'DELAY':[]}
 
 # create device instance
 base_station = eNB()
@@ -27,127 +29,139 @@ for i in base_station.childs:
 		i.connect(j, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 	base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
 
-# calc pre-inter-arrival-time of packets (encapsulate)
-simulation_time = 1000
-timeline = { i:[] for i in range(simulation_time+1)}
-UE_lambda = [i.lambd for i in users]
+# loop for different data-rate
+for i in range(ITERATE_TIMES):
 
-for i in range(len(users)):
+	# dynamically adjust data rate
+	rn = base_station.childs[i%NUMBER_OF_RN]
+	for ue in [ue for ue in rn.childs[0:int(NUMBER_OF_UE/ITERATE_TIMES)]]:
+		rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
-	for bearer in users[i].link['access']:
-		arrTimeByBearer = [0]
+	# calc pre-inter-arrival-time of packets (encapsulate)
+	simulation_time = 1000
+	timeline = { i:[] for i in range(simulation_time+1)}
+	UE_lambda = [i.lambd for i in users]
 
-		# random process of getting inter-arrival-time by bearer
-		while arrTimeByBearer[-1]<=simulation_time and users[i].lambd['access']:
-			arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
-		arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
-		arrTimeByBearer.pop(0)
+	# assign pre-calc pkt arrival to timeline
+	for i in range(len(users)):
 
-		# assign pkt to real timeline
-		for arrTime in range(len(arrTimeByBearer)):
-			pkt = {
-				'device': users[i],
-				'flow': bearer.flow,
-				'delay_budget': traffic[bearer.flow]['delay_budget'],
-				'bitrate': traffic[bearer.flow]['bitrate'],
-				'arrival_time': arrTimeByBearer[arrTime]
-			}
-			timeline[math.ceil(pkt['arrival_time'])].append(pkt)
+		for bearer in users[i].link['access']:
+			arrTimeByBearer = [0]
 
-for i in range(len(timeline)):
-	timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
+			# random process of getting inter-arrival-time by bearer
+			while arrTimeByBearer[-1]<=simulation_time and users[i].lambd['access']:
+				arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
+			arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
+			arrTimeByBearer.pop(0)
 
-# decide 2-hop TDD configuration (DL)(fixed)
-candidate = TWO_HOP_TDD_CONFIG.copy()
-radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
-total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
+			# assign pkt to real timeline
+			for arrTime in range(len(arrTimeByBearer)):
+				pkt = {
+					'device': users[i],
+					'flow': bearer.flow,
+					'delay_budget': traffic[bearer.flow]['delay_budget'],
+					'bitrate': traffic[bearer.flow]['bitrate'],
+					'arrival_time': arrTimeByBearer[arrTime]
+				}
+				timeline[math.ceil(pkt['arrival_time'])].append(pkt)
 
-# backhaul and access filter for TDD configuration decision
-n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
-candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
-n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
-candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
-b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
-b_sort = candidate[b_sort[0]]['backhaul'].count('D')
-candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
-a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
-a_sort = candidate[a_sort[0]]['access'].count('D')
-candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
-base_station.tdd_config = random.choice(candidate) if candidate else None
+	for i in range(len(timeline)):
+		timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
 
-if not base_station.tdd_config:
-	msg_fail("no suitable TDD configuration")
+	# decide 2-hop TDD configuration (DL)(fixed)
+	candidate = TWO_HOP_TDD_CONFIG.copy()
+	radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
+	total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
 
-msg_success("==========\tsimulation start\t==========")
-performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
-# performance.update({rn.name:{'PSE':0, 'delay':0} for rn in base_station.childs})
-discard_pkt = []
-TTI = 1
+	# backhaul and access filter for TDD configuration decision
+	n_b_subframe = math.ceil(total_pktSize / base_station.capacity)
+	candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
+	n_a_subframe = [math.ceil(total_pktSize/len(base_station.childs)/i.capacity['access']) for i in base_station.childs]
+	candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= max(n_a_subframe)}
+	b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
+	b_sort = candidate[b_sort[0]]['backhaul'].count('D')
+	candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
+	a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
+	a_sort = candidate[a_sort[0]]['access'].count('D')
+	candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
+	candidate_key = random.choice(list(candidate.keys()))
+	base_station.tdd_config = candidate[candidate_key] if candidate else None
 
-# apply LBPS
-# result = LBPS.aggr(base_station, duplex='FDD', show=True)
-# result = LBPS.split(base_station, duplex='FDD', show=True)
-# result = LBPS.merge(base_station, duplex='FDD', show=True)
-result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True)
-# pprint(result)
+	if not base_station.tdd_config:
+		msg_fail("no suitable TDD configuration")
 
-while TTI != simulation_time+1:
+	msg_success("==========\tsimulation start\t==========")
+	performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
+	# performance.update({rn.name:{'PSE':0, 'delay':0} for rn in base_station.childs})
+	discard_pkt = []
+	TTI = 1
 
-	# # ignore, cause lbps doesn't consider delay budget so far
-	# # discard timeout pkt and record
-	# for child in base_station.queue['backhaul']:
-	# 	for pkt in base_station.queue['backhaul'][child]:
-	# 		if TTI - pkt['arrival_time'] > pkt['delay_budget']:
-	# 			base_station.queue['backhaul'][child].remove(pkt)
-	# 			discard_pkt.append(pkt)
+	# apply LBPS
+	# result = LBPS.aggr(base_station, duplex='FDD', show=True)
+	# result = LBPS.split(base_station, duplex='FDD', show=True)
+	# result = LBPS.merge(base_station, duplex='FDD', show=True)
+	result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True)
+	# pprint(result)
 
-	# check the arrival pkt from internet
-	if timeline[TTI]:
-		for arrPkt in timeline[TTI]:
-			base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
+	while TTI != simulation_time+1:
 
-	# check each RN operation by sleep mode or backhaul/access transmission
-	for rn in base_station.childs:
-		r_pos = (TTI-1)%len(result)+1
-		available_cap = 0
+		# # ignore, cause lbps doesn't consider delay budget so far
+		# # discard timeout pkt and record
+		# for child in base_station.queue['backhaul']:
+		# 	for pkt in base_station.queue['backhaul'][child]:
+		# 		if TTI - pkt['arrival_time'] > pkt['delay_budget']:
+		# 			base_station.queue['backhaul'][child].remove(pkt)
+		# 			discard_pkt.append(pkt)
 
-		# check if RN awake
-		if result[r_pos] and rn in result[r_pos]:
-			interface = 'backhaul' if base_station in result[r_pos] else 'access'
-			available_cap += rn.capacity[interface]
-			check_queue = base_station.queue['backhaul'][rn.name] \
-				if interface == 'backhaul' else rn.queue['backhaul']
+		# check the arrival pkt from internet
+		if timeline[TTI]:
+			for arrPkt in timeline[TTI]:
+				base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
 
-			if interface == 'backhaul':
-				for ue in rn.childs:
-						performance[ue.name]['PSE'] += 1/simulation_time
+		# check each RN operation by sleep mode or backhaul/access transmission
+		for rn in base_station.childs:
+			r_pos = (TTI-1)%len(result)+1
+			available_cap = 0
 
-			# calc avaliable pkt for transmission
-			for pkt in check_queue:
-				if available_cap < traffic[pkt['flow']]['pkt_size']:
-						break
+			# check if RN awake
+			if result[r_pos] and rn in result[r_pos]:
+				interface = 'backhaul' if base_station in result[r_pos] else 'access'
+				available_cap += rn.capacity[interface]
+				check_queue = base_station.queue['backhaul'][rn.name] \
+					if interface == 'backhaul' else rn.queue['backhaul']
 
 				if interface == 'backhaul':
-					rn.queue[interface].append(pkt)
-					base_station.queue['backhaul'][rn.name].remove(pkt)
+					for ue in rn.childs:
+							performance[ue.name]['PSE'] += 1/simulation_time
 
-				elif interface == 'access':
-					rn.queue['access'][pkt['device'].name].append(pkt)
-					performance[pkt['device'].name]['delay'] += TTI-math.ceil(pkt['arrival_time'])
-					rn.queue['backhaul'].remove(pkt)
+				# calc avaliable pkt for transmission
+				for pkt in check_queue:
+					if available_cap < traffic[pkt['flow']]['pkt_size']:
+							break
 
-				available_cap -= traffic[pkt['flow']]['pkt_size']
-		else:
-			# performance[rn.name]['PSE'] += 1/simulation_time
-			for ue in rn.childs:
-				performance[ue.name]['PSE'] += 1/simulation_time
+					if interface == 'backhaul':
+						rn.queue[interface].append(pkt)
+						base_station.queue['backhaul'][rn.name].remove(pkt)
 
-	TTI += 1
+					elif interface == 'access':
+						rn.queue['access'][pkt['device'].name].append(pkt)
+						performance[pkt['device'].name]['delay'] += TTI-math.ceil(pkt['arrival_time'])
+						rn.queue['backhaul'].remove(pkt)
 
-msg_success("==========\tsimulation end\t\t==========")
+					available_cap -= traffic[pkt['flow']]['pkt_size']
+			else:
+				# performance[rn.name]['PSE'] += 1/simulation_time
+				for ue in rn.childs:
+					performance[ue.name]['PSE'] += 1/simulation_time
 
-# performance output
-ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
-deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
-PSE = sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE
-delay = sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt)
+		TTI += 1
+
+	msg_success("==========\tsimulation end\t\t==========")
+
+	# performance output
+	ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
+	deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
+	PERFORMANCE['PSE'].append(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE)
+	PERFORMANCE['DELAY'].append(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt))
+
+pprint(PERFORMANCE)
