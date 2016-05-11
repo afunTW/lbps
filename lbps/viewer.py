@@ -2,6 +2,7 @@
 #!/usr/bin/python3
 
 # import matplotlib.pyplot as plt
+import csv
 from config import bcolors, MODE
 
 from pprint import pprint
@@ -39,3 +40,12 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 				msg_execute("%s.sleepCycle = %d" % (j.name, j.sleepCycle), pre=pre, suf=suf)
 		else:
 			msg_execute("%s.sleepCycle = %d" % (j.name, i.sleepCycle), pre=pre, suf=suf)
+
+def export_csv(performance):
+	if input("Output the performance evaluation as .csv file? (T/F)"):
+		outfile = open("LBPS.csv", 'w')
+		output = csv.writer(outfile)
+		output.writerow(['PSE', 'Delay'])
+		for i in range(len(performance['LOAD'])):
+			output.writerow([performance['PSE'][i], performance['DELAY'][i]])
+		outfile.close()

@@ -6,7 +6,8 @@ from pprint import pprint
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
 ITERATE_TIMES = 12
-PERFORMANCE = {'PSE':[], 'DELAY':[]}
+SIMULATION_TIME = 1000
+PERFORMANCE = {'LOAD':[], 'PSE':[], 'DELAY':[]}
 
 # create device instance
 base_station = eNB()
@@ -38,8 +39,7 @@ for i in range(ITERATE_TIMES):
 		rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
 	# calc pre-inter-arrival-time of packets (encapsulate)
-	simulation_time = 1000
-	timeline = { i:[] for i in range(simulation_time+1)}
+	timeline = { i:[] for i in range(SIMULATION_TIME+1)}
 	UE_lambda = [i.lambd for i in users]
 
 	# assign pre-calc pkt arrival to timeline
@@ -49,9 +49,9 @@ for i in range(ITERATE_TIMES):
 			arrTimeByBearer = [0]
 
 			# random process of getting inter-arrival-time by bearer
-			while arrTimeByBearer[-1]<=simulation_time and users[i].lambd['access']:
+			while arrTimeByBearer[-1]<=SIMULATION_TIME and users[i].lambd['access']:
 				arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
-			arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
+			arrTimeByBearer[-1] > SIMULATION_TIME and arrTimeByBearer.pop()
 			arrTimeByBearer.pop(0)
 
 			# assign pkt to real timeline
@@ -103,7 +103,7 @@ for i in range(ITERATE_TIMES):
 	result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True)
 	# pprint(result)
 
-	while TTI != simulation_time+1:
+	while TTI != SIMULATION_TIME+1:
 
 		# # ignore, cause lbps doesn't consider delay budget so far
 		# # discard timeout pkt and record
@@ -132,7 +132,7 @@ for i in range(ITERATE_TIMES):
 
 				if interface == 'backhaul':
 					for ue in rn.childs:
-							performance[ue.name]['PSE'] += 1/simulation_time
+							performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 
 				# calc avaliable pkt for transmission
 				for pkt in check_queue:
@@ -150,9 +150,9 @@ for i in range(ITERATE_TIMES):
 
 					available_cap -= traffic[pkt['flow']]['pkt_size']
 			else:
-				# performance[rn.name]['PSE'] += 1/simulation_time
+				# performance[rn.name]['PSE'] += 1/SIMULATION_TIME
 				for ue in rn.childs:
-					performance[ue.name]['PSE'] += 1/simulation_time
+					performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 
 		TTI += 1
 
@@ -161,7 +161,9 @@ for i in range(ITERATE_TIMES):
 	# performance output
 	ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
 	deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
+	PERFORMANCE['LOAD'].append(LBPS.getLoad(base_station, 'TDD'))
 	PERFORMANCE['PSE'].append(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE)
 	PERFORMANCE['DELAY'].append(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt))
 
 pprint(PERFORMANCE)
+export_csv(PERFORMANCE)

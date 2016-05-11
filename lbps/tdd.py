@@ -1,6 +1,6 @@
 import copy
 import re
-from viewer import msg_fail, msg_warning, M3_result
+from viewer import msg_fail, msg_warning
 from math import ceil
 from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
 from pprint import pprint
