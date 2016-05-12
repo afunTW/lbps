@@ -79,6 +79,11 @@ def access_aggr(device, b_result):
 
 def two_hop_mapping(device, schedule_result):
 
+	# get the pattern to identify it's backhaul/access subframe
+	subframe_identity = ['access']*10
+	for i in range(10):
+		subframe_identity[i] = 'backhaul' if device.tdd_config[i] else subframe_identity[i]
+
 	# align
 	mapping_result = [i for i in list(schedule_result.keys())]
 	padding = ceil(len(mapping_result)/10)*10-len(mapping_result)
