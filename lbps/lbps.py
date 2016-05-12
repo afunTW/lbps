@@ -1,4 +1,5 @@
 import random
+import copy
 from math import log, floor, ceil
 from tdd import one_to_one_first_mapping as M3
 from device import UE, RN, eNB
@@ -84,46 +85,36 @@ def two_hop_mapping(device, schedule_result):
 	for i in range(10):
 		subframe_identity[i] = 'backhaul' if device.tdd_config[i] else subframe_identity[i]
 
-	# align
-	mapping_result = [i for i in list(schedule_result.keys())]
-	padding = ceil(len(mapping_result)/10)*10-len(mapping_result)
-	padding = [None for i in range(padding)]
-	mapping_result += padding
+	mapping = M3(copy.deepcopy(device.childs[0].tdd_config))
+	mapping = mapping*ceil(len(schedule_result)/10)
+	v_subframe = {'backhaul':[], 'access':[]}
+	v_cycle = {i:[] for i in range(1, 1+len(mapping))}
+	cycle = {i:[] for i in range(1, 1+len(mapping))}
 
-	cycle = {i:[] for i in range(1,1+len(mapping_result))}
-	mapping_pattern = [[] for i in range(len(cycle))]
+	# seperate backhaul and access subframe
+	for i in schedule_result:
+		if schedule_result[i]:
+			interface = 'backhaul' if device in schedule_result[i] else 'access'
+			v_subframe[interface].append(schedule_result[i])
 
-	# TDD mapping
-	b_mapping = [i for i in device.tdd_config]
-	a_mapping = [i for i in device.childs[0].tdd_config]
+	# reassign the position of virtual subframe
+	for i in v_cycle:
+		if v_subframe['backhaul'] or v_subframe['access']:
+			if device.childs[0].tdd_config[(i-1)%10] is not 'D':
+				continue
 
-	for i in range(len(a_mapping)):
-		a_mapping[i] = None if a_mapping[i] is device.tdd_config[i] else a_mapping[i]
+			real_timeline = copy.deepcopy(mapping[(i-1)%10])
+			interface = []
 
-	b_mapping = M3(b_mapping)
-	a_mapping = M3(a_mapping)
+			for i in real_timeline:
+				interface.append(subframe_identity[(i-1)%10])
 
-	for i in range(10):
-		b_mapping[i] = b_mapping[i] if device.tdd_config[i] else None
-		a_mapping[i] = a_mapping[i] if not device.tdd_config[i] else None
+			interface = 'backhaul' if 'backhaul' in interface else 'access'
+			v_cycle[i] = v_subframe[interface].pop() if v_subframe[interface] else v_cycle[i]
+		else:
+			break
 
-	for i in range(len(mapping_pattern)):
-		if i%10 is 0 and i is not 0:
-			b_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, b_mapping))
-			a_mapping = list(map(lambda x: list(map(lambda y: y+10, x)) if x else None, a_mapping))
-		mapping_pattern[i] += b_mapping[i%10] if b_mapping[i%10] else a_mapping[i%10]
-
-	keys = list(schedule_result.keys())
-
-	for i in range(len(keys)):
-		if schedule_result[keys[i]]:
-			for sf in mapping_pattern[i]:
-				cycle[sf] += schedule_result[keys[i]]
-
-	for i in cycle:
-		cycle[i] = cycle[i] if cycle[i] else None
-
-	return cycle
+	return v_cycle
 
 def aggr(device, duplex='FDD', show=False):
 
