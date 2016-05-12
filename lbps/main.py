@@ -5,9 +5,9 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 15
+ITERATE_TIMES = 10
 SIMULATION_TIME = 1000
-PERFORMANCE = {'LAMBDA':[], 'RN-PSE':[], 'UE-PSE':[], 'DELAY':[]}
+PERFORMANCE = {'LAMBDA':[], 'TDD_CONFIG':[], 'RN-PSE':[], 'UE-PSE':[], 'DELAY':[]}
 
 # create device instance
 base_station = eNB()
@@ -101,10 +101,9 @@ for i in range(ITERATE_TIMES):
 	performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
 	performance.update({rn.name:{'PSE':0} for rn in base_station.childs})
 	isSleep = {rn.name:False for rn in base_station.childs}
-	isLoading = {rn.name:False for rn in base_station.childs}
+	isBLoading = {rn.name:False for rn in base_station.childs}
+	isALoading = {rn.name:False for rn in base_station.childs}
 	TTI = 1
-	total_pkt = [1 for TTI in timeline for pkt in timeline[TTI]]
-	print(sum(total_pkt))
 
 	# apply LBPS
 	# result = LBPS.aggr(base_station, duplex='FDD', show=True)
@@ -138,7 +137,7 @@ for i in range(ITERATE_TIMES):
 			elif r_pos and result[r_pos] and rn in result[r_pos]:
 				# print("TTI " + str(TTI) +": lbps waking subframe", end='\t')
 				isSleep[rn.name] = False
-			elif isLoading[rn.name]:
+			elif isBLoading[rn.name] or isALoading[rn.name]:
 				# print("TTI " + str(TTI) +": pre-subframe cannot serve all pkt int the queue", end='\t')
 				isSleep[rn.name] = False
 			else:
@@ -154,7 +153,7 @@ for i in range(ITERATE_TIMES):
 				else:
 					interface = 'backhaul' if result[r_pos] and base_station in result[r_pos] else 'access'
 
-				available_cap += rn.capacity[interface]
+				available_cap = rn.capacity[interface]
 				check_queue = base_station.queue['backhaul'][rn.name] \
 					if interface == 'backhaul' else rn.queue['backhaul']
 
@@ -167,20 +166,25 @@ for i in range(ITERATE_TIMES):
 
 					# still have data buffer in queue
 					if available_cap < traffic[pkt['flow']]['pkt_size']:
-						isLoading[rn.name] = True
+						if interface == 'backhaul':
+							isBLoading[rn.name] = True
+						elif interface == 'access':
+							isALoading [rn.name] = True
 						break
 
 					if interface == 'backhaul':
 						rn.queue[interface].append(pkt)
 						base_station.queue['backhaul'][rn.name].remove(pkt)
+						isBLoading[rn.name] = False
 
 					elif interface == 'access':
 						rn.queue['access'][pkt['device'].name].append(pkt)
 						performance[pkt['device'].name]['delay'] += TTI-math.ceil(pkt['arrival_time'])
 						rn.queue['backhaul'].remove(pkt)
+						isALoading[rn.name] = False
 
 					available_cap -= traffic[pkt['flow']]['pkt_size']
-					isLoading[rn.name] = False
+
 			else:
 				performance[rn.name]['PSE'] += 1/SIMULATION_TIME
 				for ue in rn.childs:
@@ -193,8 +197,9 @@ for i in range(ITERATE_TIMES):
 	# performance output
 	ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
 	deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
-	print(sum(deliver_pkt))
+
 	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
+	PERFORMANCE['TDD_CONFIG'].append(base_station.tdd_config)
 	PERFORMANCE['UE-PSE'].append(round(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE, 2))
 	PERFORMANCE['RN-PSE'].append(round(sum([performance[rn.name]['PSE'] for rn in base_station.childs])/NUMBER_OF_RN, 2))
 	PERFORMANCE['DELAY'].append(round(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt), 2))
