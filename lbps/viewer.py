@@ -46,7 +46,8 @@ def export_csv(performance):
 		outfile = open("LBPS.csv", 'w')
 		output = csv.writer(outfile)
 
-		test_item = ['LAMBDA', 'TDD_CONFIG', 'RN-PSE', 'UE-PSE', 'DELAY']
+		test_item = ['LAMBDA', 'CAPACITY', 'V_CAPACITY', \
+					'TDD_CONFIG', 'RN-PSE', 'UE-PSE', 'DELAY']
 		output.writerow(test_item)
 
 		for i in range(len(performance['LAMBDA'])):

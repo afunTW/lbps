@@ -7,7 +7,7 @@ NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
 ITERATE_TIMES = 10
 SIMULATION_TIME = 1000
-PERFORMANCE = {'LAMBDA':[], 'TDD_CONFIG':[], 'RN-PSE':[], 'UE-PSE':[], 'DELAY':[]}
+PERFORMANCE = {'LAMBDA':[], 'CAPACITY':[], 'V_CAPACITY':[], 'TDD_CONFIG':[], 'RN-PSE':[], 'UE-PSE':[], 'DELAY':[]}
 
 # create device instance
 base_station = eNB()
@@ -106,9 +106,6 @@ for i in range(ITERATE_TIMES):
 	TTI = 1
 
 	# apply LBPS
-	# result = LBPS.aggr(base_station, duplex='FDD', show=True)
-	# result = LBPS.split(base_station, duplex='FDD', show=True)
-	# result = LBPS.merge(base_station, duplex='FDD', show=True)
 	result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True) \
 			if LBPS.getLoad(base_station, 'TDD') <= 1 else None
 	# pprint(result)
@@ -199,6 +196,8 @@ for i in range(ITERATE_TIMES):
 	deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
 
 	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
+	PERFORMANCE['CAPACITY'].append(round(base_station.capacity/1000, 2))
+	PERFORMANCE['V_CAPACITY'].append(round(base_station.virtualCapacity/1000, 2))
 	PERFORMANCE['TDD_CONFIG'].append(base_station.tdd_config)
 	PERFORMANCE['UE-PSE'].append(round(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE, 2))
 	PERFORMANCE['RN-PSE'].append(round(sum([performance[rn.name]['PSE'] for rn in base_station.childs])/NUMBER_OF_RN, 2))
