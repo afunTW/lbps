@@ -376,3 +376,40 @@ class eNB(Device):
 
 		if not self.tdd_config:
 			msg_fail("no suitable TDD configuration")
+
+	def simulate_timeline(self, simulation_time):
+		try:
+			# calc pre-inter-arrival-time of packets (encapsulate)
+			users = [ue for rn in self.childs for ue in rn.childs]
+			timeline = { i:[] for i in range(simulation_time+1)}
+
+			# assign pre-calc pkt arrival to timeline
+			for i in range(len(users)):
+
+				for bearer in users[i].link['access']:
+					arrTimeByBearer = [0]
+
+					# random process of getting inter-arrival-time by bearer
+					while arrTimeByBearer[-1]<=simulation_time and users[i].lambd['access']:
+						arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
+					arrTimeByBearer[-1] > simulation_time and arrTimeByBearer.pop()
+					arrTimeByBearer.pop(0)
+
+					# assign pkt to real timeline
+					for arrTime in range(len(arrTimeByBearer)):
+						pkt = {
+							'device': users[i],
+							'flow': bearer.flow,
+							'delay_budget': traffic[bearer.flow]['delay_budget'],
+							'bitrate': traffic[bearer.flow]['bitrate'],
+							'arrival_time': arrTimeByBearer[arrTime]
+						}
+						timeline[math.ceil(pkt['arrival_time'])].append(pkt)
+
+			for i in range(len(timeline)):
+				timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
+
+			return timeline
+
+		except Exception as e:
+			msg_fail(str(e), end='\t')

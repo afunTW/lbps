@@ -37,37 +37,7 @@ for i in range(ITERATE_TIMES):
 			rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
 	base_station.clearQueue()
-
-	# calc pre-inter-arrival-time of packets (encapsulate)
-	timeline = { i:[] for i in range(SIMULATION_TIME+1)}
-	UE_lambda = [i.lambd for i in users]
-
-	# assign pre-calc pkt arrival to timeline
-	for i in range(len(users)):
-
-		for bearer in users[i].link['access']:
-			arrTimeByBearer = [0]
-
-			# random process of getting inter-arrival-time by bearer
-			while arrTimeByBearer[-1]<=SIMULATION_TIME and users[i].lambd['access']:
-				arrTimeByBearer.append(arrTimeByBearer[-1]+random.expovariate(users[i].lambd['access']))
-			arrTimeByBearer[-1] > SIMULATION_TIME and arrTimeByBearer.pop()
-			arrTimeByBearer.pop(0)
-
-			# assign pkt to real timeline
-			for arrTime in range(len(arrTimeByBearer)):
-				pkt = {
-					'device': users[i],
-					'flow': bearer.flow,
-					'delay_budget': traffic[bearer.flow]['delay_budget'],
-					'bitrate': traffic[bearer.flow]['bitrate'],
-					'arrival_time': arrTimeByBearer[arrTime]
-				}
-				timeline[math.ceil(pkt['arrival_time'])].append(pkt)
-
-	for i in range(len(timeline)):
-		timeline[i] = sorted(timeline[i], key=lambda x: x['arrival_time'])
-
+	timeline = base_station.simulate_timeline(SIMULATION_TIME)
 	base_station.choose_tdd_config(timeline)
 
 	msg_success("==========\tsimulation start\t==========")
