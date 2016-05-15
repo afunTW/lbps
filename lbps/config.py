@@ -133,6 +133,11 @@ def get_access_by_backhaul_config(b_config, no_backhaul=False):
 
 	return a_config
 
+def is_backhaul_config(config):
+	for i in TWO_HOP_TDD_CONFIG:
+		if TWO_HOP_TDD_CONFIG[i]['backhaul'] == config:
+			return True
+	return
 
 """
 Packets
