@@ -2,7 +2,7 @@ import copy
 import re
 from viewer import msg_fail, msg_warning
 from math import ceil
-from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
+from config import *
 from pprint import pprint
 
 """[summary] internal support function
@@ -116,3 +116,32 @@ def one_to_one_first_mapping(TDD_config):
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
+
+def two_hop_one_to_one_first_mapping(TDD_config):
+
+	pre = "mapping::2hopM3\t\t"
+
+	try:
+		if not is_backhaul_config(TDD_config):
+			raise Exception("only accept backhaul TDD configuration as input")
+
+		backhaul_config = copy.deepcopy(TDD_config)
+		access_config = get_access_by_backhaul_config(backhaul_config, no_backhaul=True)
+		RSC = 10
+		VSC = backhaul_config.count('D')*RSC/10
+		v_timeline = [{'r_TTI':[], 'VSC':VSC, 'identity':[]} for i in range(10)]
+		r_config = [
+			{'r_TTI':i, 'RSC': RSC, 'identity': 'backhaul'} for i in range(10)
+			if backhaul_config[i] == 'D'
+		]
+		r_config += [
+			{'r_TTI':i, 'RSC': RSC, 'identity': 'access'} for i in range(10)
+			if access_config[i] == 'D'
+		]
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
+
+if __name__ == '__main__':
+	two_hop_one_to_one_first_mapping(TWO_HOP_TDD_CONFIG[0]['backhaul'])
