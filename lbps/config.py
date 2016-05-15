@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import copy
+
 """
 Capacity
 # BANDWIDTH: 0.2 MHz = 12 subcarriers = 1 RBG = 2RBs
@@ -53,7 +55,7 @@ T_CQI = {
 	13: { 'modulation': '64QAM', 'code-rate': 772, 'eff': 4.5234 },
 	14: { 'modulation': '64QAM', 'code-rate': 873, 'eff': 5.1152 },
 	15: { 'modulation': '64QAM', 'code-rate': 948, 'eff': 5.5547 }
-};
+}
 
 # CQI type for device setting
 DEVICE_CQI_TYPE = {
@@ -74,7 +76,7 @@ ONE_HOP_TDD_CONFIG = {
 	4: ['D', 'S', 'U', 'U', 'D', 'D', 'D', 'D', 'D', 'D'],
 	5: ['D', 'S', 'U', 'D', 'D', 'D', 'D', 'D', 'D', 'D'],
 	6: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'D']
-};
+}
 
 TWO_HOP_TDD_CONFIG = {
 		0: {'backhaul': [None, None, None, None, 'D', None, None, None, 'U', None],
@@ -115,7 +117,22 @@ TWO_HOP_TDD_CONFIG = {
 			'access': ONE_HOP_TDD_CONFIG[4]},
 		18: {'backhaul': [None, None, None, None, 'U', None, None, None, None, 'D'],
 			'access': ONE_HOP_TDD_CONFIG[5]}
-};
+}
+
+def get_access_by_backhaul_config(b_config, no_backhaul=False):
+	a_config = None
+
+	for i in TWO_HOP_TDD_CONFIG:
+		if TWO_HOP_TDD_CONFIG[i]['backhaul'] == b_config:
+			a_config = copy.deepcopy(TWO_HOP_TDD_CONFIG[i]['access'])
+			break
+
+	if no_backhaul and a_config:
+		for i in range(10):
+			a_config[i] = None if b_config[i] else a_config[i]
+
+	return a_config
+
 
 """
 Packets
