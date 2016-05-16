@@ -333,3 +333,31 @@ def aggr_aggr(device, duplex='TDD', show=False):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
+
+def split_aggr(device, duplex='TDD', show=False):
+	prefix = "lbps::split-aggr::%s \t" % device.name
+
+	try:
+		b_result = split(device, duplex)
+		access_aggr(device, b_result)
+		timeline = two_hop_mapping(device, b_result)
+
+		return timeline
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
+
+def merge_aggr(device, duplex='TDD', show=False):
+	prefix = "lbps::merge-aggr::%s \t" % device.name
+
+	try:
+		b_result = merge(device, duplex)
+		access_aggr(device, b_result)
+		timeline = two_hop_mapping(device, b_result)
+
+		return timeline
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
