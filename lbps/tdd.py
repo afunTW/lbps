@@ -125,23 +125,53 @@ def two_hop_one_to_one_first_mapping(TDD_config):
 		if not is_backhaul_config(TDD_config):
 			raise Exception("only accept backhaul TDD configuration as input")
 
+		# init
 		backhaul_config = copy.deepcopy(TDD_config)
 		access_config = get_access_by_backhaul_config(backhaul_config, no_backhaul=True)
 		RSC = 10
-		VSC = backhaul_config.count('D')*RSC/10
+		VSC = (backhaul_config.count('D')+access_config.count('D'))*RSC/10
 		v_timeline = [{'r_TTI':[], 'VSC':VSC, 'identity':[]} for i in range(10)]
 		r_config = [
 			{'r_TTI':i, 'RSC': RSC, 'identity': 'backhaul'} for i in range(10)
-			if backhaul_config[i] == 'D'
-		]
+			if backhaul_config[i] == 'D']
 		r_config += [
 			{'r_TTI':i, 'RSC': RSC, 'identity': 'access'} for i in range(10)
-			if access_config[i] == 'D'
-		]
+			if access_config[i] == 'D']
+		r_index = 0
+
+		# mapping
+		for i in range(len(v_timeline)):
+			if r_config[r_index]['RSC'] >= v_timeline[i]['VSC']:
+				r_config[r_index]['RSC'] -= v_timeline[i]['VSC']
+				v_timeline[i]['r_TTI'].append(r_config[r_index]['r_TTI'])
+				v_timeline[i]['identity'].append(r_config[r_index]['identity'])
+				v_timeline[i]['VSC'] = 0
+				r_index = (r_index+1)%len(r_config)
+				continue
+			for j in [(r_index+t)%len(r_config) for t in range(len(r_config))]:
+				if v_timeline[i]['VSC'] == 0:
+					break
+				if r_config[j]['RSC'] == 0:
+					continue
+				if r_config[j]['RSC'] >= v_timeline[i]['VSC']:
+					r_config[j]['RSC'] -= v_timeline[i]['VSC']
+					v_timeline[i]['VSC'] = 0
+				else:
+					v_timeline[i]['VSC'] -= r_config[j]['RSC']
+					r_config[j]['RSC'] = 0
+
+				v_timeline[i]['r_TTI'].append(r_config[j]['r_TTI'])
+				v_timeline[i]['identity'].append(r_config[j]['identity'])
+				v_timeline[i]['identity'] = list(set(v_timeline[i]['identity']))
+
+		pprint(v_timeline)
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
 
 if __name__ == '__main__':
-	two_hop_one_to_one_first_mapping(TWO_HOP_TDD_CONFIG[0]['backhaul'])
+	for i in range(len(TWO_HOP_TDD_CONFIG)):
+		print("backhaul config(%d)" % i)
+		two_hop_one_to_one_first_mapping(TWO_HOP_TDD_CONFIG[i]['backhaul'])
+		print("---------------------------------------")
