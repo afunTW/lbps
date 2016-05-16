@@ -117,7 +117,7 @@ def one_to_one_first_mapping(TDD_config):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-def two_hop_one_to_one_first_mapping(TDD_config):
+def two_hop_one_to_one_first_mapping(TDD_config, detail=False):
 
 	pre = "mapping::2hopM3\t\t"
 
@@ -164,7 +164,7 @@ def two_hop_one_to_one_first_mapping(TDD_config):
 				v_timeline[i]['identity'].append(r_config[j]['identity'])
 				v_timeline[i]['identity'] = list(set(v_timeline[i]['identity']))
 
-		pprint(v_timeline)
+		return [i['r_TTI'] for i in v_timeline] if not detail else v_timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
