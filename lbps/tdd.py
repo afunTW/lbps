@@ -197,6 +197,7 @@ def two_hop_mapping(TDD_config, a_RSC, a_VSC):
 					i['VSC'] = 0
 				else:
 					i['VSC'] -= j['RSC']
+					j['RSC'] = 0
 
 		# mixed subframe
 		if mixed_subframe:
@@ -218,7 +219,30 @@ def two_hop_mapping(TDD_config, a_RSC, a_VSC):
 			mixed_subframe['VSC'] = 0
 
 		# backhaul maybe (M2)
+		for i in v_timeline['access']:
+			if i['VSC'] == 0:
+				continue
 
+			for j in backhaul_maybe:
+				if i['VSC'] == 0:
+					break
+				if j['RSC'] == 0:
+					continue
+
+				i['r_TTI'].append(j['r_TTI'])
+				i['identity'] = 'backhaul'
+
+				if j['RSC'] >= i['VSC']:
+					j['RSC'] -= i['VSC']
+					i['VSC'] = 0
+				else:
+					i['VSC'] -= j['RSC']
+					j['RSC'] = 0
+
+		v_timeline ={
+			'backhaul':v_timeline['backhaul'],
+			'access': [i['r_TTI'] for i in v_timeline['access']]}
+		return v_timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
