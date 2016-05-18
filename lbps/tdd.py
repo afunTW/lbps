@@ -65,9 +65,37 @@ def mergeList(target, resource):
 """[summary] external function
 
 [description]
-1. one_to_one_first_mapping: M3 mapping back to real timeline
+1. continuous mapping
+2. one_to_one_first_mapping
 
 """
+
+def continuous_mapping(TDD_config, detail=False):
+	pre = "mapping::M2\t\t"
+
+	try:
+		RSC = 10
+		VSC = TDD_config.count('D')*RSC/10
+		v_timeline = [{'r_TTI': [], 'VSC': VSC} for i in range(10)]
+		config = copy.deepcopy(TDD_config)
+		config = [{'r_TTI': i, 'RSC': RSC} for i in range(10) if config[i] is 'D']
+
+		for vs in v_timeline:
+			for rs in config:
+				if rs['RSC'] > vs['VSC']:
+					rs['RSC'] -= vs['VSC']
+					vs['VSC'] = 0
+					vs['r_TTI'].append(rs['r_TTI'])
+					break
+				elif rs['RSC']:
+					vs['VSC'] -= rs['RSC']
+					rs['RSC'] = 0
+					vs['r_TTI'].append(rs['r_TTI'])
+
+		return v_timeline if detail else [i['r_TTI'] for i in v_timeline]
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
 
 def one_to_one_first_mapping(TDD_config):
 
@@ -171,7 +199,4 @@ def two_hop_one_to_one_first_mapping(TDD_config, detail=False):
 
 
 if __name__ == '__main__':
-	for i in range(len(TWO_HOP_TDD_CONFIG)):
-		print("backhaul config(%d)" % i)
-		two_hop_one_to_one_first_mapping(TWO_HOP_TDD_CONFIG[i]['backhaul'])
-		print("---------------------------------------")
+	print(continuous_mapping(ONE_HOP_TDD_CONFIG[1]))
