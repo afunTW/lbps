@@ -97,50 +97,46 @@ def continuous_mapping(TDD_config, detail=False):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-def one_to_one_first_mapping(TDD_config):
+def one_to_one_first_mapping(TDD_config, detail=False):
 
 	pre = "mapping::M3\t\t"
 
 	try:
-		v_timeline = [0 for i in range(10)]
-
 		RSC = 10
-		VSC = TDD_config.count('D')*RSC/len(v_timeline)
-		v_timeline = [{'TTI':[], 'VSC':VSC} for i in range(len(v_timeline))]
+		VSC = TDD_config.count('D')*RSC/10
+		v_timeline = [{'r_TTI':[], 'VSC':VSC} for i in range(10)]
 		track_index = 0
-
-		for i in range(len(TDD_config)):
-			TDD_config[i] = {'TTI':i+1, 'RSC':RSC} if TDD_config[i] is 'D' else 0
-		TDD_config = [i for i in TDD_config if type(i) is dict]
+		config = copy.deepcopy(TDD_config)
+		config = [{'r_TTI': i, 'RSC': RSC} for i in range(10) if config[i] is 'D']
 
 		# mapping
 		for i in range(len(v_timeline)):
 
-			if TDD_config[track_index]['RSC'] >= v_timeline[i]['VSC']:
-				v_timeline[i]['TTI'].append(TDD_config[track_index]['TTI'])
-				TDD_config[track_index]['RSC'] -= v_timeline[i]['VSC']
+			if config[track_index]['RSC'] >= v_timeline[i]['VSC']:
+				config[track_index]['RSC'] -= v_timeline[i]['VSC']
 				v_timeline[i]['VSC'] = 0
-				track_index = (track_index+1)%len(TDD_config)
+				v_timeline[i]['r_TTI'].append(config[track_index]['r_TTI'])
+				track_index = (track_index+1)%len(config)
 				continue
 
-			for j in [(track_index+t)%len(TDD_config) for t in range(len(TDD_config))]:
+			for j in [(track_index+t)%len(config) for t in range(len(config))]:
 				if v_timeline[i]['VSC'] == 0:
 					break
-				if TDD_config[j]['RSC'] == 0:
+				if config[j]['RSC'] == 0:
 					continue
 
-				v_timeline[i]['TTI'].append(TDD_config[j]['TTI'])
+				v_timeline[i]['r_TTI'].append(config[j]['r_TTI'])
 
-				if TDD_config[j]['RSC']<=v_timeline[i]['VSC']:
-					v_timeline[i]['VSC'] -= TDD_config[j]['RSC']
-					TDD_config[j]['RSC'] = 0
+				if config[j]['RSC']<=v_timeline[i]['VSC']:
+					v_timeline[i]['VSC'] -= config[j]['RSC']
+					config[j]['RSC'] = 0
 				else :
-					TDD_config[j]['RSC'] -= v_timeline[i]['VSC']
+					config[j]['RSC'] -= v_timeline[i]['VSC']
 					v_timeline[i]['VSC'] =0
 
-			track_index = (track_index+1)%len(TDD_config)
+			track_index = (track_index+1)%len(config)
 
-		return [i['TTI'] for i in v_timeline]
+		return v_timeline if detail else [i['r_TTI'] for i in v_timeline]
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
@@ -199,4 +195,4 @@ def two_hop_one_to_one_first_mapping(TDD_config, detail=False):
 
 
 if __name__ == '__main__':
-	print(continuous_mapping(ONE_HOP_TDD_CONFIG[1]))
+	print(one_to_one_first_mapping(ONE_HOP_TDD_CONFIG[1]))
