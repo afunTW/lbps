@@ -217,7 +217,7 @@ class RN(Device):
 		pre = "%s::virtualCapacity\t" % self._name
 
 		if self.tdd_config and self.__parent.idle_capacity:
-			times = self.tdd_config.count('D')+self.__parent.idle_capacity
+			times = self.tdd_config.count('D')-self.parent.tdd_config.count('D')+self.__parent.idle_capacity
 			return int(times*self.capacity['access']/10)
 		elif self.tdd_config:
 			return int(self.tdd_config.count('D')*self.capacity['access']/10)

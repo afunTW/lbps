@@ -290,8 +290,8 @@ def aggr_aggr(device, duplex='TDD', show=False):
 		# mapping to real timeline
 		mapping_pattern = []
 		for rn in device.childs:
-			extra_capacity = rn.parent.idle_capacity/rn.tdd_config.count('D')
-			a_RSC = rn.capacity['access']+extra_capacity
+			a_RSC = (rn.tdd_config.count('D')-device.tdd_config.count('D')+device.idle_capacity)*rn.capacity['access']
+			a_RSC = a_RSC/rn.tdd_config.count('D')
 			a_VSC = rn.virtualCapacity
 			mapping_pattern.append(m_2hop(device.tdd_config, a_RSC, a_VSC))
 
