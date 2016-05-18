@@ -1,7 +1,7 @@
 import random
 import copy
 from math import log, floor, ceil
-from tdd import one_to_one_first_mapping as M3
+from tdd import two_hop_mapping as m_2hop
 from device import UE, RN, eNB
 
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
@@ -77,44 +77,6 @@ def access_aggr(device, b_result):
 
 			for i in trace:
 				b_result[i] = b_result[i]+queue if b_result[i] else queue
-
-def two_hop_mapping(device, schedule_result):
-
-	# get the pattern to identify it's backhaul/access subframe
-	subframe_identity = ['access']*10
-	for i in range(10):
-		subframe_identity[i] = 'backhaul' if device.tdd_config[i] else subframe_identity[i]
-
-	mapping = M3(copy.deepcopy(device.childs[0].tdd_config))
-	mapping = mapping*ceil(len(schedule_result)/10)
-	v_subframe = {'backhaul':[], 'access':[]}
-	v_cycle = {i:[] for i in range(1, 1+len(mapping))}
-	cycle = {i:[] for i in range(1, 1+len(mapping))}
-
-	# seperate backhaul and access subframe
-	for i in schedule_result:
-		if schedule_result[i]:
-			interface = 'backhaul' if device in schedule_result[i] else 'access'
-			v_subframe[interface].append(schedule_result[i])
-
-	# reassign the position of virtual subframe
-	for i in v_cycle:
-		if v_subframe['backhaul'] or v_subframe['access']:
-			if device.childs[0].tdd_config[(i-1)%10] is not 'D':
-				continue
-
-			real_timeline = copy.deepcopy(mapping[(i-1)%10])
-			interface = []
-
-			for i in real_timeline:
-				interface.append(subframe_identity[(i-1)%10])
-
-			interface = 'backhaul' if 'backhaul' in interface else 'access'
-			v_cycle[i] = v_subframe[interface].pop() if v_subframe[interface] else v_cycle[i]
-		else:
-			break
-
-	return v_cycle
 
 def aggr(device, duplex='FDD', show=False):
 
@@ -326,9 +288,14 @@ def aggr_aggr(device, duplex='TDD', show=False):
 		access_aggr(device, b_result)
 
 		# mapping to real timeline
-		timeline = two_hop_mapping(device, b_result)
+		mapping_pattern = []
+		for rn in device.childs:
+			extra_capacity = rn.parent.idle_capacity/rn.tdd_config.count('D')
+			a_RSC = rn.capacity['access']+extra_capacity
+			a_VSC = rn.virtualCapacity
+			mapping_pattern.append(m_2hop(device.tdd_config, a_RSC, a_VSC))
 
-		return timeline
+		# return timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)

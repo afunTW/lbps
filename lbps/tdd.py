@@ -1,8 +1,8 @@
 import copy
 import re
 from viewer import msg_fail, msg_warning
-from math import ceil
 from config import *
+from math import ceil
 from pprint import pprint
 
 """[summary] internal support function
@@ -142,5 +142,83 @@ def one_to_one_first_mapping(TDD_config, detail=False):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-if __name__ == '__main__':
-	print(continuous_mapping([None, None, None, 'U', 'D', None, None, 'D', 'D', 'D']))
+def two_hop_mapping(TDD_config, a_RSC, a_VSC):
+
+	pre = "mapping::2hop\t\t"
+
+	try:
+		if not is_backhaul_config(TDD_config):
+			raise Exception("only accept backhaul TDD configuration as input")
+
+		backhaul_config = copy.deepcopy(TDD_config)
+		access_config = get_access_by_backhaul_config(backhaul_config)
+
+		# backhaul mapping (M2)
+		v_timeline = {
+			'backhaul': continuous_mapping(backhaul_config),
+			'access': [{'r_TTI':[], 'VSC':a_VSC, 'identity':[]} for i in range(10)]}
+
+		# access mapping: access only(M3) > mixed(M2) > backhaul maybe(M2)
+		access_only = get_access_by_backhaul_config(backhaul_config, no_backhaul=True)
+		access_only = [{'r_TTI': i, 'RSC':a_RSC} for i in range(10) if access_only[i] is 'D']
+		backhaul_maybe = [{'r_TTI': i, 'RSC':a_RSC} for i in range(10) if backhaul_config[i] is 'D']
+
+		# access only
+		M3_index = 0
+		mixed_subframe = False
+		for i in v_timeline['access']:
+
+			# one to one
+			if access_only[M3_index]['RSC'] >= i['VSC']:
+				access_only[M3_index]['RSC'] -= i['VSC']
+				i['VSC'] = 0
+				i['r_TTI'].append(access_only[M3_index]['r_TTI'])
+				i['identity'] = 'access'
+				M3_index = (M3_index+1)%len(access_only)
+				continue
+
+			# check mixed suvframe probability
+			if sum([ao['RSC'] for ao in access_only]) < a_VSC:
+				mixed_subframe = i
+				break
+
+			# one to many
+			for j in access_only:
+				if i['VSC'] == 0:
+					break
+				if j['RSC'] == 0:
+					continue
+
+				i['r_TTI'].append(j['r_TTI'])
+				i['identity'] = 'access'
+
+				if j['RSC'] >= i['VSC']:
+					j['RSC'] -= i['VSC']
+					i['VSC'] = 0
+				else:
+					i['VSC'] -= j['RSC']
+
+		# mixed subframe
+		if mixed_subframe:
+			mixed_subframe['identity'] = 'mixed'
+
+			for ao in access_only:
+				if ao['RSC'] == 0:
+					continue
+
+				mixed_subframe['r_TTI'].append(ao['r_TTI'])
+				mixed_subframe['VSC'] -= ao['RSC']
+				ao['RSC'] = 0
+
+			if mixed_subframe['VSC'] > backhaul_maybe[0]['RSC']:
+				raise Exception("algorithm design error")
+
+			backhaul_maybe[0]['RSC'] -= mixed_subframe['VSC']
+			mixed_subframe['r_TTI'].append(backhaul_maybe[0]['r_TTI'])
+			mixed_subframe['VSC'] = 0
+
+		# backhaul maybe (M2)
+
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
