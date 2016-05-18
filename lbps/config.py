@@ -31,7 +31,7 @@ def wideband_capacity(device):
 	try:
 		if len(device.childs) == 0:
 			return None
-		return sum(N_TTI_RE * T_CQI[i.CQI]['eff'] for i in device.childs) / len(device.childs)
+		return int(sum(N_TTI_RE*T_CQI[i.CQI]['eff'] for i in device.childs)/len(device.childs))
 
 	except Exception as e:
 		print("W-capacity\t\t%s"%e)
