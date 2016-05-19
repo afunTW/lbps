@@ -1,6 +1,7 @@
 import random
 import copy
 from math import log, floor, ceil
+from tdd import continuous_mapping as M2
 from tdd import two_hop_mapping as m_2hop
 from device import UE, RN, eNB
 
@@ -56,27 +57,27 @@ def non_degraded(G, interface, DATA_TH):
 def access_aggr(device, b_result):
 
 	if b_result:
+		lbps_failed = []
+
 		for rn in device.childs:
 			b_TTI = None
-			a_subframe = ceil(rn.capacity['access']/device.capacity)
+			a_subframe = ceil(device.capacity/rn.capacity['access'])
 
-			# find the backhaul transmission time
-			for i in list(reversed(list(b_result.keys()))):
-				if b_result[i] and rn in b_result[i]:
-					b_TTI = i
+			if a_subframe > len(b_result)-1:
+				lbps_failed.append(rn)
+				continue
+
+			for i in b_result:
+				if a_subframe == 0:
 					break
+				if rn in i:
+					continue
+				i += rn.childs
+				i.append(rn)
+				a_subframe -= 1
 
-			# find the access transmission time
-			if not b_TTI:
-				raise Exception("backhaul scheduling goes wrong")
-
-			trace = [(b_TTI+i-1)%len(b_result)+1 for i in b_result]
-			trace = trace[0:a_subframe]
-			queue = [ch for ch in rn.childs]
-			queue.append(rn)
-
-			for i in trace:
-				b_result[i] = b_result[i]+queue if b_result[i] else queue
+		return lbps_failed
+	return
 
 def aggr(device, duplex='FDD', show=False):
 
