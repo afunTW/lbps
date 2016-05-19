@@ -1,5 +1,6 @@
 import random
 import copy
+import re
 from math import log, floor, ceil
 from tdd import continuous_mapping as M2
 from tdd import two_hop_mapping as m_2hop
@@ -26,6 +27,29 @@ def getAvgPktSize(device):
 	total_pkt = [bearer.flow for bearer in device.link[interface]]
 	total_pkt = [traffic[i]['pkt_size'] for i in total_pkt]
 	return sum(total_pkt)/len(total_pkt)
+
+def getDeviceByName(device, name_list):
+	result = []
+	d = {
+		'eNB':device,
+		'RN':[rn for rn in device.childs],
+		'UE':[ue for rn in device.childs for ue in rn.childs]
+	}
+
+	for i in name_list:
+		if re.search('eNB*', i):
+			result.append(device)
+		elif re.search('RN*', i):
+			for rn in d['RN']:
+				if rn.name == i:
+					result.append(rn)
+					break
+		elif re.search('UE*', i):
+			for ue in d['UE']:
+				if ue.name == i:
+					result.append(ue)
+					break
+	return result
 
 def schedulability(check_list):
 
@@ -102,7 +126,6 @@ def aggr(device, duplex='FDD', show=False):
 		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
 		msg_execute("sleepCycle = %d" % sleep_cycle_length ,pre=prefix)
 
-		# encapsulate result: { subframe: wakeUpDevice }
 		result = [[] for i in range(sleep_cycle_length)]
 		result[0] = [i for i in device.childs]
 		result[0].append(device)
@@ -270,27 +293,64 @@ def merge(device, duplex='FDD', show=False):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def aggr_aggr(device, duplex='TDD', show=False):
+def aggr_aggr(device, simulation_time, duplex='TDD'):
 	prefix = "lbps::aggr-aggr::%s \t" % device.name
 
 	try:
+		lbps_result = aggr(device, duplex)
+		b_lbps_result = [[j.name for j in i] for i in lbps_result]
+		lbps_failed = access_aggr(device, lbps_result)
+		a_lbps_result = [[j.name for j in i] for i in lbps_result]
+		a_lbps_result = [list(set(a_lbps_result[i])-set(b_lbps_result[i]))\
+						for i in range(len(a_lbps_result))]
 
-		# backhaul lbps
-		b_result = aggr(device, duplex)
+		mapping_pattern = m_2hop(device.tdd_config)
+		timeline = [[] for i in range(simulation_time)]
 
-		# access scheduliability
-		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
-		access_aggr(device, b_result)
+		# extend and align timeline
+		vt_mapping = {'backhaul':[], 'access':[]}
+		for i in range(ceil(simulation_time/10)):
+			vt_mapping['backhaul'] += [[i*10+v for v in su] for su in mapping_pattern['backhaul']]
+			vt_mapping['access'] += [{
+				'identity':su['identity'],
+				'TTI': [i*10+v for v in su['r_TTI']]} for su in mapping_pattern['access']]
 
-		# mapping to real timeline
-		mapping_pattern = []
-		for rn in device.childs:
-			a_RSC = (rn.tdd_config.count('D')-device.tdd_config.count('D')+device.idle_capacity)*rn.capacity['access']
-			a_RSC = a_RSC/rn.tdd_config.count('D')
-			a_VSC = rn.virtualCapacity
-			mapping_pattern.append(m_2hop(device.tdd_config, a_RSC, a_VSC))
+		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
+		b_lbps_result *= ceil(simulation_time/len(b_lbps_result))
+		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
+		a_lbps_result *= ceil(simulation_time/len(a_lbps_result))
 
-		# return timeline
+		# backhaul mapping
+		for i in range(simulation_time):
+			for rsb in vt_mapping['backhaul'][i]:
+				timeline[rsb] += b_lbps_result[i]
+				timeline[rsb] += lbps_failed
+
+		# access mapping
+		for i in range(0, simulation_time, len(lbps_result)):
+			tmp_map = {'access':[], 'mixed':[], 'backhaul':[]}
+			for j in vt_mapping['access'][i:i+len(lbps_result)]:
+				tmp_map[j['identity']].append(j)
+			for vt in a_lbps_result[i:i+len(lbps_result)]:
+				if not vt:
+					continue
+
+				identity = 'backhaul' if tmp_map['backhaul'] else None
+				identity = 'mixed' if tmp_map['mixed'] else identity
+				identity = 'access' if tmp_map['access'] else identity
+
+				for rsb in tmp_map[identity][0]['TTI']:
+					timeline[rsb] += vt
+				for fail_rn in lbps_failed:
+					timeline[rsb] += fail_rn
+					timeline[rsb] += fail_rn.childs
+
+				tmp_map[identity].pop(0)
+
+		for i in range(len(timeline)):
+			timeline[i] = list(set(timeline[i]))
+
+		return timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
