@@ -241,7 +241,8 @@ def two_hop_mapping(TDD_config, a_RSC, a_VSC):
 
 		v_timeline ={
 			'backhaul':v_timeline['backhaul'],
-			'access': [i['r_TTI'] for i in v_timeline['access']]}
+			'access': [{'r_TTI':i['r_TTI'], 'identity':i['identity']} for i in v_timeline['access']]}
+
 		return v_timeline
 
 	except Exception as e:
