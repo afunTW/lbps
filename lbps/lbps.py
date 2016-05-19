@@ -108,7 +108,7 @@ def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
 	# extend and align timeline
 	b_lbps_result = b*ceil(t/len(b))
 	a_lbps_result = a*ceil(t/len(a))
-	timeline = [[] for i in range(t)]
+	timeline = {'backhaul':[[] for i in range(t)], 'access':[[] for i in range(t)]}
 	vt_mapping = {'backhaul':[], 'access':[]}
 
 	for i in range(ceil(t/10)):
@@ -120,8 +120,8 @@ def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
 	# backhaul mapping
 	for i in range(t):
 		for rsb in vt_mapping['backhaul'][i]:
-			timeline[rsb] += b_lbps_result[i]
-			timeline[rsb] += lbps_failed
+			timeline['backhaul'][rsb] += b_lbps_result[i]
+			timeline['backhaul'][rsb] += lbps_failed
 
 	# access mapping
 	for i in range(0, t, k):
@@ -137,15 +137,16 @@ def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
 			identity = 'access' if tmp_map['access'] else identity
 
 			for rsb in tmp_map[identity][0]['TTI']:
-				timeline[rsb] += vt
+				timeline['access'][rsb] += vt
 			for fail_rn in lbps_failed:
-				timeline[rsb] += fail_rn
-				timeline[rsb] += fail_rn.childs
+				timeline['access'][rsb] += fail_rn
+				timeline['access'][rsb] += fail_rn.childs
 
 			tmp_map[identity].pop(0)
 
 	for i in range(len(timeline)):
-		timeline[i] = list(set(timeline[i]))
+		timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
+		timeline['access'][i] = list(set(timeline['access'][i]))
 
 	return timeline
 
