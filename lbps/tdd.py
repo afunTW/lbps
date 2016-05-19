@@ -76,7 +76,7 @@ def one_to_one_first_mapping(TDD_config, detail=False):
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-def two_hop_mapping(TDD_config, a_RSC, a_VSC):
+def two_hop_mapping(TDD_config):
 
 	pre = "mapping::2hop\t\t"
 
@@ -86,6 +86,8 @@ def two_hop_mapping(TDD_config, a_RSC, a_VSC):
 
 		backhaul_config = copy.deepcopy(TDD_config)
 		access_config = get_access_by_backhaul_config(backhaul_config)
+		a_RSC = 10
+		a_VSC = a_RSC*access_config.count('D')/10
 
 		# backhaul mapping (M2)
 		v_timeline = {
