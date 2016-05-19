@@ -1,74 +1,8 @@
 import copy
-import re
 from viewer import msg_fail, msg_warning
 from config import *
 from math import ceil
 from pprint import pprint
-
-"""[summary] internal support function
-
-[description]
-1. isBackhaulResult: check if a list of device name is belong to backhaul link
-2. mergeList: in M3 mapping, for update the final result [pass by reference]
-
-"""
-
-def isBackhaulResult(devices):
-	pre = "isBackhaulResult\t"
-
-	if not devices:
-		# msg_warning("input value is an empty list", pre=pre)
-		return
-
-	if type(devices) is list:
-		devices = [item for sublist in devices for item in sublist] if type(devices[0]) is list else devices
-		check = list(map(lambda x: re.search('UE*', x), devices))
-		return True if not any(check) else False
-
-	else:
-		msg_fail("input type should be a list of device name", pre=pre)
-
-def filterByInterface(schedule_result, map_result, interface):
-	pre = "filterByInterface\t"
-
-	try:
-		check = list(map(lambda x: isBackhaulResult(x), schedule_result))
-
-		for i in range(len(schedule_result)):
-
-			if interface == 'backhaul':
-				map_result[i] = map_result[i] if check[i] else []
-			else:
-				map_result[i] = map_result[i] if not check[i] else []
-
-	except Exception as e:
-		msg_fail(str(e), pre=pre)
-
-def mergeList(target, resource):
-	pre = "mergeList\t\t"
-
-	try:
-
-		# init
-		if not target and len(resource) > len(target):
-			target = resource
-
-		elif len(target) == len(resource):
-			for i in range(len(resource)):
-				target[i].append(resource[i]) if resource[i] else target[i]
-
-		return target
-
-	except Exception as e:
-		msg_fail(str(e), pre=pre)
-
-"""[summary] external function
-
-[description]
-1. continuous mapping
-2. one_to_one_first_mapping
-
-"""
 
 def continuous_mapping(TDD_config, detail=False):
 	pre = "mapping::M2\t\t"
