@@ -96,23 +96,17 @@ def aggr(device, duplex='FDD', show=False):
 		capacity = capacity[interface] if type(capacity) is dict else capacity
 		pkt_size = getAvgPktSize(device)
 		DATA_TH = int(getDataTH(capacity, pkt_size))
-		load = getLoad(device, duplex)
-
-		if load > 1:
-			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
-			return False
-
-		msg_execute("load= %g\t" % load, pre=prefix)
+		msg_execute("load= %g\t" % getLoad(device, duplex), pre=prefix)
 
 		# aggr process
 		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
 		msg_execute("sleepCycle = %d" % sleep_cycle_length ,pre=prefix)
 
 		# encapsulate result: { subframe: wakeUpDevice }
-		result = {i+1:None for i in range(sleep_cycle_length)}
-		result[1] = [i for i in device.childs]
-		result[1].append(device)
-		result[1] = sorted(result[1], key=lambda d: d.name)
+		result = [[] for i in range(sleep_cycle_length)]
+		result[0] = [i for i in device.childs]
+		result[0].append(device)
+		result[0] = sorted(result[0], key=lambda d: d.name)
 
 		return result
 
