@@ -103,6 +103,52 @@ def access_aggr(device, b_result):
 		return lbps_failed
 	return
 
+def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
+
+	# extend and align timeline
+	b_lbps_result = b*ceil(t/len(b))
+	a_lbps_result = a*ceil(t/len(a))
+	timeline = [[] for i in range(t)]
+	vt_mapping = {'backhaul':[], 'access':[]}
+
+	for i in range(ceil(t/10)):
+		vt_mapping['backhaul'] += [[i*10+v for v in su] for su in mapping_pattern['backhaul']]
+		vt_mapping['access'] += [{
+			'identity':su['identity'],
+			'TTI': [i*10+v for v in su['r_TTI']]} for su in mapping_pattern['access']]
+
+	# backhaul mapping
+	for i in range(t):
+		for rsb in vt_mapping['backhaul'][i]:
+			timeline[rsb] += b_lbps_result[i]
+			timeline[rsb] += lbps_failed
+
+	# access mapping
+	for i in range(0, t, k):
+		tmp_map = {'access':[], 'mixed':[], 'backhaul':[]}
+		for j in vt_mapping['access'][i:i+k]:
+			tmp_map[j['identity']].append(j)
+		for vt in a_lbps_result[i:i+k]:
+			if not vt:
+				continue
+
+			identity = 'backhaul' if tmp_map['backhaul'] else None
+			identity = 'mixed' if tmp_map['mixed'] else identity
+			identity = 'access' if tmp_map['access'] else identity
+
+			for rsb in tmp_map[identity][0]['TTI']:
+				timeline[rsb] += vt
+			for fail_rn in lbps_failed:
+				timeline[rsb] += fail_rn
+				timeline[rsb] += fail_rn.childs
+
+			tmp_map[identity].pop(0)
+
+	for i in range(len(timeline)):
+		timeline[i] = list(set(timeline[i]))
+
+	return timeline
+
 def aggr(device, duplex='FDD', show=False):
 
 	prefix = "lbps::aggr::%s \t" % device.name
@@ -305,50 +351,16 @@ def aggr_aggr(device, simulation_time, duplex='TDD'):
 						for i in range(len(a_lbps_result))]
 
 		mapping_pattern = m_2hop(device.tdd_config)
-		timeline = [[] for i in range(simulation_time)]
-
-		# extend and align timeline
-		vt_mapping = {'backhaul':[], 'access':[]}
-		for i in range(ceil(simulation_time/10)):
-			vt_mapping['backhaul'] += [[i*10+v for v in su] for su in mapping_pattern['backhaul']]
-			vt_mapping['access'] += [{
-				'identity':su['identity'],
-				'TTI': [i*10+v for v in su['r_TTI']]} for su in mapping_pattern['access']]
-
 		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
-		b_lbps_result *= ceil(simulation_time/len(b_lbps_result))
 		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
-		a_lbps_result *= ceil(simulation_time/len(a_lbps_result))
 
-		# backhaul mapping
-		for i in range(simulation_time):
-			for rsb in vt_mapping['backhaul'][i]:
-				timeline[rsb] += b_lbps_result[i]
-				timeline[rsb] += lbps_failed
-
-		# access mapping
-		for i in range(0, simulation_time, len(lbps_result)):
-			tmp_map = {'access':[], 'mixed':[], 'backhaul':[]}
-			for j in vt_mapping['access'][i:i+len(lbps_result)]:
-				tmp_map[j['identity']].append(j)
-			for vt in a_lbps_result[i:i+len(lbps_result)]:
-				if not vt:
-					continue
-
-				identity = 'backhaul' if tmp_map['backhaul'] else None
-				identity = 'mixed' if tmp_map['mixed'] else identity
-				identity = 'access' if tmp_map['access'] else identity
-
-				for rsb in tmp_map[identity][0]['TTI']:
-					timeline[rsb] += vt
-				for fail_rn in lbps_failed:
-					timeline[rsb] += fail_rn
-					timeline[rsb] += fail_rn.childs
-
-				tmp_map[identity].pop(0)
-
-		for i in range(len(timeline)):
-			timeline[i] = list(set(timeline[i]))
+		timeline = two_hop_realtimeline(
+			mapping_pattern,
+			simulation_time,
+			b_lbps_result,
+			a_lbps_result,
+			len(lbps_result),
+			lbps_failed)
 
 		return timeline
 
