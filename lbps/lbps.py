@@ -101,13 +101,16 @@ def access_aggr(device, b_result):
 				a_subframe -= 1
 
 		return lbps_failed
+
 	return
 
-def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
+def two_hop_realtimeline(mapping_pattern, t, b, a, k):
 
 	# extend and align timeline
 	b_lbps_result = b*ceil(t/len(b))
+	b_lbps_result = b_lbps_result[:t]
 	a_lbps_result = a*ceil(t/len(a))
+	a_lbps_result = a_lbps_result[:t]
 	timeline = {'backhaul':[[] for i in range(t)], 'access':[[] for i in range(t)]}
 	vt_mapping = {'backhaul':[], 'access':[]}
 
@@ -121,13 +124,13 @@ def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
 	for i in range(t):
 		for rsb in vt_mapping['backhaul'][i]:
 			timeline['backhaul'][rsb] += b_lbps_result[i]
-			timeline['backhaul'][rsb] += lbps_failed
 
 	# access mapping
-	for i in range(0, t, k):
+	for i in range(0, t-k, k):
 		tmp_map = {'access':[], 'mixed':[], 'backhaul':[]}
 		for j in vt_mapping['access'][i:i+k]:
 			tmp_map[j['identity']].append(j)
+
 		for vt in a_lbps_result[i:i+k]:
 			if not vt:
 				continue
@@ -138,13 +141,10 @@ def two_hop_realtimeline(mapping_pattern, t, b, a, k, lbps_failed):
 
 			for rsb in tmp_map[identity][0]['TTI']:
 				timeline['access'][rsb] += vt
-			for fail_rn in lbps_failed:
-				timeline['access'][rsb] += fail_rn
-				timeline['access'][rsb] += fail_rn.childs
 
 			tmp_map[identity].pop(0)
 
-	for i in range(len(timeline)):
+	for i in range(len(timeline['backhaul'])):
 		timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
 		timeline['access'][i] = list(set(timeline['access'][i]))
 
@@ -360,8 +360,21 @@ def aggr_aggr(device, simulation_time, duplex='TDD'):
 			simulation_time,
 			b_lbps_result,
 			a_lbps_result,
-			len(lbps_result),
-			lbps_failed)
+			len(lbps_result))
+
+		for rn in lbps_failed:
+			for TTI in range(len(timeline['backhaul'])):
+				if device.tdd_config[TTI%10] == 'D':
+					timeline['backhaul'][TTI].append(device)
+					timeline['backhaul'][TTI].append(rn)
+				if rn.tdd_config[TTI%10] == 'D':
+					timeline['access'][TTI].append(rn)
+					timeline['access'][TTI] += rn.childs
+
+
+		for i in range(len(timeline['backhaul'])):
+			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
+			timeline['access'][i] = list(set(timeline['access'][i]))
 
 		return timeline
 
