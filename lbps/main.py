@@ -49,7 +49,7 @@ for i in range(ITERATE_TIMES):
 	}
 
 	# apply LBPS
-	lbps = LBPS.aggr_aggr(base_station, SIMULATION_TIME, duplex='TDD')
+	lbps = LBPS.top_down('aggr', base_station, SIMULATION_TIME, duplex='TDD')
 
 	for TTI in range(SIMULATION_TIME):
 

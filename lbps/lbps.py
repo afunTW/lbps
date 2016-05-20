@@ -253,11 +253,10 @@ def split(device, duplex='FDD', show=False):
 		msg_execute("sleep cycle length = %d with %d groups" % \
 			(sleep_cycle_length, len(groups)), pre=prefix)
 
-		# encapsulate result: { subframe: wakeUpDevice }
-		result = {i+1:None for i in range(sleep_cycle_length)}
+		result = [[] for i in range(sleep_cycle_length)]
 		for i in groups:
 			groups[i]['device'] and groups[i]['device'].append(device)
-			result[i] = groups[i]['device'] if groups[i]['device'] else None
+			result[i] += groups[i]['device']
 
 		return result
 
@@ -320,31 +319,39 @@ def merge(device, duplex='FDD', show=False):
 		max_K = max([G['K'] for G in groups])
 		groups.sort(key=lambda x: x['K'])
 
-		# encapsulate result: { subframe: wakeUpDevice }
-		result = {i+1:None for i in range(max_K)}
+		result = {i:[] for i in range(max_K)}
+		tmp = []
 
 		for G in groups:
 			base = 0
 
 			for i in list(result.keys()):
-				if result[i] is None:
+				if not result[i]:
 					base = i
 					break
 
 			for TTI in range(base, len(result), G['K']):
 				result[TTI] = G['device'] + [device]
 
-		return result
+		for i in result:
+			tmp.append(result[i])
+
+		return tmp
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
 
-def aggr_aggr(device, simulation_time, duplex='TDD'):
-	prefix = "lbps::aggr-aggr::%s \t" % device.name
+def top_down(b_lbps, device, simulation_time, duplex='TDD'):
+	prefix = "TopDown::%s-aggr::%s \t" % (b_lbps, device.name)
+	lbps_scheduling = {
+		'aggr': aggr,
+		'split': split,
+		'merge': merge
+	}
 
 	try:
-		lbps_result = aggr(device, duplex)
+		lbps_result = lbps_scheduling[b_lbps](device, duplex)
 		b_lbps_result = [[j.name for j in i] for i in lbps_result]
 		lbps_failed = access_aggr(device, lbps_result)
 		a_lbps_result = [[j.name for j in i] for i in lbps_result]
@@ -375,34 +382,6 @@ def aggr_aggr(device, simulation_time, duplex='TDD'):
 		for i in range(len(timeline['backhaul'])):
 			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
 			timeline['access'][i] = list(set(timeline['access'][i]))
-
-		return timeline
-
-	except Exception as e:
-		msg_fail(str(e), pre=prefix)
-		return
-
-def split_aggr(device, duplex='TDD', show=False):
-	prefix = "lbps::split-aggr::%s \t" % device.name
-
-	try:
-		b_result = split(device, duplex)
-		access_aggr(device, b_result)
-		timeline = two_hop_mapping(device, b_result)
-
-		return timeline
-
-	except Exception as e:
-		msg_fail(str(e), pre=prefix)
-		return
-
-def merge_aggr(device, duplex='TDD', show=False):
-	prefix = "lbps::merge-aggr::%s \t" % device.name
-
-	try:
-		b_result = merge(device, duplex)
-		access_aggr(device, b_result)
-		timeline = two_hop_mapping(device, b_result)
 
 		return timeline
 
