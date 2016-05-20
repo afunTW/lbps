@@ -1,118 +1,185 @@
 import copy
-import re
 from viewer import msg_fail, msg_warning
+from config import *
 from math import ceil
-from config import ONE_HOP_TDD_CONFIG, TWO_HOP_TDD_CONFIG
 from pprint import pprint
 
-"""[summary] internal support function
-
-[description]
-1. isBackhaulResult: check if a list of device name is belong to backhaul link
-2. mergeList: in M3 mapping, for update the final result [pass by reference]
-
-"""
-
-def isBackhaulResult(devices):
-	pre = "isBackhaulResult\t"
-
-	if not devices:
-		# msg_warning("input value is an empty list", pre=pre)
-		return
-
-	if type(devices) is list:
-		devices = [item for sublist in devices for item in sublist] if type(devices[0]) is list else devices
-		check = list(map(lambda x: re.search('UE*', x), devices))
-		return True if not any(check) else False
-
-	else:
-		msg_fail("input type should be a list of device name", pre=pre)
-
-def filterByInterface(schedule_result, map_result, interface):
-	pre = "filterByInterface\t"
+def continuous_mapping(TDD_config, detail=False):
+	pre = "mapping::M2\t\t"
 
 	try:
-		check = list(map(lambda x: isBackhaulResult(x), schedule_result))
+		RSC = 10
+		VSC = TDD_config.count('D')*RSC/10
+		v_timeline = [{'r_TTI': [], 'VSC': VSC} for i in range(10)]
+		config = copy.deepcopy(TDD_config)
+		config = [{'r_TTI': i, 'RSC': RSC} for i in range(10) if config[i] is 'D']
 
-		for i in range(len(schedule_result)):
+		for vs in v_timeline:
+			for rs in config:
+				if rs['RSC'] >= vs['VSC']:
+					rs['RSC'] -= vs['VSC']
+					vs['VSC'] = 0
+					vs['r_TTI'].append(rs['r_TTI'])
+					break
+				else:
+					vs['VSC'] -= rs['RSC']
+					rs['RSC'] = 0
+					vs['r_TTI'].append(rs['r_TTI'])
+			config = [i for i in config if i['RSC']]
 
-			if interface == 'backhaul':
-				map_result[i] = map_result[i] if check[i] else []
-			else:
-				map_result[i] = map_result[i] if not check[i] else []
+		return v_timeline if detail else [i['r_TTI'] for i in v_timeline]
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)
 
-def mergeList(target, resource):
-	pre = "mergeList\t\t"
-
-	try:
-
-		# init
-		if not target and len(resource) > len(target):
-			target = resource
-
-		elif len(target) == len(resource):
-			for i in range(len(resource)):
-				target[i].append(resource[i]) if resource[i] else target[i]
-
-		return target
-
-	except Exception as e:
-		msg_fail(str(e), pre=pre)
-
-"""[summary] external function
-
-[description]
-1. one_to_one_first_mapping: M3 mapping back to real timeline
-
-"""
-
-def one_to_one_first_mapping(TDD_config):
+def one_to_one_first_mapping(TDD_config, detail=False):
 
 	pre = "mapping::M3\t\t"
 
 	try:
-		v_timeline = [0 for i in range(10)]
-
 		RSC = 10
-		VSC = TDD_config.count('D')*RSC/len(v_timeline)
-		v_timeline = [{'TTI':[], 'VSC':VSC} for i in range(len(v_timeline))]
+		VSC = TDD_config.count('D')*RSC/10
+		v_timeline = [{'r_TTI':[], 'VSC':VSC} for i in range(10)]
 		track_index = 0
-
-		for i in range(len(TDD_config)):
-			TDD_config[i] = {'TTI':i+1, 'RSC':RSC} if TDD_config[i] is 'D' else 0
-		TDD_config = [i for i in TDD_config if type(i) is dict]
+		config = copy.deepcopy(TDD_config)
+		config = [{'r_TTI': i, 'RSC': RSC} for i in range(10) if config[i] is 'D']
 
 		# mapping
 		for i in range(len(v_timeline)):
 
-			if TDD_config[track_index]['RSC'] >= v_timeline[i]['VSC']:
-				v_timeline[i]['TTI'].append(TDD_config[track_index]['TTI'])
-				TDD_config[track_index]['RSC'] -= v_timeline[i]['VSC']
+			if config[track_index]['RSC'] >= v_timeline[i]['VSC']:
+				config[track_index]['RSC'] -= v_timeline[i]['VSC']
 				v_timeline[i]['VSC'] = 0
-				track_index = (track_index+1)%len(TDD_config)
+				v_timeline[i]['r_TTI'].append(config[track_index]['r_TTI'])
+				track_index = (track_index+1)%len(config)
 				continue
 
-			for j in [(track_index+t)%len(TDD_config) for t in range(len(TDD_config))]:
+			for j in [(track_index+t)%len(config) for t in range(len(config))]:
 				if v_timeline[i]['VSC'] == 0:
 					break
-				if TDD_config[j]['RSC'] == 0:
+				if config[j]['RSC'] == 0:
 					continue
 
-				v_timeline[i]['TTI'].append(TDD_config[j]['TTI'])
+				v_timeline[i]['r_TTI'].append(config[j]['r_TTI'])
 
-				if TDD_config[j]['RSC']<=v_timeline[i]['VSC']:
-					v_timeline[i]['VSC'] -= TDD_config[j]['RSC']
-					TDD_config[j]['RSC'] = 0
+				if config[j]['RSC']<=v_timeline[i]['VSC']:
+					v_timeline[i]['VSC'] -= config[j]['RSC']
+					config[j]['RSC'] = 0
 				else :
-					TDD_config[j]['RSC'] -= v_timeline[i]['VSC']
+					config[j]['RSC'] -= v_timeline[i]['VSC']
 					v_timeline[i]['VSC'] =0
 
-			track_index = (track_index+1)%len(TDD_config)
+			track_index = (track_index+1)%len(config)
 
-		return [i['TTI'] for i in v_timeline]
+		return v_timeline if detail else [i['r_TTI'] for i in v_timeline]
+
+	except Exception as e:
+		msg_fail(str(e), pre=pre)
+
+def two_hop_mapping(TDD_config):
+
+	pre = "mapping::2hop\t\t"
+
+	try:
+		if not is_backhaul_config(TDD_config):
+			raise Exception("only accept backhaul TDD configuration as input")
+
+		backhaul_config = copy.deepcopy(TDD_config)
+		access_config = get_access_by_backhaul_config(backhaul_config)
+		a_RSC = 10
+		a_VSC = a_RSC*access_config.count('D')/10
+
+		# backhaul mapping (M2)
+		v_timeline = {
+			'backhaul': continuous_mapping(backhaul_config),
+			'access': [{'r_TTI':[], 'VSC':a_VSC, 'identity':[]} for i in range(10)]}
+
+		# access mapping: access only(M3) > mixed(M2) > backhaul maybe(M2)
+		access_only = get_access_by_backhaul_config(backhaul_config, no_backhaul=True)
+		access_only = [{'r_TTI': i, 'RSC':a_RSC} for i in range(10) if access_only[i] is 'D']
+		backhaul_maybe = [{'r_TTI': i, 'RSC':a_RSC} for i in range(10) if backhaul_config[i] is 'D']
+
+		# access only
+		M3_index = 0
+		mixed_subframe = False
+		for i in v_timeline['access']:
+
+			# one to one
+			if access_only[M3_index]['RSC'] >= i['VSC']:
+				access_only[M3_index]['RSC'] -= i['VSC']
+				i['VSC'] = 0
+				i['r_TTI'].append(access_only[M3_index]['r_TTI'])
+				i['identity'] = 'access'
+				M3_index = (M3_index+1)%len(access_only)
+				continue
+
+			# check mixed suvframe probability
+			if sum([ao['RSC'] for ao in access_only]) < a_VSC:
+				mixed_subframe = i
+				break
+
+			# one to many
+			for j in access_only:
+				if i['VSC'] == 0:
+					break
+				if j['RSC'] == 0:
+					continue
+
+				i['r_TTI'].append(j['r_TTI'])
+				i['identity'] = 'access'
+
+				if j['RSC'] >= i['VSC']:
+					j['RSC'] -= i['VSC']
+					i['VSC'] = 0
+				else:
+					i['VSC'] -= j['RSC']
+					j['RSC'] = 0
+
+		# mixed subframe
+		if mixed_subframe:
+			mixed_subframe['identity'] = 'mixed'
+
+			for ao in access_only:
+				if ao['RSC'] == 0:
+					continue
+
+				mixed_subframe['r_TTI'].append(ao['r_TTI'])
+				mixed_subframe['VSC'] -= ao['RSC']
+				ao['RSC'] = 0
+
+			if mixed_subframe['VSC'] > backhaul_maybe[0]['RSC']:
+				raise Exception("algorithm design error")
+
+			backhaul_maybe[0]['RSC'] -= mixed_subframe['VSC']
+			mixed_subframe['r_TTI'].append(backhaul_maybe[0]['r_TTI'])
+			mixed_subframe['VSC'] = 0
+
+		# backhaul maybe (M2)
+		for i in v_timeline['access']:
+			if i['VSC'] == 0:
+				continue
+
+			for j in backhaul_maybe:
+				if i['VSC'] == 0:
+					break
+				if j['RSC'] == 0:
+					continue
+
+				i['r_TTI'].append(j['r_TTI'])
+				i['identity'] = 'backhaul'
+
+				if j['RSC'] >= i['VSC']:
+					j['RSC'] -= i['VSC']
+					i['VSC'] = 0
+				else:
+					i['VSC'] -= j['RSC']
+					j['RSC'] = 0
+
+		v_timeline ={
+			'backhaul':v_timeline['backhaul'],
+			'access': [{'r_TTI':i['r_TTI'], 'identity':i['identity']} for i in v_timeline['access']]}
+
+		return v_timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=pre)

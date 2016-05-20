@@ -56,7 +56,7 @@ class Device(Bearer):
 		pre = "%s::capacity\t\t" % self._name
 
 		if self._CQI:
-			return N_TTI_RE*T_CQI[self._CQI]['eff']
+			return int(N_TTI_RE*T_CQI[self._CQI]['eff'])
 
 		msg_fail("failed", pre=pre)
 		return
@@ -66,7 +66,7 @@ class Device(Bearer):
 		pre = "%s::virtualCapacity\t" % self._name
 
 		if self.tdd_config:
-			return self.tdd_config.count('D')*self.capacity/10
+			return int(self.tdd_config.count('D')*self.capacity/10)
 
 		msg_fail("failed", pre=pre)
 		return
@@ -216,8 +216,11 @@ class RN(Device):
 	def virtualCapacity(self):
 		pre = "%s::virtualCapacity\t" % self._name
 
-		if self.tdd_config:
-			return self.tdd_config.count('D')*self.capacity['access']/10
+		if self.tdd_config and self.__parent.idle_capacity:
+			times = self.tdd_config.count('D')-self.parent.tdd_config.count('D')+self.__parent.idle_capacity
+			return int(times*self.capacity['access']/10)
+		elif self.tdd_config:
+			return int(self.tdd_config.count('D')*self.capacity['access']/10)
 
 		msg_fail("failed", pre=pre)
 		return
@@ -280,6 +283,10 @@ class eNB(Device):
 	@property
 	def queue(self):
 		return self.__queue
+
+	@property
+	def idle_capacity(self):
+		return self._idle_capacity
 
 	@Device.lambd.getter
 	def lambd(self):
@@ -355,7 +362,8 @@ class eNB(Device):
 		total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
 
 		# backhaul and access filter for TDD configuration decision
-		n_b_subframe = math.ceil(total_pktSize / self.capacity)
+		self._idle_capacity = round(math.ceil(total_pktSize/self.capacity)-(total_pktSize/self.capacity), 2)
+		n_b_subframe = math.ceil(total_pktSize/self.capacity)
 		n_b_subframe = n_b_subframe if n_b_subframe <= max_b_subframe else max_b_subframe
 		n_a_subframe = max([math.ceil(total_pktSize/len(self.childs)/i.capacity['access']) for i in self.childs])
 		n_a_subframe = n_a_subframe if n_a_subframe <= max_a_subframe else max_a_subframe
@@ -400,6 +408,7 @@ class eNB(Device):
 						pkt = {
 							'device': users[i],
 							'flow': bearer.flow,
+							'size': traffic[bearer.flow]['pkt_size'],
 							'delay_budget': traffic[bearer.flow]['delay_budget'],
 							'bitrate': traffic[bearer.flow]['bitrate'],
 							'arrival_time': arrTimeByBearer[arrTime]

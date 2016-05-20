@@ -43,94 +43,86 @@ for i in range(ITERATE_TIMES):
 	msg_success("==========\tsimulation start\t==========")
 	performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
 	performance.update({rn.name:{'PSE':0} for rn in base_station.childs})
-	isSleep = {rn.name:False for rn in base_station.childs}
-	isBLoading = {rn.name:False for rn in base_station.childs}
-	isALoading = {rn.name:False for rn in base_station.childs}
-	TTI = 1
+	loading = {
+		'backhaul': {rn.name:False for rn in base_station.childs},
+		'access': {rn.name:False for rn in base_station.childs}
+	}
 
 	# apply LBPS
-	result = LBPS.aggr_aggr(base_station, duplex='TDD', show=True) \
-			if LBPS.getLoad(base_station, 'TDD') <= 1 else None
-	# pprint(result)
+	lbps = LBPS.aggr_aggr(base_station, SIMULATION_TIME, duplex='TDD')
 
-	while TTI != SIMULATION_TIME+1:
+	for TTI in range(SIMULATION_TIME):
 
 		# check the arrival pkt from internet
 		if timeline[TTI]:
 			for arrPkt in timeline[TTI]:
 				base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
 
-		# check each RN operation by sleep mode or backhaul/access transmission
 		for rn in base_station.childs:
-			r_pos = (TTI-1)%len(result)+1 if result else None
-			available_cap = 0
+			real_timeline_collision = False
 			interface = None
 
-			# device the sleep mode
-			# awake:
-			# 	1. load > 1
-			# 	2. lbps waking subframe
-			# 	3. pre-subframe cannot serve all pkt int the queue
-			if not r_pos:
-				# print("TTI " + str(TTI) +": load > 1", end='\t')
-				isSleep[rn.name] = False
-			elif r_pos and result[r_pos] and rn in result[r_pos]:
-				# print("TTI " + str(TTI) +": lbps waking subframe", end='\t')
-				isSleep[rn.name] = False
-			elif isBLoading[rn.name] or isALoading[rn.name]:
-				# print("TTI " + str(TTI) +": pre-subframe cannot serve all pkt int the queue", end='\t')
-				isSleep[rn.name] = False
-			else:
-				# print("TTI " + str(TTI) +": sleep", end='\t')
-				isSleep[rn.name] = True
+			# case: subframe 'S' or 'U'
+			if rn.tdd_config[TTI%10] != 'D':
+				# performance[rn.name]['PSE'] += 1/SIMULATION_TIME
+				# for ue in rn.childs:
+				# 	performance[ue.name]['PSE'] += 1/SIMULATION_TIME
+				continue
 
-			# check if RN awake
-			if not isSleep[rn.name]:
+			# lbps case
+			if rn in lbps['backhaul'][TTI] and rn in lbps['access'][TTI]:
+				interface = 'backhaul'
+				real_timeline_collision = True
+			elif rn in lbps['backhaul'][TTI]:
+				interface = 'backhaul'
+			elif rn in lbps['access'][TTI]:
+				interface = 'access'
 
-				if not r_pos or (result[r_pos] and rn not in result[r_pos]):
-					interface = 'backhaul' if base_station.tdd_config[(TTI-1)%10] == 'D' else 'access'
+			# traffic stuck
+			if loading['backhaul'][rn.name] and base_station.tdd_config[TTI%10]:
+				interface = 'backhaul'
+			elif loading['access'][rn.name] and rn.tdd_config[TTI%10]:
+				interface = 'access'
 
+			# backhaul transmission
+			if interface == 'backhaul':
+				if not base_station.queue[interface][rn.name] and real_timeline_collision:
+					interface = 'access'
 				else:
-					interface = 'backhaul' if result[r_pos] and base_station in result[r_pos] else 'access'
-
-				available_cap = rn.capacity[interface]
-				check_queue = base_station.queue['backhaul'][rn.name] \
-					if interface == 'backhaul' else rn.queue['backhaul']
-
-				if interface == 'backhaul':
+					available_cap = rn.capacity[interface]
+					for pkt in base_station.queue[interface][rn.name]:
+						if available_cap >= pkt['size']:
+							rn.queue[interface].append(pkt)
+							base_station.queue[interface][rn.name].remove(pkt)
+							available_cap -= pkt['size']
+						else:
+							loading[interface][rn.name] = True
+							break
 					for ue in rn.childs:
 						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
+					if not base_station.queue[interface][rn.name]:
+						loading[interface][rn.name] = False
 
-				# calc avaliable pkt for transmission
-				for pkt in check_queue:
-
-					# still have data buffer in queue
-					if available_cap < traffic[pkt['flow']]['pkt_size']:
-						if interface == 'backhaul':
-							isBLoading[rn.name] = True
-						elif interface == 'access':
-							isALoading [rn.name] = True
-						break
-
-					if interface == 'backhaul':
-						rn.queue[interface].append(pkt)
-						base_station.queue['backhaul'][rn.name].remove(pkt)
-						isBLoading[rn.name] = False
-
-					elif interface == 'access':
+			# access transmission
+			if interface == 'access':
+				available_cap = rn.capacity[interface]
+				for pkt in rn.queue['backhaul']:
+					if available_cap >= pkt['size']:
 						rn.queue['access'][pkt['device'].name].append(pkt)
-						performance[pkt['device'].name]['delay'] += TTI-math.ceil(pkt['arrival_time'])
 						rn.queue['backhaul'].remove(pkt)
-						isALoading[rn.name] = False
+						performance[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
+						available_cap -= pkt['size']
+					else:
+						loading[interface][rn.name] = True
+						break
+				if not rn.queue['backhaul']:
+					loading[interface][rn.name] = False
 
-					available_cap -= traffic[pkt['flow']]['pkt_size']
-
-			else:
+			# sleep
+			if not interface:
 				performance[rn.name]['PSE'] += 1/SIMULATION_TIME
 				for ue in rn.childs:
 					performance[ue.name]['PSE'] += 1/SIMULATION_TIME
-
-		TTI += 1
 
 	msg_success("==========\tsimulation end\t\t==========")
 

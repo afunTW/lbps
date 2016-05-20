@@ -1,7 +1,9 @@
 import random
 import copy
+import re
 from math import log, floor, ceil
-from tdd import one_to_one_first_mapping as M3
+from tdd import continuous_mapping as M2
+from tdd import two_hop_mapping as m_2hop
 from device import UE, RN, eNB
 
 from poisson import getDataTH, LengthAwkSlpCyl, DataAcc
@@ -25,6 +27,29 @@ def getAvgPktSize(device):
 	total_pkt = [bearer.flow for bearer in device.link[interface]]
 	total_pkt = [traffic[i]['pkt_size'] for i in total_pkt]
 	return sum(total_pkt)/len(total_pkt)
+
+def getDeviceByName(device, name_list):
+	result = []
+	d = {
+		'eNB':device,
+		'RN':[rn for rn in device.childs],
+		'UE':[ue for rn in device.childs for ue in rn.childs]
+	}
+
+	for i in name_list:
+		if re.search('eNB*', i):
+			result.append(device)
+		elif re.search('RN*', i):
+			for rn in d['RN']:
+				if rn.name == i:
+					result.append(rn)
+					break
+		elif re.search('UE*', i):
+			for ue in d['UE']:
+				if ue.name == i:
+					result.append(ue)
+					break
+	return result
 
 def schedulability(check_list):
 
@@ -56,65 +81,74 @@ def non_degraded(G, interface, DATA_TH):
 def access_aggr(device, b_result):
 
 	if b_result:
+		lbps_failed = []
+
 		for rn in device.childs:
 			b_TTI = None
-			a_subframe = ceil(rn.capacity['access']/device.capacity)
+			a_subframe = ceil(device.capacity/rn.capacity['access'])
 
-			# find the backhaul transmission time
-			for i in list(reversed(list(b_result.keys()))):
-				if b_result[i] and rn in b_result[i]:
-					b_TTI = i
-					break
-
-			# find the access transmission time
-			if not b_TTI:
-				raise Exception("backhaul scheduling goes wrong")
-
-			trace = [(b_TTI+i-1)%len(b_result)+1 for i in b_result]
-			trace = trace[0:a_subframe]
-			queue = [ch for ch in rn.childs]
-			queue.append(rn)
-
-			for i in trace:
-				b_result[i] = b_result[i]+queue if b_result[i] else queue
-
-def two_hop_mapping(device, schedule_result):
-
-	# get the pattern to identify it's backhaul/access subframe
-	subframe_identity = ['access']*10
-	for i in range(10):
-		subframe_identity[i] = 'backhaul' if device.tdd_config[i] else subframe_identity[i]
-
-	mapping = M3(copy.deepcopy(device.childs[0].tdd_config))
-	mapping = mapping*ceil(len(schedule_result)/10)
-	v_subframe = {'backhaul':[], 'access':[]}
-	v_cycle = {i:[] for i in range(1, 1+len(mapping))}
-	cycle = {i:[] for i in range(1, 1+len(mapping))}
-
-	# seperate backhaul and access subframe
-	for i in schedule_result:
-		if schedule_result[i]:
-			interface = 'backhaul' if device in schedule_result[i] else 'access'
-			v_subframe[interface].append(schedule_result[i])
-
-	# reassign the position of virtual subframe
-	for i in v_cycle:
-		if v_subframe['backhaul'] or v_subframe['access']:
-			if device.childs[0].tdd_config[(i-1)%10] is not 'D':
+			if a_subframe > len(b_result)-1:
+				lbps_failed.append(rn)
 				continue
 
-			real_timeline = copy.deepcopy(mapping[(i-1)%10])
-			interface = []
+			for i in b_result:
+				if a_subframe == 0:
+					break
+				if rn in i:
+					continue
+				i += rn.childs
+				i.append(rn)
+				a_subframe -= 1
 
-			for i in real_timeline:
-				interface.append(subframe_identity[(i-1)%10])
+		return lbps_failed
 
-			interface = 'backhaul' if 'backhaul' in interface else 'access'
-			v_cycle[i] = v_subframe[interface].pop() if v_subframe[interface] else v_cycle[i]
-		else:
-			break
+	return
 
-	return v_cycle
+def two_hop_realtimeline(mapping_pattern, t, b, a, k):
+
+	# extend and align timeline
+	b_lbps_result = b*ceil(t/len(b))
+	b_lbps_result = b_lbps_result[:t]
+	a_lbps_result = a*ceil(t/len(a))
+	a_lbps_result = a_lbps_result[:t]
+	timeline = {'backhaul':[[] for i in range(t)], 'access':[[] for i in range(t)]}
+	vt_mapping = {'backhaul':[], 'access':[]}
+
+	for i in range(ceil(t/10)):
+		vt_mapping['backhaul'] += [[i*10+v for v in su] for su in mapping_pattern['backhaul']]
+		vt_mapping['access'] += [{
+			'identity':su['identity'],
+			'TTI': [i*10+v for v in su['r_TTI']]} for su in mapping_pattern['access']]
+
+	# backhaul mapping
+	for i in range(t):
+		for rsb in vt_mapping['backhaul'][i]:
+			timeline['backhaul'][rsb] += b_lbps_result[i]
+
+	# access mapping
+	for i in range(0, t-k, k):
+		tmp_map = {'access':[], 'mixed':[], 'backhaul':[]}
+		for j in vt_mapping['access'][i:i+k]:
+			tmp_map[j['identity']].append(j)
+
+		for vt in a_lbps_result[i:i+k]:
+			if not vt:
+				continue
+
+			identity = 'backhaul' if tmp_map['backhaul'] else None
+			identity = 'mixed' if tmp_map['mixed'] else identity
+			identity = 'access' if tmp_map['access'] else identity
+
+			for rsb in tmp_map[identity][0]['TTI']:
+				timeline['access'][rsb] += vt
+
+			tmp_map[identity].pop(0)
+
+	for i in range(len(timeline['backhaul'])):
+		timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
+		timeline['access'][i] = list(set(timeline['access'][i]))
+
+	return timeline
 
 def aggr(device, duplex='FDD', show=False):
 
@@ -133,23 +167,16 @@ def aggr(device, duplex='FDD', show=False):
 		capacity = capacity[interface] if type(capacity) is dict else capacity
 		pkt_size = getAvgPktSize(device)
 		DATA_TH = int(getDataTH(capacity, pkt_size))
-		load = getLoad(device, duplex)
-
-		if load > 1:
-			msg_fail("load= %g\t, scheduling failed!!!!!!!!!!" % load, pre=prefix)
-			return False
-
-		msg_execute("load= %g\t" % load, pre=prefix)
+		msg_execute("load= %g\t" % getLoad(device, duplex), pre=prefix)
 
 		# aggr process
 		sleep_cycle_length = LengthAwkSlpCyl(device.lambd[interface], DATA_TH)
 		msg_execute("sleepCycle = %d" % sleep_cycle_length ,pre=prefix)
 
-		# encapsulate result: { subframe: wakeUpDevice }
-		result = {i+1:None for i in range(sleep_cycle_length)}
-		result[1] = [i for i in device.childs]
-		result[1].append(device)
-		result[1] = sorted(result[1], key=lambda d: d.name)
+		result = [[] for i in range(sleep_cycle_length)]
+		result[0] = [i for i in device.childs]
+		result[0].append(device)
+		result[0] = sorted(result[0], key=lambda d: d.name)
 
 		return result
 
@@ -313,20 +340,41 @@ def merge(device, duplex='FDD', show=False):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def aggr_aggr(device, duplex='TDD', show=False):
+def aggr_aggr(device, simulation_time, duplex='TDD'):
 	prefix = "lbps::aggr-aggr::%s \t" % device.name
 
 	try:
+		lbps_result = aggr(device, duplex)
+		b_lbps_result = [[j.name for j in i] for i in lbps_result]
+		lbps_failed = access_aggr(device, lbps_result)
+		a_lbps_result = [[j.name for j in i] for i in lbps_result]
+		a_lbps_result = [list(set(a_lbps_result[i])-set(b_lbps_result[i]))\
+						for i in range(len(a_lbps_result))]
 
-		# backhaul lbps
-		b_result = aggr(device, duplex)
+		mapping_pattern = m_2hop(device.tdd_config)
+		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
+		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
 
-		# access scheduliability
-		# future work: if subframe_count > 1 can optimize by split in specfic cycle length
-		access_aggr(device, b_result)
+		timeline = two_hop_realtimeline(
+			mapping_pattern,
+			simulation_time,
+			b_lbps_result,
+			a_lbps_result,
+			len(lbps_result))
 
-		# mapping to real timeline
-		timeline = two_hop_mapping(device, b_result)
+		for rn in lbps_failed:
+			for TTI in range(len(timeline['backhaul'])):
+				if device.tdd_config[TTI%10] == 'D':
+					timeline['backhaul'][TTI].append(device)
+					timeline['backhaul'][TTI].append(rn)
+				if rn.tdd_config[TTI%10] == 'D':
+					timeline['access'][TTI].append(rn)
+					timeline['access'][TTI] += rn.childs
+
+
+		for i in range(len(timeline['backhaul'])):
+			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
+			timeline['access'][i] = list(set(timeline['access'][i]))
 
 		return timeline
 
