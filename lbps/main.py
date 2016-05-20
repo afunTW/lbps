@@ -38,7 +38,8 @@ for i in range(ITERATE_TIMES):
 
 	base_station.clearQueue()
 	timeline = base_station.simulate_timeline(SIMULATION_TIME)
-	base_station.choose_tdd_config(timeline)
+	base_station.tdd_config = TWO_HOP_TDD_CONFIG[17]
+	# base_station.choose_tdd_config(timeline)
 
 	msg_success("==========\tsimulation start\t==========")
 	performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
