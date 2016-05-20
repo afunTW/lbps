@@ -408,6 +408,7 @@ class eNB(Device):
 						pkt = {
 							'device': users[i],
 							'flow': bearer.flow,
+							'size': traffic[bearer.flow]['pkt_size'],
 							'delay_budget': traffic[bearer.flow]['delay_budget'],
 							'bitrate': traffic[bearer.flow]['bitrate'],
 							'arrival_time': arrTimeByBearer[arrTime]
