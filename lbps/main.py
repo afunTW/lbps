@@ -23,6 +23,16 @@ PERFORMANCE = {
 		'aggr-aggr':[],
 		'split-aggr':[],
 		'merge-aggr':[]
+	},
+	'PSE-FAIRNESS':{
+		'aggr-aggr':[],
+		'split-aggr':[],
+		'merge-aggr':[]
+	},
+	'DELAY-FAIRNESS':{
+		'aggr-aggr':[],
+		'split-aggr':[],
+		'merge-aggr':[]
 	}
 }
 
@@ -157,10 +167,27 @@ for i in range(ITERATE_TIMES):
 		# performance output
 		ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
 		deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
+		total_ue_pse = sum([performance[ue]['PSE'] for ue in ue_name])
+		total_rn_pse = sum([performance[rn.name]['PSE'] for rn in base_station.childs])
+		total_delay = sum([performance[ue]['delay'] for ue in ue_name])
 
-		PERFORMANCE['UE-PSE'][PS].append(round(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE, 2))
-		PERFORMANCE['RN-PSE'][PS].append(round(sum([performance[rn.name]['PSE'] for rn in base_station.childs])/NUMBER_OF_RN, 2))
-		PERFORMANCE['DELAY'][PS].append(round(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt), 2))
+		ue_pse = round(total_ue_pse/NUMBER_OF_UE, 2)
+		rn_pse = round(total_rn_pse/NUMBER_OF_RN, 2)
+		avg_delay = round(total_delay/sum(deliver_pkt), 2)
+
+		PERFORMANCE['UE-PSE'][PS].append(ue_pse)
+		PERFORMANCE['RN-PSE'][PS].append(rn_pse)
+		PERFORMANCE['DELAY'][PS].append(avg_delay)
+		PERFORMANCE['PSE-FAIRNESS'][PS].append(round(\
+			total_ue_pse**2/\
+			(NUMBER_OF_UE*sum([performance[ue]['PSE']**2 for ue in ue_name]))\
+			,2
+		))
+		PERFORMANCE['DELAY-FAIRNESS'][PS].append(round(\
+			total_delay**2/\
+			(NUMBER_OF_UE*sum([performance[ue]['delay']**2 for ue in ue_name]))\
+			, 2
+		))
 	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
 
 pprint(PERFORMANCE)

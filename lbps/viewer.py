@@ -46,7 +46,9 @@ def export_csv(performance):
 	outfile = open("LBPS.csv", 'w')
 	output = csv.writer(outfile)
 
-	test_item = ['LAMBDA', 'RN-PSE', 'UE-PSE', 'DELAY']
+	test_item = ['LAMBDA', 'RN-PSE', 'UE-PSE',\
+		'DELAY', 'PSE-FAIRNESS', 'DELAY-FAIRNESS']
+
 	perform_item = ['LAMBDA']
 	for i in range(len(test_item)):
 		if test_item[i] in perform_item:
