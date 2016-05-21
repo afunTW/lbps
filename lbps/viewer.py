@@ -42,15 +42,29 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 			msg_execute("%s.sleepCycle = %d" % (j.name, i.sleepCycle), pre=pre, suf=suf)
 
 def export_csv(performance):
-	if input("Output the performance evaluation as .csv file? (T/F)"):
-		outfile = open("LBPS.csv", 'w')
-		output = csv.writer(outfile)
 
-		test_item = ['LAMBDA', 'CAPACITY', 'V_CAPACITY', \
-					'TDD_CONFIG', 'RN-PSE', 'UE-PSE', 'DELAY']
-		output.writerow(test_item)
+	outfile = open("LBPS.csv", 'w')
+	output = csv.writer(outfile)
 
-		for i in range(len(performance['LAMBDA'])):
-			test_value = [performance[j][i] for j in test_item]
-			output.writerow(test_value)
-		outfile.close()
+	test_item = ['LAMBDA', 'RN-PSE', 'UE-PSE', 'DELAY']
+	perform_item = ['LAMBDA']
+	for i in range(len(test_item)):
+		if test_item[i] in perform_item:
+			continue
+		perform_item += [test_item[i]]
+		perform_item += ['']*(len(performance[test_item[i]])-1)
+	output.writerow(perform_item)
+
+	perform_subitem = ['']
+	for i in test_item:
+		if i != 'LAMBDA':
+			perform_subitem += list(performance[i].keys())
+	output.writerow(perform_subitem)
+
+	for i in range(len(performance['LAMBDA'])):
+		perform_value = [performance['LAMBDA'][i]]
+		test_value = [v[i] for item in test_item if item != 'LAMBDA' for v in performance[item].values()]
+		perform_value += test_value
+		output.writerow(perform_value)
+
+	outfile.close()

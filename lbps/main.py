@@ -7,7 +7,24 @@ NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
 ITERATE_TIMES = 10
 SIMULATION_TIME = 1000
-PERFORMANCE = {'LAMBDA':[], 'CAPACITY':[], 'V_CAPACITY':[], 'TDD_CONFIG':[], 'RN-PSE':[], 'UE-PSE':[], 'DELAY':[]}
+PERFORMANCE = {
+	'LAMBDA':[],
+	'RN-PSE':{
+		'aggr-aggr':[],
+		'split-aggr':[],
+		'merge-aggr':[]
+	},
+	'UE-PSE':{
+		'aggr-aggr':[],
+		'split-aggr':[],
+		'merge-aggr':[]
+	},
+	'DELAY':{
+		'aggr-aggr':[],
+		'split-aggr':[],
+		'merge-aggr':[]
+	}
+}
 
 # create device instance
 base_station = eNB()
@@ -47,9 +64,10 @@ for i in range(ITERATE_TIMES):
 		'merge-aggr': LBPS.top_down('merge', base_station, SIMULATION_TIME, duplex='TDD')
 	}
 
-	for lbps in scheduling.values():
+	for (PS, lbps) in scheduling.items():
 
-		msg_success("==========\tsimulation start\t==========")
+		msg_success("==========\t\t%s simulation with lambda %g Mbps start\t\t=========="%\
+				(PS, base_station.lambd['backhaul']))
 
 		base_station.clearQueue()
 		performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
@@ -133,19 +151,17 @@ for i in range(ITERATE_TIMES):
 					for ue in rn.childs:
 						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 
-		msg_success("==========\tsimulation end\t\t==========")
+		msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
+				(PS, base_station.lambd['backhaul']))
 
 		# performance output
 		ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
 		deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
 
-		PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
-		PERFORMANCE['CAPACITY'].append(round(base_station.capacity/1000, 2))
-		PERFORMANCE['V_CAPACITY'].append(round(base_station.virtualCapacity/1000, 2))
-		PERFORMANCE['TDD_CONFIG'].append(base_station.tdd_config)
-		PERFORMANCE['UE-PSE'].append(round(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE, 2))
-		PERFORMANCE['RN-PSE'].append(round(sum([performance[rn.name]['PSE'] for rn in base_station.childs])/NUMBER_OF_RN, 2))
-		PERFORMANCE['DELAY'].append(round(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt), 2))
+		PERFORMANCE['UE-PSE'][PS].append(round(sum([performance[ue]['PSE'] for ue in ue_name])/NUMBER_OF_UE, 2))
+		PERFORMANCE['RN-PSE'][PS].append(round(sum([performance[rn.name]['PSE'] for rn in base_station.childs])/NUMBER_OF_RN, 2))
+		PERFORMANCE['DELAY'][PS].append(round(sum([performance[ue]['delay'] for ue in ue_name])/sum(deliver_pkt), 2))
+	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
 
 pprint(PERFORMANCE)
-# export_csv(PERFORMANCE)
+export_csv(PERFORMANCE)
