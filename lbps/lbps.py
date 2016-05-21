@@ -72,11 +72,14 @@ def non_degraded(G, interface, DATA_TH):
 		new_K = 2**floor(log(new_K, 2))
 		if new_K == i['K']:
 			result = True
-			i['device'].append(source_G)
+			i['device'] += source_G['device']
 			i['lambda'] += source_G['lambda']
+			break
 
 	not result and G.append(source_G)
-	return G.sort(key=lambda x: x['K'], reverse=True)
+	G.sort(key=lambda x: x['K'], reverse=True)
+
+	return G
 
 def access_aggr(device, b_result):
 
@@ -318,6 +321,9 @@ def merge(device, duplex='FDD', show=False):
 		# calc the times of waking up for group
 		max_K = max([G['K'] for G in groups])
 		groups.sort(key=lambda x: x['K'])
+
+		msg_execute("sleep cycle length = %d with %d groups" % \
+				(max_K, len(groups)), pre=prefix)
 
 		result = {i:[] for i in range(max_K)}
 		tmp = []
