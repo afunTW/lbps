@@ -5,7 +5,7 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 10
+ITERATE_TIMES = 1
 SIMULATION_TIME = 1000
 PERFORMANCE = {
 	'LAMBDA':[],
@@ -69,9 +69,10 @@ for i in range(ITERATE_TIMES):
 
 	# apply LBPS
 	scheduling = {
-		'aggr-aggr': LBPS.top_down('aggr', base_station, SIMULATION_TIME, duplex='TDD'),
-		'split-aggr': LBPS.top_down('split', base_station, SIMULATION_TIME, duplex='TDD'),
-		'merge-aggr': LBPS.top_down('merge', base_station, SIMULATION_TIME, duplex='TDD')
+		'aggr-aggr': LBPS.top_down('aggr', base_station, SIMULATION_TIME),
+		'split-aggr': LBPS.top_down('split', base_station, SIMULATION_TIME),
+		'merge-aggr': LBPS.top_down('merge', base_station, SIMULATION_TIME),
+		'min-aggr': LBPS.min_aggr(base_station, SIMULATION_TIME)
 	}
 
 	for (PS, lbps) in scheduling.items():

@@ -381,3 +381,13 @@ def top_down(b_lbps, device, simulation_time, duplex='TDD'):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 		return
+
+def min_aggr(device, simulation_time, duplex='TDD'):
+	prefix = "BottomUp::min-aggr::%s\t" % (device.name)
+
+	try:
+		a_lbps_result = [aggr(rn, duplex) for rn in device.childs]
+		b_min_cycle = min([len(i) for i in a_lbps_result])
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
