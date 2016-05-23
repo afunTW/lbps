@@ -352,9 +352,9 @@ class eNB(Device):
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
-	def choose_tdd_config(self, timeline):
+	def choose_tdd_config(self, timeline, fixed=None):
 
-		# decide 2-hop TDD configuration (DL)(fixed)
+		# decide 2-hop TDD configuration (DL)
 		candidate = TWO_HOP_TDD_CONFIG.copy()
 		max_b_subframe = max([candidate[i]['backhaul'].count('D') for i in candidate])
 		max_a_subframe = max([candidate[i]['access'].count('D') for i in candidate])
@@ -368,19 +368,22 @@ class eNB(Device):
 		n_a_subframe = max([math.ceil(total_pktSize/len(self.childs)/i.capacity['access']) for i in self.childs])
 		n_a_subframe = n_a_subframe if n_a_subframe <= max_a_subframe else max_a_subframe
 
-		candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
-		candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= n_a_subframe} \
-					if len(candidate) > 1 else candidate
+		if fixed and type(fixed) is int and 0<=fixed<19:
+			self.tdd_config = TWO_HOP_TDD_CONFIG[fixed]
+		else:
+			candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
+			candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= n_a_subframe} \
+						if len(candidate) > 1 else candidate
 
-		b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
-		b_sort = candidate[b_sort[0]]['backhaul'].count('D')
-		candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
-		a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
-		a_sort = candidate[a_sort[0]]['access'].count('D')
-		candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
+			b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
+			b_sort = candidate[b_sort[0]]['backhaul'].count('D')
+			candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
+			a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
+			a_sort = candidate[a_sort[0]]['access'].count('D')
+			candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
 
-		candidate_key = random.choice(list(candidate.keys()))
-		self.tdd_config = candidate[candidate_key] if candidate else None
+			candidate_key = random.choice(list(candidate.keys()))
+			self.tdd_config = candidate[candidate_key] if candidate else None
 
 		if not self.tdd_config:
 			msg_fail("no suitable TDD configuration")

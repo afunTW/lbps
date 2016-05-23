@@ -64,8 +64,7 @@ for i in range(ITERATE_TIMES):
 			rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
 
 	timeline = base_station.simulate_timeline(SIMULATION_TIME)
-	base_station.tdd_config = TWO_HOP_TDD_CONFIG[17]
-	# base_station.choose_tdd_config(timeline)
+	base_station.choose_tdd_config(timeline, fixed=17)
 
 	# apply LBPS
 	scheduling = {
@@ -134,6 +133,8 @@ for i in range(ITERATE_TIMES):
 								available_cap -= pkt['size']
 							else:
 								loading[interface][rn.name] = True
+								# msg_warning("%s remain %d pkt in backhaul %d TTI" %\
+								# 	(rn.name, len(base_station.queue[interface][rn.name]), TTI))
 								break
 						for ue in rn.childs:
 							performance[ue.name]['PSE'] += 1/SIMULATION_TIME
@@ -151,6 +152,8 @@ for i in range(ITERATE_TIMES):
 							available_cap -= pkt['size']
 						else:
 							loading[interface][rn.name] = True
+							# msg_warning("%s remain %d pkt in access %d TTI" %\
+							# 		(rn.name, len(rn.queue['backhaul']), TTI))
 							break
 					if not rn.queue['backhaul']:
 						loading[interface][rn.name] = False
@@ -161,15 +164,18 @@ for i in range(ITERATE_TIMES):
 					for ue in rn.childs:
 						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 
-		msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
-				(PS, base_station.lambd['backhaul']))
-
 		# performance output
 		ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
 		deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
 		total_ue_pse = sum([performance[ue]['PSE'] for ue in ue_name])
 		total_rn_pse = sum([performance[rn.name]['PSE'] for rn in base_station.childs])
 		total_delay = sum([performance[ue]['delay'] for ue in ue_name])
+
+		# test
+		for i in base_station.childs:
+			print(i.name, end='\t')
+			msg_warning("CQI= %g" % i.CQI, end='\t\t')
+			msg_warning("delay= %g bits" % sum([performance[ue.name]['delay'] for ue in i.childs]))
 
 		ue_pse = round(total_ue_pse/NUMBER_OF_UE, 2)
 		rn_pse = round(total_rn_pse/NUMBER_OF_RN, 2)
@@ -188,7 +194,11 @@ for i in range(ITERATE_TIMES):
 			(NUMBER_OF_UE*sum([performance[ue]['delay']**2 for ue in ue_name]))\
 			, 2
 		))
+
+		msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
+				(PS, base_station.lambd['backhaul']))
+
 	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
 
-pprint(PERFORMANCE)
+pprint(PERFORMANCE, indent=2)
 export_csv(PERFORMANCE)
