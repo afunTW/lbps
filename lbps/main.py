@@ -9,6 +9,7 @@ ITERATE_TIMES = 10
 SIMULATION_TIME = 1000
 PERFORMANCE = {
 	'LAMBDA':[],
+	'LOAD':[],
 	'RN-PSE':{
 		'aggr-aggr':[],
 		'split-aggr':[],
@@ -199,6 +200,7 @@ for i in range(ITERATE_TIMES):
 				(PS, base_station.lambd['backhaul']))
 
 	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
+	PERFORMANCE['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), 2))
 
 pprint(PERFORMANCE, indent=2)
 export_csv(PERFORMANCE)
