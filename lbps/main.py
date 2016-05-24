@@ -117,7 +117,6 @@ for i in range(ITERATE_TIMES):
 
 				# traffic stuck
 				if loading['backhaul'][rn.name] and base_station.tdd_config[TTI%10]:
-					performance[rn.name]['force-awake'] += 1
 					interface = 'backhaul'
 				elif loading['access'][rn.name] and rn.tdd_config[TTI%10]:
 					interface = 'access'
@@ -134,6 +133,7 @@ for i in range(ITERATE_TIMES):
 								base_station.queue[interface][rn.name].remove(pkt)
 								available_cap -= pkt['size']
 							else:
+								performance[rn.name]['force-awake'] += 1
 								loading[interface][rn.name] = True
 								# msg_warning("%s remain %d pkt in backhaul %d TTI" %\
 								# 	(rn.name, len(base_station.queue[interface][rn.name]), TTI))
