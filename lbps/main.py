@@ -101,9 +101,9 @@ for i in range(ITERATE_TIMES):
 
 				# case: subframe 'S' or 'U'
 				if rn.tdd_config[TTI%10] != 'D':
-					# performance[rn.name]['PSE'] += 1/SIMULATION_TIME
-					# for ue in rn.childs:
-					# 	performance[ue.name]['PSE'] += 1/SIMULATION_TIME
+					performance[rn.name]['PSE'] += 1/SIMULATION_TIME
+					for ue in rn.childs:
+						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 					continue
 
 				# lbps case
