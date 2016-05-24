@@ -46,10 +46,10 @@ def export_csv(performance):
 	outfile = open("LBPS.csv", 'w')
 	output = csv.writer(outfile)
 
-	test_item = ['LAMBDA', 'RN-PSE', 'UE-PSE',\
+	test_item = ['LAMBDA', 'LOAD', 'RN-PSE', 'UE-PSE',\
 		'DELAY', 'PSE-FAIRNESS', 'DELAY-FAIRNESS']
 
-	perform_item = ['LAMBDA']
+	perform_item = ['LAMBDA', 'LOAD']
 	for i in range(len(test_item)):
 		if test_item[i] in perform_item:
 			continue
@@ -57,15 +57,18 @@ def export_csv(performance):
 		perform_item += ['']*(len(performance[test_item[i]])-1)
 	output.writerow(perform_item)
 
-	perform_subitem = ['']
+	perform_subitem = ['', '']
 	for i in test_item:
-		if i != 'LAMBDA':
+		if i != 'LAMBDA' and i != 'LOAD':
 			perform_subitem += list(performance[i].keys())
 	output.writerow(perform_subitem)
 
 	for i in range(len(performance['LAMBDA'])):
 		perform_value = [performance['LAMBDA'][i]]
-		test_value = [v[i] for item in test_item if item != 'LAMBDA' for v in performance[item].values()]
+		perform_value += [performance['LOAD'][i]]
+		test_value = [v[i] for item in test_item\
+			if item != 'LAMBDA' and item != 'LOAD'\
+			for v in performance[item].values()]
 		perform_value += test_value
 		output.writerow(perform_value)
 
