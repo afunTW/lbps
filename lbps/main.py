@@ -81,7 +81,7 @@ for i in range(ITERATE_TIMES):
 
 		base_station.clearQueue()
 		performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
-		performance.update({rn.name:{'PSE':0} for rn in base_station.childs})
+		performance.update({rn.name:{'PSE':0, 'force-awake':0} for rn in base_station.childs})
 		loading = {
 			'backhaul': {rn.name:False for rn in base_station.childs},
 			'access': {rn.name:False for rn in base_station.childs}
@@ -117,6 +117,7 @@ for i in range(ITERATE_TIMES):
 
 				# traffic stuck
 				if loading['backhaul'][rn.name] and base_station.tdd_config[TTI%10]:
+					performance[rn.name]['force-awake'] += 1
 					interface = 'backhaul'
 				elif loading['access'][rn.name] and rn.tdd_config[TTI%10]:
 					interface = 'access'
@@ -173,10 +174,15 @@ for i in range(ITERATE_TIMES):
 		total_delay = sum([performance[ue]['delay'] for ue in ue_name])
 
 		# test
+		print(base_station.name, end='\t')
+		msg_execute("CQI= %d" % base_station.CQI, end=' \t')
+		msg_execute("b_cap= %d" % base_station.capacity)
 		for i in base_station.childs:
 			print(i.name, end='\t')
-			msg_warning("CQI= %g" % i.CQI, end='\t\t')
-			msg_warning("delay= %g bits" % sum([performance[ue.name]['delay'] for ue in i.childs]))
+			msg_execute("CQI= %d" % i.CQI, end=' \t')
+			msg_execute("b_cap= %d" % i.capacity['backhaul'], end='\t')
+			msg_execute("delay= %d bits" % sum([performance[ue.name]['delay'] for ue in i.childs]), end='\t')
+			msg_warning("force awake in backhaul: %d times" % performance[i.name]['force-awake'])
 
 		ue_pse = round(total_ue_pse/NUMBER_OF_UE, 2)
 		rn_pse = round(total_rn_pse/NUMBER_OF_RN, 2)
