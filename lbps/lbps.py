@@ -299,8 +299,8 @@ def merge(device, duplex='FDD', show=False):
 			groups = g_non_degraded
 
 			# degraded merge
-			if non_degraded_success and len(groups) > 1:
-				groups[1]['deivce'] += groups[0]['device']
+			if not non_degraded_success and len(groups) > 1:
+				groups[1]['device'] += groups[0]['device']
 				groups[1]['lambda'] += groups[0]['lambda']
 				groups[1]['K'] = LengthAwkSlpCyl(groups[1]['lambda'], DATA_TH)
 				groups.pop(0)
@@ -378,6 +378,12 @@ def top_down(b_lbps, device, simulation_time, duplex='TDD'):
 
 		msg_warning("backhaul awake: %d times" % sum([1 for i in timeline['backhaul'] if i]), pre=prefix)
 		msg_warning("access awake: %d times" % sum([1 for i in timeline['access'] if i]), pre=prefix)
+		msg_warning("total awake: %d times" %\
+			(sum([1 for i in timeline['backhaul'] if i])+\
+			sum([1 for i in timeline['access'] if i])-\
+			sum([1 for i in range(len(timeline['access'])) \
+				if timeline['backhaul'][i] and timeline['access'][i]]
+		)), pre=prefix)
 
 		return timeline
 
