@@ -54,8 +54,8 @@ def getDeviceByName(device, name_list):
 def schedulability(check_list):
 
 	result = True if sum([1/cycle for cycle in check_list]) <= 1 else False;
-	result and msg_success("Check schedulability:\tTrue")
-	not result and msg_warning("Check schedulability:\tFalse")
+	# result and msg_success("Check schedulability:\tTrue")
+	# not result and msg_warning("Check schedulability:\tFalse")
 
 	return result
 
@@ -336,7 +336,7 @@ def merge(device, duplex='FDD', show=False):
 		return
 
 def top_down(b_lbps, device, simulation_time, duplex='TDD'):
-	prefix = "TopDown::%s-aggr::%s \t" % (b_lbps, device.name)
+	prefix = "TopDown::%s-aggr\t" % (b_lbps)
 	lbps_scheduling = {
 		'aggr': aggr,
 		'split': split,
@@ -375,6 +375,9 @@ def top_down(b_lbps, device, simulation_time, duplex='TDD'):
 		for i in range(len(timeline['backhaul'])):
 			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
 			timeline['access'][i] = list(set(timeline['access'][i]))
+
+		msg_warning("backhaul awake: %d times" % sum([1 for i in timeline['backhaul'] if i]), pre=prefix)
+		msg_warning("access awake: %d times" % sum([1 for i in timeline['access'] if i]), pre=prefix)
 
 		return timeline
 
