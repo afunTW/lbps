@@ -5,7 +5,7 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 10
+ITERATE_TIMES = 12
 SIMULATION_TIME = 1000
 PERFORMANCE = {
 	'LAMBDA':[],
@@ -81,12 +81,17 @@ for i in range(ITERATE_TIMES):
 
 		base_station.clearQueue()
 		performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
-		performance.update({rn.name:{'PSE':0, 'force-awake':0} for rn in base_station.childs})
+		performance.update({\
+			rn.name:{
+			'PSE':0,
+			'force-awake':{'backhaul':0, 'access':0},
+			'waste-awake':{'backhaul':0, 'access':0},
+			'waste-cap':{'backhaul':0, 'access':0}
+			} for rn in base_station.childs})
 		loading = {
 			'backhaul': {rn.name:False for rn in base_station.childs},
 			'access': {rn.name:False for rn in base_station.childs}
 		}
-
 
 		for TTI in range(SIMULATION_TIME):
 
@@ -118,7 +123,7 @@ for i in range(ITERATE_TIMES):
 				# traffic stuck
 				if loading['backhaul'][rn.name] and base_station.tdd_config[TTI%10]:
 					interface = 'backhaul'
-				elif loading['access'][rn.name] and rn.tdd_config[TTI%10]:
+				elif loading['access'][rn.name]:
 					interface = 'access'
 
 				# backhaul transmission
@@ -132,16 +137,10 @@ for i in range(ITERATE_TIMES):
 								rn.queue[interface].append(pkt)
 								base_station.queue[interface][rn.name].remove(pkt)
 								available_cap -= pkt['size']
-							else:
-								performance[rn.name]['force-awake'] += 1
-								loading[interface][rn.name] = True
-								# msg_warning("%s remain %d pkt in backhaul %d TTI" %\
-								# 	(rn.name, len(base_station.queue[interface][rn.name]), TTI))
-								break
+
 						for ue in rn.childs:
 							performance[ue.name]['PSE'] += 1/SIMULATION_TIME
-						if not base_station.queue[interface][rn.name]:
-							loading[interface][rn.name] = False
+						# loading[interface][rn.name] = False if not base_station.queue[interface][rn.name] else True
 
 				# access transmission
 				if interface == 'access':
@@ -152,13 +151,7 @@ for i in range(ITERATE_TIMES):
 							rn.queue['backhaul'].remove(pkt)
 							performance[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
 							available_cap -= pkt['size']
-						else:
-							loading[interface][rn.name] = True
-							# msg_warning("%s remain %d pkt in access %d TTI" %\
-							# 		(rn.name, len(rn.queue['backhaul']), TTI))
-							break
-					if not rn.queue['backhaul']:
-						loading[interface][rn.name] = False
+					# loading[interface][rn.name] = False if not rn.queue['backhaul'] else True
 
 				# sleep
 				if not interface:
@@ -172,17 +165,6 @@ for i in range(ITERATE_TIMES):
 		total_ue_pse = sum([performance[ue]['PSE'] for ue in ue_name])
 		total_rn_pse = sum([performance[rn.name]['PSE'] for rn in base_station.childs])
 		total_delay = sum([performance[ue]['delay'] for ue in ue_name])
-
-		# test
-		print(base_station.name, end='\t')
-		msg_execute("CQI= %d" % base_station.CQI, end=' \t')
-		msg_execute("b_cap= %d" % base_station.capacity)
-		for i in base_station.childs:
-			print(i.name, end='\t')
-			msg_execute("CQI= %d" % i.CQI, end=' \t')
-			msg_execute("b_cap= %d" % i.capacity['backhaul'], end='\t')
-			msg_execute("delay= %d bits" % sum([performance[ue.name]['delay'] for ue in i.childs]), end='\t')
-			msg_warning("force awake in backhaul: %d times" % performance[i.name]['force-awake'])
 
 		ue_pse = round(total_ue_pse/NUMBER_OF_UE, 2)
 		rn_pse = round(total_rn_pse/NUMBER_OF_RN, 2)
