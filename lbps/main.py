@@ -82,12 +82,19 @@ for i in range(ITERATE_TIMES):
 
 		base_station.clearQueue()
 		performance = {ue.name:{'PSE':0, 'delay':0} for rn in base_station.childs for ue in rn.childs}
-		performance.update({rn.name:{'PSE':0} for rn in base_station.childs})
+		performance.update({\
+			rn.name:{
+			'PSE':0,
+			'sleep':0,
+			'awake':{'backhaul':0, 'access':0},
+			'force-awake':{'backhaul':0, 'access':0},
+			'waste-awake':{'backhaul':0, 'access':0},
+			'waste-cap':{'backhaul':0, 'access':0}
+			} for rn in base_station.childs})
 		loading = {
 			'backhaul': {rn.name:False for rn in base_station.childs},
 			'access': {rn.name:False for rn in base_station.childs}
 		}
-
 
 		for TTI in range(SIMULATION_TIME):
 
@@ -102,49 +109,47 @@ for i in range(ITERATE_TIMES):
 
 				# case: subframe 'S' or 'U'
 				if rn.tdd_config[TTI%10] != 'D':
-					# performance[rn.name]['PSE'] += 1/SIMULATION_TIME
-					# for ue in rn.childs:
-					# 	performance[ue.name]['PSE'] += 1/SIMULATION_TIME
+					performance[rn.name]['PSE'] += 1/SIMULATION_TIME
+					for ue in rn.childs:
+						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 					continue
 
 				# lbps case
-				if rn in lbps['backhaul'][TTI] and rn in lbps['access'][TTI]:
-					interface = 'backhaul'
-					real_timeline_collision = True
-				elif rn in lbps['backhaul'][TTI]:
+				if rn in lbps['backhaul'][TTI]:
 					interface = 'backhaul'
 				elif rn in lbps['access'][TTI]:
 					interface = 'access'
 
 				# traffic stuck
-				if loading['backhaul'][rn.name] and base_station.tdd_config[TTI%10]:
+				if base_station.tdd_config[TTI%10] and loading['backhaul'][rn.name]:
+					performance[rn.name]['force-awake']['backhaul'] += 1 if not interface else 0
 					interface = 'backhaul'
-				elif loading['access'][rn.name] and rn.tdd_config[TTI%10]:
+				elif loading['access'][rn.name]:
+					performance[rn.name]['force-awake']['access'] += 1 if not interface else 0
 					interface = 'access'
 
 				# backhaul transmission
 				if interface == 'backhaul':
-					if not base_station.queue[interface][rn.name] and real_timeline_collision:
+					if not base_station.queue[interface][rn.name] and rn in lbps['access'][TTI]:
 						interface = 'access'
 					else:
+						performance[rn.name]['awake']['backhaul'] += 1
 						available_cap = rn.capacity[interface]
 						for pkt in base_station.queue[interface][rn.name]:
 							if available_cap >= pkt['size']:
 								rn.queue[interface].append(pkt)
 								base_station.queue[interface][rn.name].remove(pkt)
 								available_cap -= pkt['size']
-							else:
-								loading[interface][rn.name] = True
-								# msg_warning("%s remain %d pkt in backhaul %d TTI" %\
-								# 	(rn.name, len(base_station.queue[interface][rn.name]), TTI))
-								break
+
 						for ue in rn.childs:
 							performance[ue.name]['PSE'] += 1/SIMULATION_TIME
-						if not base_station.queue[interface][rn.name]:
-							loading[interface][rn.name] = False
+
+					loading[interface][rn.name] = False if not base_station.queue[interface][rn.name] else True
+					# performance[rn.name]['force-awake']['backhaul'] += 1 if not base_station.queue[interface][rn.name] else 0
 
 				# access transmission
 				if interface == 'access':
+					performance[rn.name]['awake']['access'] += 1
 					available_cap = rn.capacity[interface]
 					for pkt in rn.queue['backhaul']:
 						if available_cap >= pkt['size']:
@@ -152,19 +157,27 @@ for i in range(ITERATE_TIMES):
 							rn.queue['backhaul'].remove(pkt)
 							performance[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
 							available_cap -= pkt['size']
-						else:
-							loading[interface][rn.name] = True
-							# msg_warning("%s remain %d pkt in access %d TTI" %\
-							# 		(rn.name, len(rn.queue['backhaul']), TTI))
-							break
-					if not rn.queue['backhaul']:
-						loading[interface][rn.name] = False
+
+					loading[interface][rn.name] = False if not rn.queue['backhaul'] else True
+					# performance[rn.name]['force-awake']['access'] += 1 if not rn.queue['backhaul'] else 0
 
 				# sleep
 				if not interface:
+					performance[rn.name]['sleep'] += 1
 					performance[rn.name]['PSE'] += 1/SIMULATION_TIME
 					for ue in rn.childs:
 						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
+
+		# test
+		for i in base_station.childs:
+			print(i.name, end='\t')
+			msg_execute("CQI= %d" % i.CQI, end='\t\t')
+			msg_warning("force awake in backhaul: %d times" % performance[i.name]['force-awake']['backhaul'], end='\t\t')
+			msg_warning("force awake in access: %d times" % performance[i.name]['force-awake']['access'])
+			# msg_execute("sleep: %d times" % performance[i.name]['sleep'], end='\t\t')
+			# msg_warning("awake in backhaul: %d times" % performance[i.name]['awake']['backhaul'], end='\t\t')
+			# msg_warning("awake in access: %d times" % performance[i.name]['awake']['access'], end='\t')
+			# msg_fail("%d" % (performance[i.name]['sleep']+performance[i.name]['awake']['backhaul']+performance[i.name]['awake']['access']))
 
 		# performance output
 		ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
@@ -172,12 +185,6 @@ for i in range(ITERATE_TIMES):
 		total_ue_pse = sum([performance[ue]['PSE'] for ue in ue_name])
 		total_rn_pse = sum([performance[rn.name]['PSE'] for rn in base_station.childs])
 		total_delay = sum([performance[ue]['delay'] for ue in ue_name])
-
-		# test
-		for i in base_station.childs:
-			print(i.name, end='\t')
-			msg_warning("CQI= %g" % i.CQI, end='\t\t')
-			msg_warning("delay= %g bits" % sum([performance[ue.name]['delay'] for ue in i.childs]))
 
 		ue_pse = round(total_ue_pse/NUMBER_OF_UE, 2)
 		rn_pse = round(total_rn_pse/NUMBER_OF_RN, 2)

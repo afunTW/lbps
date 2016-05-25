@@ -68,14 +68,26 @@ DEVICE_CQI_TYPE = {
 TDD configuration
 """
 
+# # consider special subframe
+# ONE_HOP_TDD_CONFIG = {
+# 	0: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'U'],
+# 	1: ['D', 'S', 'U', 'U', 'D', 'D', 'S', 'U', 'U', 'D'],
+# 	2: ['D', 'S', 'U', 'D', 'D', 'D', 'S', 'U', 'D', 'D'],
+# 	3: ['D', 'S', 'U', 'U', 'U', 'D', 'D', 'D', 'D', 'D'],
+# 	4: ['D', 'S', 'U', 'U', 'D', 'D', 'D', 'D', 'D', 'D'],
+# 	5: ['D', 'S', 'U', 'D', 'D', 'D', 'D', 'D', 'D', 'D'],
+# 	6: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'D']
+# }
+
+# consider special subframe as downlink subframe
 ONE_HOP_TDD_CONFIG = {
-	0: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'U'],
-	1: ['D', 'S', 'U', 'U', 'D', 'D', 'S', 'U', 'U', 'D'],
-	2: ['D', 'S', 'U', 'D', 'D', 'D', 'S', 'U', 'D', 'D'],
-	3: ['D', 'S', 'U', 'U', 'U', 'D', 'D', 'D', 'D', 'D'],
-	4: ['D', 'S', 'U', 'U', 'D', 'D', 'D', 'D', 'D', 'D'],
-	5: ['D', 'S', 'U', 'D', 'D', 'D', 'D', 'D', 'D', 'D'],
-	6: ['D', 'S', 'U', 'U', 'U', 'D', 'S', 'U', 'U', 'D']
+	0: ['D', 'D', 'U', 'U', 'U', 'D', 'D', 'U', 'U', 'U'],
+	1: ['D', 'D', 'U', 'U', 'D', 'D', 'D', 'U', 'U', 'D'],
+	2: ['D', 'D', 'U', 'D', 'D', 'D', 'D', 'U', 'D', 'D'],
+	3: ['D', 'D', 'U', 'U', 'U', 'D', 'D', 'D', 'D', 'D'],
+	4: ['D', 'D', 'U', 'U', 'D', 'D', 'D', 'D', 'D', 'D'],
+	5: ['D', 'D', 'U', 'D', 'D', 'D', 'D', 'D', 'D', 'D'],
+	6: ['D', 'D', 'U', 'U', 'U', 'D', 'D', 'U', 'U', 'D']
 }
 
 TWO_HOP_TDD_CONFIG = {
