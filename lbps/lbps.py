@@ -153,7 +153,7 @@ def two_hop_realtimeline(mapping_pattern, t, b, a, k):
 
 	return timeline
 
-def aggr(device, duplex='FDD', show=False):
+def aggr(device, duplex='FDD'):
 
 	prefix = "lbps::aggr::%s \t" % device.name
 
@@ -187,7 +187,7 @@ def aggr(device, duplex='FDD', show=False):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def split(device, duplex='FDD', show=False):
+def split(device, duplex='FDD', boundary_group=None):
 
 	prefix = "lbps::split::%s\t" % device.name
 
@@ -261,7 +261,7 @@ def split(device, duplex='FDD', show=False):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def merge(device, duplex='FDD', show=False):
+def merge(device, duplex='FDD'):
 
 	prefix = "lbps::merge::%s\t" % device.name
 
