@@ -88,7 +88,7 @@ def access_aggr(device, b_result):
 
 		for rn in device.childs:
 			b_TTI = None
-			a_subframe = ceil(device.capacity/rn.capacity['access'])
+			a_subframe = ceil(device.virtualCapacity/rn.virtualCapacity)
 
 			if a_subframe > len(b_result)-1:
 				lbps_failed.append(rn)
