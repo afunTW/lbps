@@ -139,7 +139,6 @@ for i in range(ITERATE_TIMES):
 							if available_cap >= pkt['size']:
 								rn.queue[interface].append(pkt)
 								available_cap -= pkt['size']
-								# base_station.queue[interface][rn.name].remove(pkt)
 							else:
 								unavailable_index = i
 								break
@@ -163,7 +162,6 @@ for i in range(ITERATE_TIMES):
 						pkt = rn.queue['backhaul'][i]
 						if available_cap >= pkt['size']:
 							rn.queue['access'][pkt['device'].name].append(pkt)
-							# rn.queue['backhaul'].remove(pkt)
 							performance[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
 							available_cap -= pkt['size']
 						else:
@@ -182,6 +180,8 @@ for i in range(ITERATE_TIMES):
 						performance[ue.name]['PSE'] += 1/SIMULATION_TIME
 
 		# test
+		print(base_station.name, end='\t')
+		msg_execute("CQI= %d" % base_station.CQI)
 		for i in base_station.childs:
 			print(i.name, end='\t')
 			msg_execute("CQI= %d" % i.CQI, end='\t\t')
