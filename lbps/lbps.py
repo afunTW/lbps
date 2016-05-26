@@ -215,6 +215,9 @@ def split(device, duplex='FDD', boundary_group=None):
 			}
 		}
 
+		if not boundary_group or boundary_group > len(device.childs):
+			boundary_group = len(device.childs)
+
 		# Split process
 		while len(groups) < sleep_cycle_length:
 
@@ -224,7 +227,7 @@ def split(device, duplex='FDD', boundary_group=None):
 					'lambda':0,
 					'K': 0
 				}
-				for i in range(min(sleep_cycle_length, len(device.childs)))
+				for i in range(min(sleep_cycle_length, boundary_group))
 			}
 
 			for i in device.childs:
@@ -242,7 +245,7 @@ def split(device, duplex='FDD', boundary_group=None):
 
 			K = min([groups[G]['K'] for G in groups])
 
-			if K == sleep_cycle_length:
+			if K == sleep_cycle_length or len(groups) == boundary_group:
 				break
 			else:
 				sleep_cycle_length = K if K > 0 else sleep_cycle_length
