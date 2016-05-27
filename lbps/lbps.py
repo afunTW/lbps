@@ -395,11 +395,19 @@ def top_down(b_lbps, device, simulation_time, duplex='TDD'):
 		return
 
 def min_aggr(device, simulation_time, duplex='TDD'):
-	prefix = "BottomUp::min-aggr::%s\t" % (device.name)
+	prefix = "BottomUp::min-aggr\t"
 
-	try:
-		a_lbps_result = [aggr(rn, duplex) for rn in device.childs]
-		b_min_cycle = min([len(i) for i in a_lbps_result])
+	# try:
+	a_lbps_result = {rn.name:{'result':aggr(rn, duplex)} for rn in device.childs}
 
-	except Exception as e:
-		msg_fail(str(e), pre=prefix)
+	# minCycle
+	b_min_cycle = min([len(a_lbps_result[i]['result']) for i in a_lbps_result])
+	for rn in device.childs:
+		if len(a_lbps_result[rn.name]['result']) > b_min_cycle:
+			accumulate_data = DataAcc(rn.lambd['access'], b_min_cycle)*getAvgPktSize(rn)
+			print(rn.name, end='\t')
+			# print(getAvgPktSize(rn), end='\t')
+			msg_execute("capacity: %d bits\t\tpkt: %d" % (rn.capacity['access'], accumulate_data))
+
+	# except Exception as e:
+	# 	msg_fail(str(e), pre=prefix)
