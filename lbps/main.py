@@ -5,7 +5,7 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 1
+ITERATE_TIMES = 10
 SIMULATION_TIME = 1000
 PERFORMANCE = {
 	'LAMBDA':[],
@@ -13,27 +13,32 @@ PERFORMANCE = {
 	'RN-PSE':{
 		'aggr-aggr':[],
 		'split-aggr':[],
-		'merge-aggr':[]
+		'merge-aggr':[],
+		'min-aggr':[]
 	},
 	'UE-PSE':{
 		'aggr-aggr':[],
 		'split-aggr':[],
-		'merge-aggr':[]
+		'merge-aggr':[],
+		'min-aggr':[]
 	},
 	'DELAY':{
 		'aggr-aggr':[],
 		'split-aggr':[],
-		'merge-aggr':[]
+		'merge-aggr':[],
+		'min-aggr':[]
 	},
 	'PSE-FAIRNESS':{
 		'aggr-aggr':[],
 		'split-aggr':[],
-		'merge-aggr':[]
+		'merge-aggr':[],
+		'min-aggr':[]
 	},
 	'DELAY-FAIRNESS':{
 		'aggr-aggr':[],
 		'split-aggr':[],
-		'merge-aggr':[]
+		'merge-aggr':[],
+		'min-aggr':[]
 	}
 }
 

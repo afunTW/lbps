@@ -457,5 +457,21 @@ def min_aggr(device, simulation_time):
 			else:
 				a_lbps_result = [i+[info['device']]+info['device'].childs for i in a_lbps_result]
 
+		mapping_pattern = m_2hop(device.tdd_config)
+		timeline = two_hop_realtimeline(
+			mapping_pattern,
+			simulation_time,
+			b_lbps_result,
+			a_lbps_result)
+
+		msg_warning("total awake: %d times" %\
+			(sum([1 for i in timeline['backhaul'] if i])+\
+			sum([1 for i in timeline['access'] if i])-\
+			sum([1 for i in range(len(timeline['access'])) \
+				if timeline['backhaul'][i] and timeline['access'][i]]
+		)), pre=prefix)
+
+		return timeline
+
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
