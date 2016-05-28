@@ -107,7 +107,8 @@ def access_aggr(device, b_result):
 
 	return
 
-def two_hop_realtimeline(mapping_pattern, t, b, a, k):
+def two_hop_realtimeline(mapping_pattern, t, b, a):
+	k = len(a)
 
 	# extend and align timeline
 	b_lbps_result = b*ceil(t/len(b))
@@ -363,8 +364,7 @@ def top_down(b_lbps, device, simulation_time):
 			mapping_pattern,
 			simulation_time,
 			b_lbps_result,
-			a_lbps_result,
-			len(lbps_result))
+			a_lbps_result)
 
 		for rn in lbps_failed:
 			for TTI in range(len(timeline['backhaul'])):
@@ -380,8 +380,6 @@ def top_down(b_lbps, device, simulation_time):
 			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
 			timeline['access'][i] = list(set(timeline['access'][i]))
 
-		msg_warning("backhaul awake: %d times" % sum([1 for i in timeline['backhaul'] if i]), pre=prefix)
-		msg_warning("access awake: %d times" % sum([1 for i in timeline['access'] if i]), pre=prefix)
 		msg_warning("total awake: %d times" %\
 			(sum([1 for i in timeline['backhaul'] if i])+\
 			sum([1 for i in timeline['access'] if i])-\
@@ -400,30 +398,64 @@ def min_aggr(device, simulation_time):
 	duplex = 'TDD'
 
 	try:
-		a_lbps_result = {
+		rn_status = {
 			rn.name:{
+				'device':rn,
 				'result':aggr(rn, duplex),
-				'revise-result':None,
-				'accumulate-data':0
+				'a-availability':False,
+				'b-availability':False,
+				'a-subframe-count':None,
+				'b-subframe-count': None
 			} for rn in device.childs
 		}
 
-		# minCycle
-		b_min_cycle = min([len(a_lbps_result[i]['result']) for i in a_lbps_result])
+		# minCycle availability check
+		b_min_cycle = min([len(rn_status[i]['result']) for i in rn_status])
 		for rn in device.childs:
-			if len(a_lbps_result[rn.name]['result']) > b_min_cycle:
+			if len(rn_status[rn.name]['result']) > b_min_cycle:
 				pkt_size = getAvgPktSize(rn)
 				DATA_TH = int(getDataTH(rn.virtualCapacity, pkt_size))
 				accumulate_K = LengthAwkSlpCyl(rn.lambd['access'], DATA_TH, PROB_TH=0.2)
-				a_lbps_result[rn.name]['revised-result'] = [[] for i in b_min_cycle]
 
 				if accumulate_K < b_min_cycle:
-					a_lbps_result[rn.name]['accumulate-data'] = DataAcc(rn.lambd['access'], b_min_cycle)*pkt_size
-					required_access_subframe = ceil(a_lbps_result[rn.name]['accumulate-data']/rn.virtualCapacity)
-				else:
-					a_lbps_result[rn.name]['revise-result'] = False
+					accumulate_data = DataAcc(rn.lambd['access'], b_min_cycle)*pkt_size
+					rn_status[rn.name].update({
+						'a-availability':True,
+						'a-subframe-count':ceil(accumulate_data/rn.virtualCapacity),
+						'b-subframe-count':ceil(accumulate_data/device.virtualCapacity)
+					})
+
+				if rn_status[rn.name]['a-subframe-count']\
+					+rn_status[rn.name]['b-subframe-count']\
+					>b_min_cycle:
+					rn_status[rn.name]['a-availability'] = False
 			else:
-				a_lbps_result[rn.name]['revise-result'] = a_lbps_result[rn.name]['result']
+				rn_status[rn.name].update({
+					'a-availability':True,
+					'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i]),
+					'b-subframe-count':ceil(rn.virtualCapacity/device.virtualCapacity)
+				})
+
+		# backhaul scheduling and scheduliability check
+		b_lbps_result = [[] for i in range(b_min_cycle)]
+		for (rn, info) in rn_status.items():
+			for TTI in range(b_min_cycle):
+				if not b_lbps_result[TTI] and TTI+info['b-subframe-count']<b_min_cycle:
+					b_lbps_result[TTI:TTI+info['b-subframe-count']] = [[device, info['device']]]*info['b-subframe-count']
+					rn_status[rn]['b-availability'] = True
+					break
+			if not rn_status[rn]['b-availability']:
+				b_lbps_result = [ i+[device, info['device']] for i in b_lbps_result]
+
+		# access scheduling and scheduliability check
+		a_lbps_result = [[] for i in range(b_min_cycle)]
+		for (rn, info) in rn_status.items():
+			if info['a-availability']:
+				for i in range(info['a-subframe-count']):
+					a_lbps_result[i] += [info['device']]
+					a_lbps_result[i] += info['device'].childs
+			else:
+				a_lbps_result = [i+[info['device']]+info['device'].childs for i in a_lbps_result]
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
