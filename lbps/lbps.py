@@ -338,8 +338,9 @@ def merge(device, duplex='FDD'):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def top_down(b_lbps, device, simulation_time, duplex='TDD'):
+def top_down(b_lbps, device, simulation_time):
 	prefix = "TopDown::%s-aggr\t" % (b_lbps)
+	duplex = 'TDD'
 	lbps_scheduling = {
 		'aggr': aggr,
 		'split': split,
@@ -394,20 +395,35 @@ def top_down(b_lbps, device, simulation_time, duplex='TDD'):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def min_aggr(device, simulation_time, duplex='TDD'):
+def min_aggr(device, simulation_time):
 	prefix = "BottomUp::min-aggr\t"
+	duplex = 'TDD'
 
-	# try:
-	a_lbps_result = {rn.name:{'result':aggr(rn, duplex)} for rn in device.childs}
+	try:
+		a_lbps_result = {
+			rn.name:{
+				'result':aggr(rn, duplex),
+				'revise-result':None,
+				'accumulate-data':0
+			} for rn in device.childs
+		}
 
-	# minCycle
-	b_min_cycle = min([len(a_lbps_result[i]['result']) for i in a_lbps_result])
-	for rn in device.childs:
-		if len(a_lbps_result[rn.name]['result']) > b_min_cycle:
-			accumulate_data = DataAcc(rn.lambd['access'], b_min_cycle)*getAvgPktSize(rn)
-			print(rn.name, end='\t')
-			# print(getAvgPktSize(rn), end='\t')
-			msg_execute("capacity: %d bits\t\tpkt: %d" % (rn.capacity['access'], accumulate_data))
+		# minCycle
+		b_min_cycle = min([len(a_lbps_result[i]['result']) for i in a_lbps_result])
+		for rn in device.childs:
+			if len(a_lbps_result[rn.name]['result']) > b_min_cycle:
+				pkt_size = getAvgPktSize(rn)
+				DATA_TH = int(getDataTH(rn.virtualCapacity, pkt_size))
+				accumulate_K = LengthAwkSlpCyl(rn.lambd['access'], DATA_TH, PROB_TH=0.2)
+				a_lbps_result[rn.name]['revised-result'] = [[] for i in b_min_cycle]
 
-	# except Exception as e:
-	# 	msg_fail(str(e), pre=prefix)
+				if accumulate_K < b_min_cycle:
+					a_lbps_result[rn.name]['accumulate-data'] = DataAcc(rn.lambd['access'], b_min_cycle)*pkt_size
+					required_access_subframe = ceil(a_lbps_result[rn.name]['accumulate-data']/rn.virtualCapacity)
+				else:
+					a_lbps_result[rn.name]['revise-result'] = False
+			else:
+				a_lbps_result[rn.name]['revise-result'] = a_lbps_result[rn.name]['result']
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
