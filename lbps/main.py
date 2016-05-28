@@ -5,7 +5,7 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 10
+ITERATE_TIMES = 1
 SIMULATION_TIME = 1000
 PERFORMANCE = {
 	'LAMBDA':[],
@@ -14,31 +14,36 @@ PERFORMANCE = {
 		'aggr-aggr':[],
 		'split-aggr':[],
 		'merge-aggr':[],
-		'min-aggr':[]
+		'min-aggr':[],
+		'min-split':[]
 	},
 	'UE-PSE':{
 		'aggr-aggr':[],
 		'split-aggr':[],
 		'merge-aggr':[],
-		'min-aggr':[]
+		'min-aggr':[],
+		'min-split':[]
 	},
 	'DELAY':{
 		'aggr-aggr':[],
 		'split-aggr':[],
 		'merge-aggr':[],
-		'min-aggr':[]
+		'min-aggr':[],
+		'min-split':[]
 	},
 	'PSE-FAIRNESS':{
 		'aggr-aggr':[],
 		'split-aggr':[],
 		'merge-aggr':[],
-		'min-aggr':[]
+		'min-aggr':[],
+		'min-split':[]
 	},
 	'DELAY-FAIRNESS':{
 		'aggr-aggr':[],
 		'split-aggr':[],
 		'merge-aggr':[],
-		'min-aggr':[]
+		'min-aggr':[],
+		'min-split':[]
 	}
 }
 
@@ -77,7 +82,8 @@ for i in range(ITERATE_TIMES):
 		'aggr-aggr': LBPS.top_down('aggr', base_station, SIMULATION_TIME),
 		'split-aggr': LBPS.top_down('split', base_station, SIMULATION_TIME),
 		'merge-aggr': LBPS.top_down('merge', base_station, SIMULATION_TIME),
-		'min-aggr': LBPS.min_aggr(base_station, SIMULATION_TIME)
+		'min-aggr': LBPS.min_aggr(base_station, SIMULATION_TIME),
+		'min-split': LBPS.min_split(base_station, SIMULATION_TIME)
 	}
 
 	for (PS, lbps) in scheduling.items():

@@ -495,3 +495,36 @@ def min_aggr(device, simulation_time):
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
+
+def min_split(device, simulation_time):
+	prefix = "BottomUp::min-split\t"
+	duplex = 'TDD'
+
+	try:
+		# FIXME: subframe count in check_mincycle should be mdified
+		rn_status = {
+			rn.name:{
+				'device':rn,
+				'result':split(rn, duplex),
+				'a-availability':False,
+				'b-availability':False,
+				'a-subframe-count':None,
+				'b-subframe-count': None
+			} for rn in device.childs
+		}
+
+		# minCycle availability check
+		b_min_cycle = min([len(rn_status[i]['result']) for i in rn_status])
+		check_mincycle(device, rn_status, b_min_cycle)
+
+		for (rn_name, info) in rn_status.items():
+			boundary_group = len(info['device'].childs)
+			while not info['a-availability'] and boundary_group>1:
+				boundary_group -= 1
+				info['result'].update(split(info['device'], duplex, boundary_group))
+				check_mincycle(device, rn_status, b_min_cycle)
+		pprint(rn_status)
+
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
