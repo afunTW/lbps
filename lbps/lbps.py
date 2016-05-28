@@ -11,6 +11,11 @@ from config import *
 from viewer import *
 from pprint import pprint
 
+"""[summary] internal function
+
+[description] abstract level of lbps
+"""
+
 def getLoad(device, duplex="FDD"):
 
 	try:
@@ -153,6 +158,39 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 		timeline['access'][i] = list(set(timeline['access'][i]))
 
 	return timeline
+
+def check_mincycle(device, rn_status, b_min_cycle):
+	for rn in device.childs:
+		if len(rn_status[rn.name]['result']) > b_min_cycle:
+			pkt_size = getAvgPktSize(rn)
+			DATA_TH = int(getDataTH(rn.virtualCapacity, pkt_size))
+			accumulate_K = LengthAwkSlpCyl(rn.lambd['access'], DATA_TH, PROB_TH=0.2)
+
+			if accumulate_K < b_min_cycle:
+				accumulate_data = DataAcc(rn.lambd['access'], b_min_cycle)*pkt_size
+				rn_status[rn.name].update({
+					'a-availability':True,
+					'a-subframe-count':ceil(accumulate_data/rn.virtualCapacity),
+					'b-subframe-count':ceil(accumulate_data/device.virtualCapacity)
+				})
+			else:
+				continue
+
+			if rn_status[rn.name]['a-subframe-count']\
+				+rn_status[rn.name]['b-subframe-count']\
+				>b_min_cycle:
+				rn_status[rn.name]['a-availability'] = False
+		else:
+			rn_status[rn.name].update({
+				'a-availability':True,
+				'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i]),
+				'b-subframe-count':ceil(rn.virtualCapacity/device.virtualCapacity)
+			})
+
+"""[summary] original lbps algorithm
+
+[description] for one-hop in FDD
+"""
 
 def aggr(device, duplex='FDD'):
 
@@ -339,6 +377,11 @@ def merge(device, duplex='FDD'):
 		msg_fail(str(e), pre=prefix)
 		return
 
+"""[summary] proposed lbps algorithm
+
+[description] for two hop in TDD with multiple RN and considering different CQI
+"""
+
 def top_down(b_lbps, device, simulation_time):
 	prefix = "TopDown::%s-aggr\t" % (b_lbps)
 	duplex = 'TDD'
@@ -411,30 +454,7 @@ def min_aggr(device, simulation_time):
 
 		# minCycle availability check
 		b_min_cycle = min([len(rn_status[i]['result']) for i in rn_status])
-		for rn in device.childs:
-			if len(rn_status[rn.name]['result']) > b_min_cycle:
-				pkt_size = getAvgPktSize(rn)
-				DATA_TH = int(getDataTH(rn.virtualCapacity, pkt_size))
-				accumulate_K = LengthAwkSlpCyl(rn.lambd['access'], DATA_TH, PROB_TH=0.2)
-
-				if accumulate_K < b_min_cycle:
-					accumulate_data = DataAcc(rn.lambd['access'], b_min_cycle)*pkt_size
-					rn_status[rn.name].update({
-						'a-availability':True,
-						'a-subframe-count':ceil(accumulate_data/rn.virtualCapacity),
-						'b-subframe-count':ceil(accumulate_data/device.virtualCapacity)
-					})
-
-				if rn_status[rn.name]['a-subframe-count']\
-					+rn_status[rn.name]['b-subframe-count']\
-					>b_min_cycle:
-					rn_status[rn.name]['a-availability'] = False
-			else:
-				rn_status[rn.name].update({
-					'a-availability':True,
-					'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i]),
-					'b-subframe-count':ceil(rn.virtualCapacity/device.virtualCapacity)
-				})
+		check_mincycle(device, rn_status, b_min_cycle)
 
 		# backhaul scheduling and scheduliability check
 		b_lbps_result = [[] for i in range(b_min_cycle)]
