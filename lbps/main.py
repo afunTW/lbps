@@ -5,8 +5,8 @@ from pprint import pprint
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
-ITERATE_TIMES = 1
-SIMULATION_TIME = 1000
+ITERATE_TIMES = 10
+SIMULATION_TIME = 10000
 PERFORMANCE = {
 	'LAMBDA':[],
 	'LOAD':[],
@@ -209,9 +209,9 @@ for i in range(ITERATE_TIMES):
 		for i in base_station.childs:
 			print(i.name, end='\t')
 			msg_execute("CQI= %d" % i.CQI, end='\t\t')
+			msg_execute("sleep: %d times" % performance[i.name]['sleep'], end='\t\t')
 			msg_warning("force awake in backhaul: %d times" % performance[i.name]['force-awake']['backhaul'], end='\t')
 			msg_warning("force awake in access: %d times" % performance[i.name]['force-awake']['access'])
-			# msg_execute("sleep: %d times" % performance[i.name]['sleep'], end='\t\t')
 			# msg_warning("awake in backhaul: %d times" % performance[i.name]['awake']['backhaul'], end='\t\t')
 			# msg_warning("awake in access: %d times" % performance[i.name]['awake']['access'], end='\t')
 			# msg_fail("%d" % (performance[i.name]['sleep']+performance[i.name]['awake']['backhaul']+performance[i.name]['awake']['access']))

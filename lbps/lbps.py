@@ -167,12 +167,21 @@ def check_mincycle(device, rn_status, b_min_cycle):
 			accumulate_K = LengthAwkSlpCyl(rn.lambd['access'], DATA_TH, PROB_TH=0.2)
 
 			if accumulate_K < b_min_cycle:
-				accumulate_data = DataAcc(rn.lambd['access'], b_min_cycle)*pkt_size
-				rn_status[rn.name].update({
-					'a-availability':True,
-					'a-subframe-count':ceil(accumulate_data/rn.virtualCapacity),
-					'b-subframe-count':ceil(accumulate_data/device.virtualCapacity)
-				})
+				accumulate_pkt = DataAcc(rn.lambd['access'], b_min_cycle)
+				if not accumulate_pkt:
+					rn_status[rn.name].update({
+						'a-availability':True,
+						'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i])
+					})
+					rn_status[rn.name].update({
+						'b-subframe-count':ceil(rn.virtualCapacity*rn_status[rn.name]['a-subframe-count']/device.virtualCapacity)
+					})
+				else:
+					rn_status[rn.name].update({
+						'a-availability':True,
+						'a-subframe-count':ceil(accumulate_pkt*pkt_size/rn.virtualCapacity),
+						'b-subframe-count':ceil(accumulate_pkt*pkt_size/device.virtualCapacity)
+					})
 			else:
 				continue
 
@@ -183,9 +192,39 @@ def check_mincycle(device, rn_status, b_min_cycle):
 		else:
 			rn_status[rn.name].update({
 				'a-availability':True,
-				'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i]),
-				'b-subframe-count':ceil(rn.virtualCapacity/device.virtualCapacity)
-			})
+				'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i])
+				})
+			rn_status[rn.name].update({
+				'b-subframe-count':ceil(rn.virtualCapacity*rn_status[rn.name]['a-subframe-count']/device.virtualCapacity)
+				})
+
+def allocate_mincycle_backhaul(device, rn_status, b_min_cycle):
+	b_lbps_result = [[] for i in range(b_min_cycle)]
+	for (rn, info) in rn_status.items():
+		for TTI in range(b_min_cycle):
+			if not b_lbps_result[TTI] and info['b-subframe-count'] and TTI+info['b-subframe-count']<b_min_cycle:
+				b_lbps_result[TTI:TTI+info['b-subframe-count']] = [[device, info['device']]]*info['b-subframe-count']
+				rn_status[rn]['b-availability'] = True
+				break
+		if not rn_status[rn]['b-availability']:
+			b_lbps_result = [ i+[device, info['device']] for i in b_lbps_result]
+	return b_lbps_result
+
+def allocate_mincycle_access(rn_status, b_min_cycle):
+	a_lbps_result = [[] for i in range(b_min_cycle)]
+	for (rn, info) in rn_status.items():
+		if info['a-availability']:
+			# # for min-split case when required subframe means number of groups
+			# if info['a-subframe-count']>=b_min_cycle:
+			# 	pkt_size = getAvgPktSize(info['device'])
+			# 	lambd = info['device'].lambd['access']
+			# 	info['a-subframe-count'] = ceil(DataAcc(lambd, b_min_cycle)*pkt_size/info['device'].virtualCapacity)
+
+			for i in range(info['a-subframe-count']):
+				a_lbps_result[i] += info['result'][i] if info['result'][i] else []
+		else:
+			a_lbps_result = [i+[info['device']]+info['device'].childs for i in a_lbps_result]
+	return a_lbps_result
 
 """[summary] original lbps algorithm
 
@@ -259,7 +298,6 @@ def split(device, duplex='FDD', boundary_group=None):
 
 		# Split process
 		while len(groups) < sleep_cycle_length:
-
 			groups = {
 				i:{
 					'device': [],
@@ -284,7 +322,10 @@ def split(device, duplex='FDD', boundary_group=None):
 
 			K = min([groups[G]['K'] for G in groups])
 
-			if K == sleep_cycle_length or len(groups) == boundary_group:
+			if K == sleep_cycle_length:
+				break
+			elif len(groups) == boundary_group:
+				sleep_cycle_length = K if K > 0 else sleep_cycle_length
 				break
 			else:
 				sleep_cycle_length = K if K > 0 else sleep_cycle_length
@@ -457,25 +498,10 @@ def min_aggr(device, simulation_time):
 		check_mincycle(device, rn_status, b_min_cycle)
 
 		# backhaul scheduling and scheduliability check
-		b_lbps_result = [[] for i in range(b_min_cycle)]
-		for (rn, info) in rn_status.items():
-			for TTI in range(b_min_cycle):
-				if not b_lbps_result[TTI] and TTI+info['b-subframe-count']<b_min_cycle:
-					b_lbps_result[TTI:TTI+info['b-subframe-count']] = [[device, info['device']]]*info['b-subframe-count']
-					rn_status[rn]['b-availability'] = True
-					break
-			if not rn_status[rn]['b-availability']:
-				b_lbps_result = [ i+[device, info['device']] for i in b_lbps_result]
+		b_lbps_result = allocate_mincycle_backhaul(device, rn_status, b_min_cycle)
 
 		# access scheduling and scheduliability check
-		a_lbps_result = [[] for i in range(b_min_cycle)]
-		for (rn, info) in rn_status.items():
-			if info['a-availability']:
-				for i in range(info['a-subframe-count']):
-					a_lbps_result[i] += [info['device']]
-					a_lbps_result[i] += info['device'].childs
-			else:
-				a_lbps_result = [i+[info['device']]+info['device'].childs for i in a_lbps_result]
+		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
@@ -501,7 +527,6 @@ def min_split(device, simulation_time):
 	duplex = 'TDD'
 
 	try:
-		# FIXME: subframe count in check_mincycle should be mdified
 		rn_status = {
 			rn.name:{
 				'device':rn,
@@ -515,16 +540,40 @@ def min_split(device, simulation_time):
 
 		# minCycle availability check
 		b_min_cycle = min([len(rn_status[i]['result']) for i in rn_status])
+		msg_warning(str(b_min_cycle),pre=prefix)
 		check_mincycle(device, rn_status, b_min_cycle)
 
 		for (rn_name, info) in rn_status.items():
 			boundary_group = len(info['device'].childs)
+			# info['a-subframe-count'] = sum([1 for i in rn_status[rn_name]['result'] if i])
+
 			while not info['a-availability'] and boundary_group>1:
 				boundary_group -= 1
 				info['result'].update(split(info['device'], duplex, boundary_group))
 				check_mincycle(device, rn_status, b_min_cycle)
-		pprint(rn_status)
+				# info['a-subframe-count'] = sum([1 for i in rn_status[rn_name]['result'] if i])
 
+		# backhaul scheduling and scheduliability check
+		b_lbps_result = allocate_mincycle_backhaul(device, rn_status, b_min_cycle)
+
+		# access scheduling and scheduliability check
+		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
+
+		mapping_pattern = m_2hop(device.tdd_config)
+		timeline = two_hop_realtimeline(
+			mapping_pattern,
+			simulation_time,
+			b_lbps_result,
+			a_lbps_result)
+
+		msg_warning("total awake: %d times" %\
+			(sum([1 for i in timeline['backhaul'] if i])+\
+			sum([1 for i in timeline['access'] if i])-\
+			sum([1 for i in range(len(timeline['access'])) \
+				if timeline['backhaul'][i] and timeline['access'][i]]
+		)), pre=prefix)
+
+		return timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
