@@ -13,57 +13,66 @@ from viewer import *
 	DataAcc: calc data accumulation, DataAcc (#packet)
 """
 def Prob_AccDataUnderTH(lambd, threshold, simTime):
-
 	threshold= int(threshold) if type(threshold) is float else threshold
-	p_accumulate = 0;
+	p_accumulate = 0
 
 	while threshold >= 0:
 
 		# p_accumulate += exp(-1*lambd*time)*pow(lambd*time, threshold)/factorial(threshold);
-		tmp_p = exp(-1*lambd*simTime);
+		tmp_p = exp(-1*lambd*simTime)
+
+		# bug: exp value may too small to calc
+		if tmp_p<=0:
+			msg_warning("exp value is too small to calculate")
+			return
 
 		for i in range(1, threshold+1):
-			tmp_p *= lambd*simTime/i;
+			tmp_p *= lambd*simTime/i
 
 		p_accumulate += tmp_p;
-		threshold -= 1;
+		threshold -= 1
 
 	# print("-	p_accumulate: %g" % p_accumulate)
-	return p_accumulate;
+	return p_accumulate
 
 def Prob_AccDataOverTH(lambd, threshold, simTime):
-	return 1-Prob_AccDataUnderTH(lambd, threshold, simTime);
+	prob = Prob_AccDataUnderTH(lambd, threshold, simTime)
+	return 1-prob if prob else 1
 
 def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH= 0.8, view= None):
 
 	# print("Calculating awake-sleep-cycle with DATA_TH(%d pkt), PROB_TH(%.2f)" % (DATA_TH, PROB_TH));
-	K= 1;			# ms
-	d_K= dict();	# {K: prob}
+	K= 1			# ms
+	d_K= dict()		# {K: prob}
 
 	while True:
 
-		p_acc= Prob_AccDataOverTH(lambd, DATA_TH, K);
-		d_K[K]= p_acc;
+		p_acc= Prob_AccDataOverTH(lambd, DATA_TH, K)
+		d_K[K]= p_acc
 		# print("Get	prob: %f in %d TTI" % (p_acc, K))
 
 		if p_acc > PROB_TH:
 			break
 
-		K+=1;
+		K+=1
 
 	return d_K if view is True else K
 
 def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
 
 	# print("Calculating number of packet accumulate in %d TTI with lambd %g (packet/ms)" %(K, lambd))
-	pkt=0;			# number of packet
-	d_K= dict();	# {pkt: prob}
+	pkt=0			# number of packet
+	d_K= dict()		# {pkt: prob}
 
 	while True:
 
-		p_acc= Prob_AccDataUnderTH(lambd, pkt, K);
-		d_K[pkt]= p_acc;
+		p_acc= Prob_AccDataUnderTH(lambd, pkt, K)
+		d_K[pkt]= p_acc
 		# print("Get	prob: %f in %d TTI only accumulate %d packet" % (p_acc, K, pkt))
+
+		if not p_acc:
+			msg_warning("exp value is too small to calculate")
+			return
 
 		if p_acc > PROB_TH:
 			break
