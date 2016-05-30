@@ -169,6 +169,7 @@ def check_mincycle(device, rn_status, b_min_cycle):
 			if accumulate_K < b_min_cycle:
 				accumulate_pkt = DataAcc(rn.lambd['access'], b_min_cycle)
 				if not accumulate_pkt:
+					rn_status[rn.name].update({'result':aggr(rn, 'TDD')})
 					rn_status[rn.name].update({
 						'a-availability':True,
 						'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i])
