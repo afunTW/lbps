@@ -7,6 +7,7 @@ NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
 ITERATE_TIMES = 10
 SIMULATION_TIME = 10000
+ROUND_PARA = len(str(int(SIMULATION_TIME/10)))
 PERFORMANCE = {
 	'LAMBDA':[],
 	'LOAD':[],
@@ -223,9 +224,9 @@ for i in range(ITERATE_TIMES):
 		total_rn_pse = sum([performance[rn.name]['sleep'] for rn in base_station.childs])/SIMULATION_TIME
 		total_delay = sum([performance[ue]['delay'] for ue in ue_name])
 
-		ue_pse = round(total_ue_pse/NUMBER_OF_UE, 2)
-		rn_pse = round(total_rn_pse/NUMBER_OF_RN, 2)
-		avg_delay = round(total_delay/sum(deliver_pkt), 2)
+		ue_pse = round(total_ue_pse/NUMBER_OF_UE, ROUND_PARA)
+		rn_pse = round(total_rn_pse/NUMBER_OF_RN, ROUND_PARA)
+		avg_delay = round(total_delay/sum(deliver_pkt), ROUND_PARA)
 
 		PERFORMANCE['UE-PSE'][PS].append(ue_pse)
 		PERFORMANCE['RN-PSE'][PS].append(rn_pse)
@@ -233,19 +234,19 @@ for i in range(ITERATE_TIMES):
 		PERFORMANCE['PSE-FAIRNESS'][PS].append(round(\
 			total_ue_pse**2/\
 			(NUMBER_OF_UE*sum([(performance[ue]['sleep']/SIMULATION_TIME)**2 for ue in ue_name]))\
-			,2
+			,ROUND_PARA
 		))
 		PERFORMANCE['DELAY-FAIRNESS'][PS].append(round(\
 			total_delay**2/\
 			(NUMBER_OF_UE*sum([performance[ue]['delay']**2 for ue in ue_name]))\
-			, 2
+			, ROUND_PARA
 		))
 
 		msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
 				(PS, base_station.lambd['backhaul']))
 
 	PERFORMANCE['LAMBDA'].append(base_station.lambd['backhaul'])
-	PERFORMANCE['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), 2))
+	PERFORMANCE['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), ROUND_PARA))
 
 pprint(PERFORMANCE, indent=2)
 export_csv(PERFORMANCE)
