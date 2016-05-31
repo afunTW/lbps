@@ -578,3 +578,22 @@ def min_split(device, simulation_time):
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
+
+def merge-merge(device, simulation_time):
+	prefix = "BottomUp::min-split\t"
+	duplex = 'TDD'
+
+	try:
+		rn_status = {
+			rn.name:{
+				'device':rn,
+				'result':merge(rn, duplex),
+				'a-availability':False,
+				'b-availability':False,
+				'a-subframe-count':None,
+				'b-subframe-count': None
+			} for rn in device.childs
+		}
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
