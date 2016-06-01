@@ -345,7 +345,7 @@ def split(device, duplex='FDD', boundary_group=None):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def merge(device, duplex='FDD'):
+def merge(device, duplex='FDD', two_hop=False):
 
 	prefix = "lbps::merge::%s\t" % device.name
 
@@ -363,6 +363,7 @@ def merge(device, duplex='FDD'):
 		pkt_size = getAvgPktSize(device)
 		DATA_TH = int(getDataTH(capacity, pkt_size))
 		msg_execute("load= %g\t" % getLoad(device, duplex), pre=prefix)
+		required_backhaul_subframe = None
 
 		# init merge groups
 		groups = [
@@ -374,7 +375,18 @@ def merge(device, duplex='FDD'):
 		]
 
 		# merge process
-		while not schedulability([i['K'] for i in groups]):
+		while True:
+			check_list = [i['K'] for i in groups]
+
+			if two_hop:
+				Ki = max([G['K'] for G in groups])
+				required_access_subframe = int(sum([Ki/G['K'] for G in groups]))
+				required_backhaul_subframe = ceil(DATA_TH*required_access_subframe*pkt_size/device.virtualCapacity)
+				if sum([1/KG for KG in check_list])+(required_backhaul_subframe/Ki)<=1:
+					break
+
+			elif schedulability(check_list):
+				break
 
 			# non-degraded merge
 			groups.sort(key=lambda x: x['K'], reverse=True)
@@ -401,17 +413,20 @@ def merge(device, duplex='FDD'):
 
 		for G in groups:
 			base = 0
-
 			for i in list(result.keys()):
 				if not result[i]:
 					base = i
 					break
-
 			for TTI in range(base, len(result), G['K']):
 				result[TTI] = G['device'] + [device]
 
 		for i in result:
 			tmp.append(result[i])
+
+		if two_hop:
+			b_result = [[device]]*required_backhaul_subframe
+			b_result.extend([[]]*(max_K-required_backhaul_subframe))
+			return {'backhaul':b_result, 'access':tmp}
 
 		return tmp
 
@@ -579,7 +594,7 @@ def min_split(device, simulation_time):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 
-def merge-merge(device, simulation_time):
+def merge_merge(device, simulation_time):
 	prefix = "BottomUp::min-split\t"
 	duplex = 'TDD'
 
@@ -587,13 +602,18 @@ def merge-merge(device, simulation_time):
 		rn_status = {
 			rn.name:{
 				'device':rn,
-				'result':merge(rn, duplex),
+				'result':merge(rn, duplex, two_hop=True),
 				'a-availability':False,
 				'b-availability':False,
 				'a-subframe-count':None,
 				'b-subframe-count': None
 			} for rn in device.childs
 		}
+
+		for (rn_name, info) in rn_status.items():
+			print(rn_name,end='\t\t')
+			print(len(info['result']['backhaul']), end='\t')
+			print(len(info['result']['access']))
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
