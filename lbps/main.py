@@ -72,7 +72,8 @@ def transmission_scheduling(base_station):
 			'split-aggr': LBPS.top_down('split', base_station, SIMULATION_TIME),
 			'merge-aggr': LBPS.top_down('merge', base_station, SIMULATION_TIME),
 			'min-aggr': LBPS.min_aggr(base_station, SIMULATION_TIME),
-			'min-split': LBPS.min_split(base_station, SIMULATION_TIME)
+			'min-split': LBPS.min_split(base_station, SIMULATION_TIME),
+			'merge-merge': LBPS.merge_merge(base_station, SIMULATION_TIME)
 		}
 
 		for (PS, lbps) in scheduling.items():

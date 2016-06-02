@@ -409,7 +409,6 @@ def merge(device, duplex='FDD', two_hop=False):
 				(max_K, len(groups)), pre=prefix)
 
 		result = {i:[] for i in range(max_K)}
-		tmp = []
 
 		for G in groups:
 			base = 0
@@ -420,15 +419,14 @@ def merge(device, duplex='FDD', two_hop=False):
 			for TTI in range(base, len(result), G['K']):
 				result[TTI] = G['device'] + [device]
 
-		for i in result:
-			tmp.append(result[i])
+		a_result = list(result.values())
 
 		if two_hop:
-			b_result = [[device]]*required_backhaul_subframe
+			b_result = [[device, device.parent]]*required_backhaul_subframe
 			b_result.extend([[]]*(max_K-required_backhaul_subframe))
-			return {'backhaul':b_result, 'access':tmp}
+			return {'backhaul':b_result, 'access':a_result}
 
-		return tmp
+		return a_result
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
@@ -595,7 +593,7 @@ def min_split(device, simulation_time):
 		msg_fail(str(e), pre=prefix)
 
 def merge_merge(device, simulation_time):
-	prefix = "BottomUp::min-split\t"
+	prefix = "BottomUp::min-merge\t"
 	duplex = 'TDD'
 
 	try:
@@ -603,17 +601,86 @@ def merge_merge(device, simulation_time):
 			rn.name:{
 				'device':rn,
 				'result':merge(rn, duplex, two_hop=True),
-				'a-availability':False,
-				'b-availability':False,
 				'a-subframe-count':None,
-				'b-subframe-count': None
+				'b-subframe-count': None,
 			} for rn in device.childs
 		}
+		a_lbps_result = [[] for i in range(max([len(K['result']['access']) for K in rn_status.values()]))]
 
 		for (rn_name, info) in rn_status.items():
-			print(rn_name,end='\t\t')
-			print(len(info['result']['backhaul']), end='\t')
-			print(len(info['result']['access']))
+			pkt_size = getAvgPktSize(info['device'])
+			DATA_TH = int(getDataTH(info['device'].virtualCapacity, pkt_size))
+			info['a-subframe-count'] = sum([1 for i in info['result']['access'] if i])
+			info['b-subframe-count'] = DATA_TH*info['a-subframe-count']*pkt_size/device.virtualCapacity
+			for i in range(len(info['result']['access'])):
+				a_lbps_result[i] += info['result']['access'][i]
+
+		failed_RN=[]
+		groups = [
+			{
+				'device': [i],
+				'K': len(rn_status[i.name]['result']['access'])
+			} for i in device.childs
+		]
+
+		while not schedulability([i['K'] for i in groups]):
+			groups.sort(key=lambda x:x['K'], reverse=True)
+			non_degraded_success = False
+			for source_G in groups:
+				for target_G in groups:
+					if target_G is not source_G and target_G['K'] == source_G['K']:
+						s_required = sum([rn_status[d.name]['b-subframe-count'] for d in source_G['device']])
+						t_required = sum([rn_status[d.name]['b-subframe-count'] for d in target_G['device']])
+						if s_required+t_required<source_G['K']:
+							non_degraded_success = True
+							source_G['device'] += target_G['device']
+							groups.remove(target_G)
+							break
+				else:
+					continue
+				break
+			if not non_degraded_success:
+				failed_RN = groups
+				break
+
+		if failed_RN:
+			b_lbps_result = [[rn for rn in device.childs]+[device]]*\
+				max([len(K['result']['access']) for K in rn_status.values()])
+		else:
+			# calc the times of waking up for group
+			max_K = max([G['K'] for G in groups])
+			groups.sort(key=lambda x: x['K'])
+			msg_execute("sleep cycle length = %d with %d groups" % \
+					(max_K, len(groups)), pre=prefix)
+
+			result = {i:[] for i in range(max_K)}
+
+			for G in groups:
+				base = 0
+				for i in list(result.keys()):
+					if not result[i]:
+						base = i
+						break
+				for TTI in range(base, len(result), G['K']):
+					result[TTI] = G['device'] + [device]
+
+			b_lbps_result = list(result.values())
+
+		mapping_pattern = m_2hop(device.tdd_config)
+		timeline = two_hop_realtimeline(
+			mapping_pattern,
+			simulation_time,
+			b_lbps_result,
+			a_lbps_result)
+
+		msg_warning("total awake: %d times" %\
+			(sum([1 for i in timeline['backhaul'] if i])+\
+			sum([1 for i in timeline['access'] if i])-\
+			sum([1 for i in range(len(timeline['access'])) \
+				if timeline['backhaul'][i] and timeline['access'][i]]
+		)), pre=prefix)
+
+		return timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
