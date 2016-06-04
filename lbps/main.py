@@ -12,44 +12,44 @@ PERFORMANCE = {
 	'LAMBDA':[],
 	'LOAD':[],
 	'RN-PSE':{
-		'aggr-aggr':[],
-		'split-aggr':[],
-		'merge-aggr':[],
-		'min-aggr':[],
-		'min-split':[],
-		'merge-merge':[]
+		'TD-aggr':[],
+		'TD-split':[],
+		'TD-merge':[],
+		'BU-aggr':[],
+		'BU-split':[],
+		'BU-merge':[]
 	},
 	'UE-PSE':{
-		'aggr-aggr':[],
-		'split-aggr':[],
-		'merge-aggr':[],
-		'min-aggr':[],
-		'min-split':[],
-		'merge-merge':[]
+		'TD-aggr':[],
+		'TD-split':[],
+		'TD-merge':[],
+		'BU-aggr':[],
+		'BU-split':[],
+		'BU-merge':[]
 	},
 	'DELAY':{
-		'aggr-aggr':[],
-		'split-aggr':[],
-		'merge-aggr':[],
-		'min-aggr':[],
-		'min-split':[],
-		'merge-merge':[]
+		'TD-aggr':[],
+		'TD-split':[],
+		'TD-merge':[],
+		'BU-aggr':[],
+		'BU-split':[],
+		'BU-merge':[]
 	},
 	'PSE-FAIRNESS':{
-		'aggr-aggr':[],
-		'split-aggr':[],
-		'merge-aggr':[],
-		'min-aggr':[],
-		'min-split':[],
-		'merge-merge':[]
+		'TD-aggr':[],
+		'TD-split':[],
+		'TD-merge':[],
+		'BU-aggr':[],
+		'BU-split':[],
+		'BU-merge':[]
 	},
 	'DELAY-FAIRNESS':{
-		'aggr-aggr':[],
-		'split-aggr':[],
-		'merge-aggr':[],
-		'min-aggr':[],
-		'min-split':[],
-		'merge-merge':[]
+		'TD-aggr':[],
+		'TD-split':[],
+		'TD-merge':[],
+		'BU-aggr':[],
+		'BU-split':[],
+		'BU-merge':[]
 	}
 }
 
@@ -68,12 +68,12 @@ def transmission_scheduling(base_station):
 
 		# apply LBPS
 		scheduling = {
-			'aggr-aggr': LBPS.top_down('aggr', base_station, SIMULATION_TIME),
-			'split-aggr': LBPS.top_down('split', base_station, SIMULATION_TIME),
-			'merge-aggr': LBPS.top_down('merge', base_station, SIMULATION_TIME),
-			'min-aggr': LBPS.min_aggr(base_station, SIMULATION_TIME),
-			'min-split': LBPS.min_split(base_station, SIMULATION_TIME),
-			'merge-merge': LBPS.merge_merge(base_station, SIMULATION_TIME)
+			'TD-aggr': LBPS.top_down('aggr', base_station, SIMULATION_TIME),
+			'TD-split': LBPS.top_down('split', base_station, SIMULATION_TIME),
+			'TD-merge': LBPS.top_down('merge', base_station, SIMULATION_TIME),
+			'BU-aggr': LBPS.min_aggr(base_station, SIMULATION_TIME),
+			'BU-split': LBPS.min_split(base_station, SIMULATION_TIME),
+			'BU-merge': LBPS.merge_merge(base_station, SIMULATION_TIME)
 		}
 
 		for (PS, lbps) in scheduling.items():
