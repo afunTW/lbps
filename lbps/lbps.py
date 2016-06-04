@@ -437,60 +437,6 @@ def merge(device, duplex='FDD', two_hop=False):
 [description] for two hop in TDD with multiple RN and considering different CQI
 """
 
-def top_down(b_lbps, device, simulation_time):
-	prefix = "TopDown::%s-aggr\t" % (b_lbps)
-	duplex = 'TDD'
-	lbps_scheduling = {
-		'aggr': aggr,
-		'split': split,
-		'merge': merge
-	}
-
-	try:
-		lbps_result = lbps_scheduling[b_lbps](device, duplex)
-		b_lbps_result = [[j.name for j in i] for i in lbps_result]
-		lbps_failed = access_aggr(device, lbps_result)
-		a_lbps_result = [[j.name for j in i] for i in lbps_result]
-		a_lbps_result = [list(set(a_lbps_result[i])-set(b_lbps_result[i]))\
-						for i in range(len(a_lbps_result))]
-
-		mapping_pattern = m_2hop(device.tdd_config)
-		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
-		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
-
-		timeline = two_hop_realtimeline(
-			mapping_pattern,
-			simulation_time,
-			b_lbps_result,
-			a_lbps_result)
-
-		for rn in lbps_failed:
-			for TTI in range(len(timeline['backhaul'])):
-				if device.tdd_config[TTI%10] == 'D':
-					timeline['backhaul'][TTI].append(device)
-					timeline['backhaul'][TTI].append(rn)
-				if rn.tdd_config[TTI%10] == 'D':
-					timeline['access'][TTI].append(rn)
-					timeline['access'][TTI] += rn.childs
-
-
-		for i in range(len(timeline['backhaul'])):
-			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
-			timeline['access'][i] = list(set(timeline['access'][i]))
-
-		msg_warning("total awake: %d times" %\
-			(sum([1 for i in timeline['backhaul'] if i])+\
-			sum([1 for i in timeline['access'] if i])-\
-			sum([1 for i in range(len(timeline['access'])) \
-				if timeline['backhaul'][i] and timeline['access'][i]]
-		)), pre=prefix)
-
-		return timeline
-
-	except Exception as e:
-		msg_fail(str(e), pre=prefix)
-		return
-
 def min_aggr(device, simulation_time):
 	prefix = "BottomUp::min-aggr\t"
 	duplex = 'TDD'
@@ -593,7 +539,7 @@ def min_split(device, simulation_time):
 		msg_fail(str(e), pre=prefix)
 
 def merge_merge(device, simulation_time):
-	prefix = "BottomUp::min-merge\t"
+	prefix = "BottomUp::merge-merge\t"
 	duplex = 'TDD'
 
 	try:
@@ -684,3 +630,72 @@ def merge_merge(device, simulation_time):
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
+
+def top_down(b_lbps, device, simulation_time):
+	prefix = "TopDown::%s\t" % (b_lbps)
+	duplex = 'TDD'
+	lbps_scheduling = {
+		'aggr': aggr,
+		'split': split,
+		'merge': merge
+	}
+
+	try:
+		lbps_result = lbps_scheduling[b_lbps](device, duplex)
+		b_lbps_result = [[j.name for j in i] for i in lbps_result]
+		lbps_failed = access_aggr(device, lbps_result)
+		a_lbps_result = [[j.name for j in i] for i in lbps_result]
+		a_lbps_result = [list(set(a_lbps_result[i])-set(b_lbps_result[i]))\
+						for i in range(len(a_lbps_result))]
+
+		mapping_pattern = m_2hop(device.tdd_config)
+		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
+		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
+
+		timeline = two_hop_realtimeline(
+			mapping_pattern,
+			simulation_time,
+			b_lbps_result,
+			a_lbps_result)
+
+		for rn in lbps_failed:
+			for TTI in range(len(timeline['backhaul'])):
+				if device.tdd_config[TTI%10] == 'D':
+					timeline['backhaul'][TTI].append(device)
+					timeline['backhaul'][TTI].append(rn)
+				if rn.tdd_config[TTI%10] == 'D':
+					timeline['access'][TTI].append(rn)
+					timeline['access'][TTI] += rn.childs
+
+
+		for i in range(len(timeline['backhaul'])):
+			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
+			timeline['access'][i] = list(set(timeline['access'][i]))
+
+		msg_warning("total awake: %d times" %\
+			(sum([1 for i in timeline['backhaul'] if i])+\
+			sum([1 for i in timeline['access'] if i])-\
+			sum([1 for i in range(len(timeline['access'])) \
+				if timeline['backhaul'][i] and timeline['access'][i]]
+		)), pre=prefix)
+
+		return timeline
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
+
+def bottom_up(a_lbps, device, simulation_time):
+	prefix = "BottomUp::%s\t" % (a_lbps)
+	lbps_scheduling = {
+		'aggr': min_aggr(device, simulation_time),
+		'split': min_split(device, simulation_time),
+		'merge': merge_merge(device, simulation_time)
+	}
+
+	try:
+		return lbps_scheduling
+
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
