@@ -500,7 +500,6 @@ def min_split(device, simulation_time):
 
 		# minCycle availability check
 		b_min_cycle = min([len(rn_status[i]['result']) for i in rn_status])
-		msg_warning(str(b_min_cycle),pre=prefix)
 		check_mincycle(device, rn_status, b_min_cycle)
 
 		for (rn_name, info) in rn_status.items():
@@ -632,7 +631,7 @@ def merge_merge(device, simulation_time):
 		msg_fail(str(e), pre=prefix)
 
 def top_down(b_lbps, device, simulation_time):
-	prefix = "TopDown::%s\t" % (b_lbps)
+	prefix = "TopDown::%s \t" % (b_lbps)
 	duplex = 'TDD'
 	lbps_scheduling = {
 		'aggr': aggr,
@@ -686,15 +685,15 @@ def top_down(b_lbps, device, simulation_time):
 		return
 
 def bottom_up(a_lbps, device, simulation_time):
-	prefix = "BottomUp::%s\t" % (a_lbps)
+	prefix = "BottomUp::%s \t" % (a_lbps)
 	lbps_scheduling = {
-		'aggr': min_aggr(device, simulation_time),
-		'split': min_split(device, simulation_time),
-		'merge': merge_merge(device, simulation_time)
+		'aggr': min_aggr,
+		'split': min_split,
+		'merge': merge_merge
 	}
 
 	try:
-		return lbps_scheduling
+		return lbps_scheduling[a_lbps](device, simulation_time)
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
