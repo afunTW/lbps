@@ -18,6 +18,16 @@ def transmission_scheduling(base_station, simulation_time=1000):
 	try:
 		round_para = len(str(int(simulation_time/10)))
 
+		PERFORMANCE = {
+			'LAMBDA':[],
+			'LOAD':[],
+			'RN-PSE':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'UE-PSE':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'DELAY':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'PSE-FAIRNESS':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'DELAY-FAIRNESS':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]}
+		}
+
 		# apply LBPS
 		scheduling = {
 			'TD-aggr': LBPS.top_down,
@@ -216,7 +226,7 @@ if __name__ == '__main__':
 	# case: equal load
 	iterate_times = 10
 	simulation_time = 10000
-	PERFORMANCE = {
+	equal_load_performance = {
 		'LAMBDA':[],
 		'LOAD':[],
 		'RN-PSE':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
@@ -238,7 +248,7 @@ if __name__ == '__main__':
 
 		# test lbps performance in transmission scheduling
 		performance = transmission_scheduling(base_station, simulation_time=simulation_time)
-		update_nested_dict(PERFORMANCE, performance)
+		update_nested_dict(equal_load_performance, performance)
 
-	pprint(PERFORMANCE, indent=2)
-	export_csv(performance)
+	pprint(equal_load_performance, indent=2)
+	export_csv(equal_load_performance)
