@@ -48,6 +48,7 @@ def export_csv(performance):
 
 	test_item = ['LAMBDA', 'LOAD', 'RN-PSE', 'UE-PSE',\
 		'DELAY', 'PSE-FAIRNESS', 'DELAY-FAIRNESS']
+	scheduling = list(sorted(performance['DELAY'].keys()))
 
 	perform_item = ['LAMBDA', 'LOAD']
 	for i in range(len(test_item)):
@@ -60,15 +61,16 @@ def export_csv(performance):
 	perform_subitem = ['', '']
 	for i in test_item:
 		if i != 'LAMBDA' and i != 'LOAD':
-			perform_subitem += list(performance[i].keys())
+			perform_subitem += list(sorted(performance[i].keys()))
 	output.writerow(perform_subitem)
 
 	for i in range(len(performance['LAMBDA'])):
 		perform_value = [performance['LAMBDA'][i]]
 		perform_value += [performance['LOAD'][i]]
-		test_value = [v[i] for item in test_item\
+
+		test_value = [performance[item][v] for item in test_item\
 			if item != 'LAMBDA' and item != 'LOAD'\
-			for v in performance[item].values()]
+			for v in scheduling]
 		perform_value += test_value
 		output.writerow(perform_value)
 
