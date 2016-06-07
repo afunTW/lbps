@@ -13,9 +13,10 @@ def update_nested_dict(d1, d2):
 		elif type(v) is dict:
 			update_nested_dict(d1[k], v)
 
-def transmission_scheduling(base_station, simulation_time=1000):
+def transmission_scheduling(base_station, timeline):
 	prefix = "transmissing_scheduling failed"
 	try:
+		simulation_time = len(timeline)-1
 		round_para = len(str(int(simulation_time/10)))
 
 		PERFORMANCE = {
@@ -205,11 +206,11 @@ def transmission_scheduling(base_station, simulation_time=1000):
 		msg_fail(str(e), pre=prefix)
 
 def DRX(base_station,\
+	timeline,\
 	inactivity_timer=10,\
 	short_cycle_count=1,\
 	short_cycle=80,\
 	long_cycle=320,\
-	simulation_time=1000,\
 	return_name='DRX'
 	):
 	def awake(device, status):
@@ -217,29 +218,36 @@ def DRX(base_station,\
 		status[device.name]['short_cycle_count'] = short_cycle_count
 		status[device.name]['short_cycle'] = short_cycle
 		status[device.name]['long_cycle'] = long_cycle
+		status[device.name]['off'] = False
 
 	def drx_check(device, status):
 		# awake, no data, count inactivity time
-		if status[device.name]['inactivity_time']:
+		if status[device.name]['inactivity_time'] and\
+		not status[device.name]['off']:
 			status[device.name]['inactivity_time'] -= 1
 		# sleep
 		else:
 			# short cycle
 			if status[device.name]['short_cycle_count']:
+				status[device.name]['off'] = True
 				if status[device.name]['short_cycle']:
 					status[device.name]['short_cycle'] -= 1
 					status[device.name]['sleep'] += 1
 				else:
+					status[device.name]['off'] = False
 					status[device.name]['short_cycle_count'] -= 1
 					status[device.name]['short_cycle'] = short_cycle
 			# long cycle
 			elif status[device.name]['long_cycle']:
+				status[device.name]['off'] = True
 				status[device.name]['long_cycle'] -= 1
 				status[device.name]['sleep'] += 1
 			else:
+				status[device.name]['off'] = False
 				status[device.name]['long_cycle'] = long_cycle
 
 	base_station.clearQueue()
+	simulation_time = len(timeline)-1
 	round_para = len(str(int(simulation_time/10)))
 	PERFORMANCE = {
 			'RN-PSE':{return_name:[]},
@@ -252,6 +260,7 @@ def DRX(base_station,\
 		rn.name:{
 			'inactivity_time':inactivity_timer,
 			'sleep':0,
+			'off':False,
 			'short_cycle_count': short_cycle_count,
 			'short_cycle':short_cycle*short_cycle_count,
 			'long_cycle':long_cycle}
@@ -260,6 +269,7 @@ def DRX(base_station,\
 		ue.name:{
 			'inactivity_time':inactivity_timer,
 			'sleep':0,
+			'off':False,
 			'delay':0,
 			'short_cycle_count': short_cycle_count,
 			'short_cycle':short_cycle,
@@ -268,6 +278,7 @@ def DRX(base_station,\
 
 	msg_success("==========\t\t%s simulation with lambda %g Mbps start\t\t=========="%\
 					(return_name, base_station.lambd['backhaul']))
+
 	for TTI in range(simulation_time):
 
 		# check the arrival pkt from internet
@@ -280,45 +291,52 @@ def DRX(base_station,\
 
 			# check backhaul
 			if base_station.tdd_config[TTI%10] == 'D' and\
-			base_station.queue['backhaul'][rn.name]:
+			base_station.queue['backhaul'][rn.name] and\
+			not status[rn.name]['off']:
 				transmission = True
 				awake(rn, status)
 				available_cap = rn.capacity['backhaul']
+				pass_pkt = []
 
 				for pkt in base_station.queue['backhaul'][rn.name]:
 					if available_cap >= pkt['size']:
 						rn.queue['backhaul'].append(pkt)
+						pass_pkt.append(pkt)
 						available_cap -= pkt['size']
 					else:
 						break
+
+				for pkt in base_station.queue['backhaul'][rn.name]:
+					base_station.queue['backhaul'][rn.name].remove(pkt)
 			else:
 				drx_check(rn, status)
 
 			# check access
 			if rn.tdd_config[TTI%10] == 'D' and\
 			not transmission and\
+			not status[rn.name]['off'] and\
 			rn.queue['backhaul']:
 				available_cap = rn.capacity['access']
 				pass_pkt = []
-
+				rcv_ue = []
 				for pkt in rn.queue['backhaul']:
 					if available_cap >= pkt['size']:
-						pass_pkt.append(pkt)
-						available_cap -= pkt['size']
+						if not status[pkt['device'].name]['off']:
+							awake(pkt['device'], status)
+							rn.queue['access'][pkt['device'].name].append(pkt)
+							status[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
+							available_cap -= pkt['size']
+
+							rcv_ue.append(pkt['device'])
+							pass_pkt.append(pkt)
 					else:
 						break
 
-				pass_pkt_name = [pkt['device'].name for pkt in pass_pkt]
+				for pkt in pass_pkt:
+					rn.queue['backhaul'].remove(pkt)
 
 				for ue in rn.childs:
-					if ue.name in pass_pkt_name:
-						awake(ue, status)
-						for pkt in pass_pkt:
-							if pkt['device'].name == ue.name:
-								rn.queue['access'][ue.name].append(pkt)
-								status[ue.name]['delay'] += TTI-pkt['arrival_time']
-								rn.queue['backhaul'].remove(pkt)
-					else:
+					if ue not in rcv_ue:
 						drx_check(ue, status)
 
 	# test
@@ -327,12 +345,10 @@ def DRX(base_station,\
 	for i in base_station.childs:
 		print(i.name, end='\t')
 		msg_execute("CQI= %d" % i.CQI, end='\t\t')
-		msg_execute("sleep: %d times" % status[i.name]['sleep'])
+		msg_execute("total ue sleep: %d times" %\
+			sum([status[ue.name]['sleep'] for ue in i.childs]))
 
-	msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
-					(return_name, base_station.lambd['backhaul']))
-
-	# performance
+	performance
 	rn_pse = [status[rn.name]['sleep']/simulation_time\
 	for rn in base_station.childs]
 	ue_pse = [status[ue.name]['sleep']/simulation_time\
@@ -351,6 +367,9 @@ def DRX(base_station,\
 	PERFORMANCE['DELAY-FAIRNESS'][return_name].append(round(\
 		sum(ue_delay)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_delay]))
 		,round_para))
+
+	msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
+					(return_name, base_station.lambd['backhaul']))
 
 	return PERFORMANCE
 
@@ -378,7 +397,7 @@ if __name__ == '__main__':
 
 	# case: equal load
 	iterate_times = 10
-	simulation_time = 1000
+	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
 	equal_load_performance = {
 		'LAMBDA':[],
@@ -415,14 +434,22 @@ if __name__ == '__main__':
 		timeline = base_station.simulate_timeline(simulation_time)
 		base_station.choose_tdd_config(timeline, fixed=17)
 
-		# # test lbps performance in transmission scheduling
-		# performance = transmission_scheduling(base_station, simulation_time=simulation_time)
-		# update_nested_dict(equal_load_performance, performance)
+		# test lbps performance in transmission scheduling
+		performance = transmission_scheduling(base_station, timeline)
+		update_nested_dict(equal_load_performance, performance)
 
 		# test long_DRX
 		performance = DRX(base_station,\
-			simulation_time=simulation_time,\
+			timeline,\
 			return_name="l_DRX")
+		update_nested_dict(equal_load_performance, performance)
+
+		# performance = DRX(base_station,\
+		# 	timeline,\
+		# 	short_cycle=40,\
+		# 	long_cycle=160,\
+		# 	return_name="s_DRX")
+		performance - DRX(base_station, timeline, inactivity_timer=5)
 		update_nested_dict(equal_load_performance, performance)
 
 		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
