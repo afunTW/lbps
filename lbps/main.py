@@ -449,7 +449,7 @@ if __name__ == '__main__':
 		# 	short_cycle=40,\
 		# 	long_cycle=160,\
 		# 	return_name="s_DRX")
-		performance - DRX(base_station, timeline, inactivity_timer=5)
+		performance = DRX(base_station, timeline, inactivity_timer=5)
 		update_nested_dict(equal_load_performance, performance)
 
 		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
