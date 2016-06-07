@@ -25,7 +25,7 @@ Both of backhaul link and access link used wideband CQI reporting.
 
 The range of CQI in each backhaul link is 10 to 15 and the range of CQI in each access link is 7 to 15. All of UEs will randomized the CQI and do reporting to RN, in the other hand, RNs will randomized the CQI and do reporting to DeNB.
 
-# Problem
+## Problem
 
 **LBPS in Time-Division-Duplex(TDD) mode**
 
@@ -38,7 +38,7 @@ The range of CQI in each backhaul link is 10 to 15 and the range of CQI in each 
 > * backhaul TDD configuration
 > * access TDD configuration
 
-# Algorithm
+## Algorithm
 
 * Top-Down
 > * aggr-aggr
