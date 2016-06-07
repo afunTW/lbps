@@ -19,11 +19,21 @@ def transmission_scheduling(base_station, simulation_time=1000):
 		round_para = len(str(int(simulation_time/10)))
 
 		PERFORMANCE = {
-			'RN-PSE':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
-			'UE-PSE':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
-			'DELAY':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
-			'PSE-FAIRNESS':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]},
-			'DELAY-FAIRNESS':{'TD-aggr':[],'TD-split':[],'TD-merge':[],'BU-aggr':[],'BU-split':[],'BU-merge':[]}
+			'RN-PSE':{
+				'TD-aggr':[],'TD-split':[],'TD-merge':[],\
+				'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'UE-PSE':{
+				'TD-aggr':[],'TD-split':[],'TD-merge':[],\
+				'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'DELAY':{
+				'TD-aggr':[],'TD-split':[],'TD-merge':[],\
+				'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'PSE-FAIRNESS':{
+				'TD-aggr':[],'TD-split':[],'TD-merge':[],\
+				'BU-aggr':[],'BU-split':[],'BU-merge':[]},
+			'DELAY-FAIRNESS':{
+				'TD-aggr':[],'TD-split':[],'TD-merge':[],\
+				'BU-aggr':[],'BU-split':[],'BU-merge':[]}
 		}
 
 		# apply LBPS
@@ -164,30 +174,27 @@ def transmission_scheduling(base_station, simulation_time=1000):
 				msg_warning("force awake in backhaul: %d times" % performance[i.name]['force-awake']['backhaul'], end='\t')
 				msg_warning("force awake in access: %d times" % performance[i.name]['force-awake']['access'])
 
-			# performance output
-			ue_name = [ue.name for rn in base_station.childs for ue in rn.childs]
-			deliver_pkt = [len(rn.queue['access'][ue.name]) for rn in base_station.childs for ue in rn.childs]
-			total_ue_pse = sum([performance[ue]['sleep'] for ue in ue_name])/simulation_time
-			total_rn_pse = sum([performance[rn.name]['sleep'] for rn in base_station.childs])/simulation_time
-			total_delay = sum([performance[ue]['delay'] for ue in ue_name])
+			# performance
+			rn_pse = [performance[rn.name]['sleep']/simulation_time\
+			for rn in base_station.childs]
+			ue_pse = [performance[ue.name]['sleep']/simulation_time\
+			for rn in base_station.childs for ue in rn.childs]
+			ue_delay = [performance[ue.name]['delay']\
+			for rn in base_station.childs for ue in rn.childs]
+			deliver_pkt = [len(rn.queue['access'][ue.name])\
+			for rn in base_station.childs for ue in rn.childs]
 
-			ue_pse = round(total_ue_pse/NUMBER_OF_UE, round_para)
-			rn_pse = round(total_rn_pse/NUMBER_OF_RN, round_para)
-			avg_delay = round(total_delay/sum(deliver_pkt), round_para)
-
-			PERFORMANCE['UE-PSE'][PS].append(ue_pse)
-			PERFORMANCE['RN-PSE'][PS].append(rn_pse)
-			PERFORMANCE['DELAY'][PS].append(avg_delay)
+			PERFORMANCE['RN-PSE'][PS].append(round(sum(rn_pse)/NUMBER_OF_RN ,round_para))
+			PERFORMANCE['UE-PSE'][PS].append(round(sum(ue_pse)/NUMBER_OF_UE, round_para))
+			PERFORMANCE['DELAY'][PS].append(round(sum(ue_delay)/sum(deliver_pkt), round_para))
 			PERFORMANCE['PSE-FAIRNESS'][PS].append(round(\
-				total_ue_pse**2/\
-				(NUMBER_OF_UE*sum([(performance[ue]['sleep']/simulation_time)**2 for ue in ue_name]))\
-				,round_para
-			))
+				sum(ue_pse)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_pse])),\
+				round_para
+				))
 			PERFORMANCE['DELAY-FAIRNESS'][PS].append(round(\
-				total_delay**2/\
-				(NUMBER_OF_UE*sum([performance[ue]['delay']**2 for ue in ue_name]))\
-				, round_para
-			))
+				sum(ue_delay)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_delay])),\
+				round_para
+				))
 
 			msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
 					(PS, base_station.lambd['backhaul']))
@@ -371,7 +378,7 @@ if __name__ == '__main__':
 
 	# case: equal load
 	iterate_times = 10
-	simulation_time = 10000
+	simulation_time = 1000
 	round_para = len(str(int(simulation_time/10)))
 	equal_load_performance = {
 		'LAMBDA':[],
@@ -408,22 +415,14 @@ if __name__ == '__main__':
 		timeline = base_station.simulate_timeline(simulation_time)
 		base_station.choose_tdd_config(timeline, fixed=17)
 
-		# test lbps performance in transmission scheduling
-		performance = transmission_scheduling(base_station, simulation_time=simulation_time)
-		update_nested_dict(equal_load_performance, performance)
+		# # test lbps performance in transmission scheduling
+		# performance = transmission_scheduling(base_station, simulation_time=simulation_time)
+		# update_nested_dict(equal_load_performance, performance)
 
 		# test long_DRX
 		performance = DRX(base_station,\
 			simulation_time=simulation_time,\
 			return_name="l_DRX")
-		update_nested_dict(equal_load_performance, performance)
-
-		# test short DRX
-		performance = DRX(base_station,\
-			short_cycle=40,\
-			long_cycle=160,\
-			simulation_time=simulation_time,\
-			return_name="s_DRX")
 		update_nested_dict(equal_load_performance, performance)
 
 		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
