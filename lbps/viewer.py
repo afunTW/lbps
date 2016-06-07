@@ -68,7 +68,7 @@ def export_csv(performance):
 		perform_value = [performance['LAMBDA'][i]]
 		perform_value += [performance['LOAD'][i]]
 
-		test_value = [performance[item][v] for item in test_item\
+		test_value = [performance[item][v][i] for item in test_item\
 			if item != 'LAMBDA' and item != 'LOAD'\
 			for v in scheduling]
 		perform_value += test_value
