@@ -287,13 +287,11 @@ def DRX(base_station,\
 				base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
 
 		for rn in base_station.childs:
-			transmission = False
 
 			# check backhaul
 			if base_station.tdd_config[TTI%10] == 'D' and\
 			base_station.queue['backhaul'][rn.name] and\
 			not status[rn.name]['off']:
-				transmission = True
 				awake(rn, status)
 				available_cap = rn.capacity['backhaul']
 				pass_pkt = []
@@ -308,12 +306,9 @@ def DRX(base_station,\
 
 				for pkt in base_station.queue['backhaul'][rn.name]:
 					base_station.queue['backhaul'][rn.name].remove(pkt)
-			else:
-				drx_check(rn, status)
 
 			# check access
-			if rn.tdd_config[TTI%10] == 'D' and\
-			not transmission and\
+			elif rn.tdd_config[TTI%10] == 'D' and\
 			not status[rn.name]['off'] and\
 			rn.queue['backhaul']:
 				available_cap = rn.capacity['access']
@@ -338,6 +333,11 @@ def DRX(base_station,\
 				for ue in rn.childs:
 					if ue not in rcv_ue:
 						drx_check(ue, status)
+
+			else:
+				drx_check(rn, status)
+				for ue in rn.childs:
+					drx_check(ue, status)
 
 	# test
 	print(base_station.name, end='\t')
@@ -405,23 +405,23 @@ if __name__ == '__main__':
 		'RN-PSE':{
 			'TD-aggr':[],'TD-split':[],'TD-merge':[],\
 			'BU-aggr':[],'BU-split':[],'BU-merge':[],\
-			's_DRX':[],'l_DRX':[]},
+			'Std-DRX-1':[],'Std-DRX-2':[]},
 		'UE-PSE':{
 			'TD-aggr':[],'TD-split':[],'TD-merge':[],\
 			'BU-aggr':[],'BU-split':[],'BU-merge':[],\
-			's_DRX':[],'l_DRX':[]},
+			'Std-DRX-1':[],'Std-DRX-2':[]},
 		'DELAY':{
 			'TD-aggr':[],'TD-split':[],'TD-merge':[],\
 			'BU-aggr':[],'BU-split':[],'BU-merge':[],\
-			's_DRX':[],'l_DRX':[]},
+			'Std-DRX-1':[],'Std-DRX-2':[]},
 		'PSE-FAIRNESS':{
 			'TD-aggr':[],'TD-split':[],'TD-merge':[],\
 			'BU-aggr':[],'BU-split':[],'BU-merge':[],\
-			's_DRX':[],'l_DRX':[]},
+			'Std-DRX-1':[],'Std-DRX-2':[]},
 		'DELAY-FAIRNESS':{
 			'TD-aggr':[],'TD-split':[],'TD-merge':[],\
 			'BU-aggr':[],'BU-split':[],'BU-merge':[],\
-			's_DRX':[],'l_DRX':[]}
+			'Std-DRX-1':[],'Std-DRX-2':[]}
 	}
 
 	for i in range(iterate_times):
@@ -438,18 +438,18 @@ if __name__ == '__main__':
 		performance = transmission_scheduling(base_station, timeline)
 		update_nested_dict(equal_load_performance, performance)
 
-		# test long_DRX
+		# test short DRX
 		performance = DRX(base_station,\
 			timeline,\
-			return_name="l_DRX")
+			short_cycle=40,\
+			long_cycle=160,\
+			return_name="Std-DRX-1")
 		update_nested_dict(equal_load_performance, performance)
 
-		# performance = DRX(base_station,\
-		# 	timeline,\
-		# 	short_cycle=40,\
-		# 	long_cycle=160,\
-		# 	return_name="s_DRX")
-		performance = DRX(base_station, timeline, inactivity_timer=5)
+		# test longDRX
+		performance = DRX(base_station,\
+			timeline,\
+			return_name="Std-DRX-2")
 		update_nested_dict(equal_load_performance, performance)
 
 		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])

@@ -41,9 +41,9 @@ def show_sleepCycle(device, pre='', suf='', end='\n'):
 		else:
 			msg_execute("%s.sleepCycle = %d" % (j.name, i.sleepCycle), pre=pre, suf=suf)
 
-def export_csv(performance):
-
-	outfile = open("LBPS.csv", 'w')
+def export_csv(performance, filename='LBPS'):
+	filename = filename+".csv"
+	outfile = open(filename, 'w')
 	output = csv.writer(outfile)
 
 	test_item = ['LAMBDA', 'LOAD', 'RN-PSE', 'UE-PSE',\
