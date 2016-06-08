@@ -2,6 +2,7 @@
 
 from __init__ import *
 from pprint import pprint
+from datetime import datetime
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
@@ -376,6 +377,8 @@ def DRX(base_station,\
 
 if __name__ == '__main__':
 
+	start_time = datetime.now()
+
 	# create device instance
 	base_station = eNB()
 	relays = [RN() for i in range(NUMBER_OF_RN)]
@@ -454,6 +457,11 @@ if __name__ == '__main__':
 
 		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
 		equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		processing_time = "processing time: {}".format(datetime.now()-start_time)
+		msg_warning(processing_time)
 
 	pprint(equal_load_performance, indent=2)
-	export_csv(equal_load_performance)
+	export_csv(equal_load_performance, filename="equal_load_10000")
+
+	processing_time = "processing time: {}".format(datetime.now()-start_time)
+	msg_success(processing_time)
