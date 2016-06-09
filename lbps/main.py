@@ -349,7 +349,7 @@ def DRX(base_station,\
 		msg_execute("total ue sleep: %d times" %\
 			sum([status[ue.name]['sleep'] for ue in i.childs]))
 
-	performance
+	# performance
 	rn_pse = [status[rn.name]['sleep']/simulation_time\
 	for rn in base_station.childs]
 	ue_pse = [status[ue.name]['sleep']/simulation_time\
@@ -378,31 +378,7 @@ def DRX(base_station,\
 if __name__ == '__main__':
 
 	start_time = datetime.now()
-
-	# create device instance
-	base_station = eNB()
-	relays = [RN() for i in range(NUMBER_OF_RN)]
-	users = [UE() for i in range(NUMBER_OF_UE)]
-
-	# assign the relationship and CQI
-	base_station.childs = relays
-	for i in range(len(relays)):
-		relays[i].childs = users[i*40:i*40+40]
-		relays[i].parent = base_station
-		relays[i].CQI = ['H']
-		for j in range(i*40, i*40+40):
-			users[j].parent = relays[i]
-			users[j].CQI = ['M', 'H']
-
-	# build up the bearer from parent to child
-	for i in base_station.childs:
-		base_station.connect(i, status='D', interface='backhaul', bandwidth=BANDWIDTH, flow='VoIP')
-
-	# case: equal load
-	iterate_times = 10
-	simulation_time = 10000
-	round_para = len(str(int(simulation_time/10)))
-	equal_load_performance = {
+	performance = {
 		'LAMBDA':[],
 		'LOAD':[],
 		'RN-PSE':{
@@ -427,12 +403,40 @@ if __name__ == '__main__':
 			'Std-DRX-1':[],'Std-DRX-2':[]}
 	}
 
+
+	"""[summary] Case: equal load
+
+	"""
+	# create device instance
+	base_station = eNB()
+	relays = [RN() for i in range(NUMBER_OF_RN)]
+	users = [UE() for i in range(NUMBER_OF_UE)]
+
+	# assign the relationship and CQI
+	base_station.childs = relays
+	for i in range(len(relays)):
+		relays[i].childs = users[i*40:i*40+40]
+		relays[i].parent = base_station
+		relays[i].CQI = ['H']
+		for j in range(i*40, i*40+40):
+			users[j].parent = relays[i]
+			users[j].CQI = ['M', 'H']
+
+	# build up the bearer from parent to child
+	for i in base_station.childs:
+		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
+
+	iterate_times = 10
+	simulation_time = 10000
+	round_para = len(str(int(simulation_time/10)))
+	equal_load_performance = copy.deepcopy(performance)
+
 	for i in range(iterate_times):
 
 		# increase lambda
 		for rn in base_station.childs:
 			for ue in rn.childs:
-				rn.connect(ue, status='D', interface='access', bandwidth=BANDWIDTH, flow='VoIP')
+				rn.connect(ue, interface='access', bandwidth=BANDWIDTH)
 
 		timeline = base_station.simulate_timeline(simulation_time)
 		base_station.choose_tdd_config(timeline, fixed=17)
@@ -461,7 +465,81 @@ if __name__ == '__main__':
 		msg_warning(processing_time)
 
 	pprint(equal_load_performance, indent=2)
-	export_csv(equal_load_performance, filename="equal_load_10000")
+	export_csv(equal_load_performance, filename="equal_load")
+
+	processing_time = "processing time: {}".format(datetime.now()-start_time)
+	msg_success(processing_time)
+
+	"""[summary] Case: 8:2 load
+
+	"""
+	# create device instance
+	base_station = eNB()
+	relays = [RN() for i in range(NUMBER_OF_RN)]
+	users = [UE() for i in range(NUMBER_OF_UE)]
+
+	# assign the relationship and CQI
+	base_station.childs = relays
+	for i in range(2):
+		relays[i].childs = users[i*96:i*96+96]
+		relays[i].parent = base_station
+		relays[i].CQI = ['H']
+		for j in range(i*96, i*96+96):
+			users[j].parent = relays[i]
+			users[j].CQI = ['M', 'H']
+
+	for i in range(len(relays)-2):
+		relays[i+2].childs = users[192+i*12:192+i*12+12]
+		relays[i+2].parent = base_station
+		relays[i+2].CQI = ['H']
+		for j in range(192+i*12, 192+i*12+12):
+			users[j].parent = relays[i+2]
+			users[j].CQI = ['M', 'H']
+
+	# build up the bearer from parent to child
+	for i in base_station.childs:
+		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
+
+	iterate_times = 10
+	simulation_time = 10000
+	round_para = len(str(int(simulation_time/10)))
+	hot_spot_performance = copy.deepcopy(performance)
+
+	for i in range(iterate_times):
+
+		# increase lambda
+		for rn in base_station.childs:
+			for ue in rn.childs:
+				rn.connect(ue, interface='access', bandwidth=BANDWIDTH)
+
+		timeline = base_station.simulate_timeline(simulation_time)
+		base_station.choose_tdd_config(timeline, fixed=17)
+
+		# test lbps performance in transmission scheduling
+		performance = transmission_scheduling(base_station, timeline)
+		update_nested_dict(hot_spot_performance, performance)
+
+		# test short DRX
+		performance = DRX(base_station,\
+			timeline,\
+			short_cycle=40,\
+			long_cycle=160,\
+			return_name="Std-DRX-1")
+		update_nested_dict(hot_spot_performance, performance)
+
+		# test longDRX
+		performance = DRX(base_station,\
+			timeline,\
+			return_name="Std-DRX-2")
+		update_nested_dict(hot_spot_performance, performance)
+
+		hot_spot_performance['LAMBDA'].append(base_station.lambd['backhaul'])
+		hot_spot_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		processing_time = "processing time: {}".format(datetime.now()-start_time)
+		msg_warning(processing_time)
+
+	pprint(hot_spot_performance, indent=2)
+	export_csv(hot_spot_performance, filename="hot_spot")
 
 	processing_time = "processing time: {}".format(datetime.now()-start_time)
 	msg_success(processing_time)
