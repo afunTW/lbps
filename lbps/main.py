@@ -214,7 +214,7 @@ def DRX(base_station,\
 	long_cycle=320,\
 	return_name='DRX'
 	):
-	def awake(device, status):
+	def reset(device, status):
 		status[device.name]['inactivity_time'] = inactivity_timer
 		status[device.name]['short_cycle_count'] = short_cycle_count
 		status[device.name]['short_cycle'] = short_cycle
@@ -299,7 +299,7 @@ def DRX(base_station,\
 			# check backhaul
 			if base_station.tdd_config[TTI%10] == 'D' and\
 			base_station.queue['backhaul'][rn.name]:
-				awake(rn, status)
+				reset(rn, status)
 				available_cap = rn.capacity['backhaul']
 				pass_pkt = []
 
@@ -322,7 +322,7 @@ def DRX(base_station,\
 				for pkt in rn.queue['backhaul']:
 					if available_cap >= pkt['size']:
 						if not status[pkt['device'].name]['off']:
-							awake(pkt['device'], status)
+							reset(pkt['device'], status)
 							rn.queue['access'][pkt['device'].name].append(pkt)
 							status[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
 							available_cap -= pkt['size']
