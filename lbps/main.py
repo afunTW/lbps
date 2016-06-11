@@ -305,7 +305,7 @@ def DRX(base_station,\
 					else:
 						break
 
-				for pkt in base_station.queue['backhaul'][rn.name]:
+				for pkt in pass_pkt:
 					base_station.queue['backhaul'][rn.name].remove(pkt)
 
 			# check access
