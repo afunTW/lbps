@@ -322,7 +322,6 @@ def DRX(base_station,\
 				for pkt in rn.queue['backhaul']:
 					if available_cap >= pkt['size']:
 						if not status[pkt['device'].name]['off']:
-							reset(pkt['device'], status)
 							rn.queue['access'][pkt['device'].name].append(pkt)
 							status[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
 							available_cap -= pkt['size']
@@ -336,8 +335,8 @@ def DRX(base_station,\
 					rn.queue['backhaul'].remove(pkt)
 
 				for ue in rn.childs:
-					if ue not in rcv_ue:
-						drx_check(ue, status)
+					ue not in rcv_ue and drx_check(ue, status)
+					ue in rcv_ue and reset(ue, status)
 
 			else:
 				drx_check(rn, status)
