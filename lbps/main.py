@@ -289,10 +289,16 @@ def DRX(base_station,\
 
 		for rn in base_station.childs:
 
+			if rn.tdd_config[TTI%10] != 'D' or\
+			status[rn.name]['off']:
+				drx_check(rn, status)
+				for ue in rn.childs:
+					drx_check(ue, status)
+				continue
+
 			# check backhaul
 			if base_station.tdd_config[TTI%10] == 'D' and\
-			base_station.queue['backhaul'][rn.name] and\
-			not status[rn.name]['off']:
+			base_station.queue['backhaul'][rn.name]:
 				awake(rn, status)
 				available_cap = rn.capacity['backhaul']
 				pass_pkt = []
@@ -309,9 +315,7 @@ def DRX(base_station,\
 					base_station.queue['backhaul'][rn.name].remove(pkt)
 
 			# check access
-			elif rn.tdd_config[TTI%10] == 'D' and\
-			not status[rn.name]['off'] and\
-			rn.queue['backhaul']:
+			elif rn.queue['backhaul']:
 				available_cap = rn.capacity['access']
 				pass_pkt = []
 				rcv_ue = []
