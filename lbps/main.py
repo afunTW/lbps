@@ -382,7 +382,7 @@ def DRX(base_station,\
 if __name__ == '__main__':
 
 	start_time = datetime.now()
-	performance = {
+	performance_list = {
 		'LAMBDA':[],
 		'LOAD':[],
 		'RN-PSE':{
@@ -433,7 +433,7 @@ if __name__ == '__main__':
 	iterate_times = 10
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
-	equal_load_performance = copy.deepcopy(performance)
+	equal_load_performance = copy.deepcopy(performance_list)
 
 	for i in range(iterate_times):
 
@@ -507,7 +507,8 @@ if __name__ == '__main__':
 	iterate_times = 10
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
-	hot_spot_performance = copy.deepcopy(performance)
+	hot_spot_performance = copy.deepcopy(performance_list)
+	pprint(hot_spot_performance)
 
 	for i in range(iterate_times):
 
