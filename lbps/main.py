@@ -507,7 +507,6 @@ if __name__ == '__main__':
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
 	hot_spot_performance = copy.deepcopy(performance_list)
-	pprint(hot_spot_performance)
 
 	for i in range(iterate_times):
 
