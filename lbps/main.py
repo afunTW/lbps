@@ -463,7 +463,7 @@ if __name__ == '__main__':
 		update_nested_dict(equal_load_performance, performance)
 
 		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
-		equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station), round_para))
 		processing_time = "processing time: {}".format(datetime.now()-start_time)
 		msg_warning(processing_time)
 
@@ -537,7 +537,7 @@ if __name__ == '__main__':
 		update_nested_dict(hot_spot_performance, performance)
 
 		hot_spot_performance['LAMBDA'].append(base_station.lambd['backhaul'])
-		hot_spot_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		hot_spot_performance['LOAD'].append(round(LBPS.getLoad(base_station), round_para))
 		processing_time = "processing time: {}".format(datetime.now()-start_time)
 		msg_warning(processing_time)
 
