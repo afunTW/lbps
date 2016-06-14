@@ -429,7 +429,7 @@ if __name__ == '__main__':
 	for i in base_station.childs:
 		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
 
-	iterate_times = 10
+	iterate_times = 12
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
 	equal_load_performance = copy.deepcopy(performance_list)
@@ -451,14 +451,15 @@ if __name__ == '__main__':
 		# test short DRX
 		performance = DRX(base_station,\
 			timeline,\
-			short_cycle=40,\
-			long_cycle=160,\
+			inactivity_timer=40,\
 			return_name="Std-DRX-1")
 		update_nested_dict(equal_load_performance, performance)
 
 		# test longDRX
 		performance = DRX(base_station,\
 			timeline,\
+			inactivity_timer=40,\
+			short_cycle=160,\
 			return_name="Std-DRX-2")
 		update_nested_dict(equal_load_performance, performance)
 
@@ -503,7 +504,7 @@ if __name__ == '__main__':
 	for i in base_station.childs:
 		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
 
-	iterate_times = 10
+	iterate_times = 12
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
 	hot_spot_performance = copy.deepcopy(performance_list)
@@ -525,14 +526,15 @@ if __name__ == '__main__':
 		# test short DRX
 		performance = DRX(base_station,\
 			timeline,\
-			short_cycle=40,\
-			long_cycle=160,\
+			inactivity_timer=40,\
 			return_name="Std-DRX-1")
 		update_nested_dict(hot_spot_performance, performance)
 
 		# test longDRX
 		performance = DRX(base_station,\
 			timeline,\
+			inactivity_timer=40,\
+			short_cycle=160,\
 			return_name="Std-DRX-2")
 		update_nested_dict(hot_spot_performance, performance)
 
