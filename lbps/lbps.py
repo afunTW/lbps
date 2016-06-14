@@ -227,6 +227,18 @@ def allocate_mincycle_access(rn_status, b_min_cycle):
 			a_lbps_result = [i+[info['device']]+info['device'].childs for i in a_lbps_result]
 	return a_lbps_result
 
+def get_sleep_cycle(device, b_lbps_result, a_lbps_result):
+	return {
+		'RN':[\
+			len(b_lbps_result)/\
+			sum([1 for TTI in b_lbps_result if rn in TTI])\
+			for rn in device.childs],
+		'UE':[\
+			len(a_lbps_result)/\
+			sum([1 for TTI in a_lbps_result if ue in TTI ])\
+			for rn in device.childs for ue in rn.childs]
+	}
+
 """[summary] original lbps algorithm
 
 [description] for one-hop in FDD
@@ -437,7 +449,7 @@ def merge(device, duplex='FDD', two_hop=False):
 [description] for two hop in TDD with multiple RN and considering different CQI
 """
 
-def min_aggr(device, simulation_time):
+def min_aggr(device, simulation_time, check_K=False):
 	prefix = "BottomUp::min-aggr\t"
 	duplex = 'TDD'
 
@@ -463,6 +475,9 @@ def min_aggr(device, simulation_time):
 		# access scheduling and scheduliability check
 		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
 
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
@@ -482,7 +497,7 @@ def min_aggr(device, simulation_time):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 
-def min_split(device, simulation_time):
+def min_split(device, simulation_time, check_K=False):
 	prefix = "BottomUp::min-split\t"
 	duplex = 'TDD'
 
@@ -518,6 +533,9 @@ def min_split(device, simulation_time):
 		# access scheduling and scheduliability check
 		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
 
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
@@ -537,7 +555,7 @@ def min_split(device, simulation_time):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 
-def merge_merge(device, simulation_time):
+def merge_merge(device, simulation_time, check_K=False):
 	prefix = "BottomUp::merge-merge\t"
 	duplex = 'TDD'
 
@@ -611,6 +629,9 @@ def merge_merge(device, simulation_time):
 
 			b_lbps_result = list(result.values())
 
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
@@ -630,7 +651,7 @@ def merge_merge(device, simulation_time):
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 
-def top_down(b_lbps, device, simulation_time):
+def top_down(b_lbps, device, simulation_time, check_K=False):
 	prefix = "TopDown::%s \t" % (b_lbps)
 	duplex = 'TDD'
 	lbps_scheduling = {
@@ -650,6 +671,9 @@ def top_down(b_lbps, device, simulation_time):
 		mapping_pattern = m_2hop(device.tdd_config)
 		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
 		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
+
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
 
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
@@ -684,7 +708,7 @@ def top_down(b_lbps, device, simulation_time):
 		msg_fail(str(e), pre=prefix)
 		return
 
-def bottom_up(a_lbps, device, simulation_time):
+def bottom_up(a_lbps, device, simulation_time, check_K=False):
 	prefix = "BottomUp::%s \t" % (a_lbps)
 	lbps_scheduling = {
 		'aggr': min_aggr,
@@ -693,7 +717,7 @@ def bottom_up(a_lbps, device, simulation_time):
 	}
 
 	try:
-		return lbps_scheduling[a_lbps](device, simulation_time)
+		return lbps_scheduling[a_lbps](device, simulation_time, check_K)
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
