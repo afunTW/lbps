@@ -75,3 +75,30 @@ def export_csv(performance, filename='LBPS'):
 		output.writerow(perform_value)
 
 	outfile.close()
+
+def export_sleep_cycle(device, sc, filename='sleep_cycle'):
+	filename = filename+".csv"
+	outfile = open(filename, 'w')
+	output = csv.writer(outfile)
+
+	d_list = {rn.name:[ue.name for ue in rn.childs] for rn in device.childs}
+	LBPS = [i for i in sc.keys() if i != 'LAMBDA' and i != 'LOAD']
+
+	for PS in LBPS:
+		output.writerow(['LAMBDA', 'LOAD', PS])
+		output.writerow(['','']+list(sorted(sc[PS]['RN'].keys())))
+		for counter, k in enumerate(sc['LAMBDA']):
+			rn_k = [k]
+			rn_k.append(sc['LOAD'][counter])
+			rn_k += [sc[PS]['RN'][i][counter] for i in list(sorted(sc[PS]['RN'].keys()))]
+			output.writerow(rn_k)
+
+		output.writerow(['LAMBDA', 'LOAD', PS])
+		output.writerow(['','']+list(sorted(sc[PS]['UE'].keys())))
+		for counter, k in enumerate(sc['LAMBDA']):
+			ue_k = [k]
+			ue_k.append(sc['LOAD'][counter])
+			ue_k += [sc[PS]['UE'][i][counter] for i in list(sorted(sc[PS]['UE'].keys()))]
+			output.writerow(ue_k)
+
+	outfile.close()
