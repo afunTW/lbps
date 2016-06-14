@@ -229,14 +229,12 @@ def allocate_mincycle_access(rn_status, b_min_cycle):
 
 def get_sleep_cycle(device, b_lbps_result, a_lbps_result):
 	return {
-		'RN':[\
-			len(b_lbps_result)/\
-			sum([1 for TTI in b_lbps_result if rn in TTI])\
-			for rn in device.childs],
-		'UE':[\
-			len(a_lbps_result)/\
-			sum([1 for TTI in a_lbps_result if ue in TTI ])\
-			for rn in device.childs for ue in rn.childs]
+		'RN':{rn.name:\
+			[len(b_lbps_result)/sum([1 for TTI in b_lbps_result if rn in TTI])]\
+			for rn in device.childs},
+		'UE':{ue.name:\
+			[len(a_lbps_result)/sum([1 for TTI in a_lbps_result if ue in TTI ])]\
+			for rn in device.childs for ue in rn.childs}
 	}
 
 """[summary] original lbps algorithm
@@ -672,6 +670,14 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
 		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
 
+		for rn in lbps_failed:
+			for TTI in b_lbps_result:
+				TTI.append(device)
+				TTI.append(rn)
+			for TTI in a_lbps_result:
+				TTI.append(rn)
+				TTI += rn.childs
+
 		if check_K:
 			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
 
@@ -680,16 +686,6 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 			simulation_time,
 			b_lbps_result,
 			a_lbps_result)
-
-		for rn in lbps_failed:
-			for TTI in range(len(timeline['backhaul'])):
-				if device.tdd_config[TTI%10] == 'D':
-					timeline['backhaul'][TTI].append(device)
-					timeline['backhaul'][TTI].append(rn)
-				if rn.tdd_config[TTI%10] == 'D':
-					timeline['access'][TTI].append(rn)
-					timeline['access'][TTI] += rn.childs
-
 
 		for i in range(len(timeline['backhaul'])):
 			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
