@@ -364,13 +364,23 @@ def DRX(base_station,\
 
 	PERFORMANCE['RN-PSE'][return_name].append(round(sum(rn_pse)/NUMBER_OF_RN, round_para))
 	PERFORMANCE['UE-PSE'][return_name].append(round(sum(ue_pse)/NUMBER_OF_UE, round_para))
-	PERFORMANCE['DELAY'][return_name].append(round(sum(ue_delay)/sum(deliver_pkt), round_para))
-	PERFORMANCE['PSE-FAIRNESS'][return_name].append(round(\
-		sum(ue_pse)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_pse]))\
-		, round_para))
-	PERFORMANCE['DELAY-FAIRNESS'][return_name].append(round(\
-		sum(ue_delay)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_delay]))
-		,round_para))
+	if sum(deliver_pkt):
+		PERFORMANCE['DELAY'][return_name].append(\
+			round(sum(ue_delay)/sum(deliver_pkt), round_para))
+	else:
+		PERFORMANCE['DELAY'][return_name].append(0)
+	if sum(ue_pse):
+		PERFORMANCE['PSE-FAIRNESS'][return_name].append(round(\
+			sum(ue_pse)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_pse]))\
+			, round_para))
+	else:
+		PERFORMANCE['PSE-FAIRNESS'][return_name].append(1)
+	if sum(ue_delay):
+		PERFORMANCE['DELAY-FAIRNESS'][return_name].append(round(\
+			sum(ue_delay)**2/(NUMBER_OF_UE*sum([i**2 for i in ue_delay]))
+			,round_para))
+	else:
+		PERFORMANCE['DELAY-FAIRNESS'][return_name].append(0)
 
 	msg_success("==========\t\t%s simulation with lambda %g Mbps end\t\t=========="%\
 					(return_name, base_station.lambd['backhaul']))
