@@ -462,8 +462,8 @@ if __name__ == '__main__':
 	iterate_times = 12
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
-	equal_load_K = copy.deepcopy(K_list)
 	equal_load_performance = copy.deepcopy(performance_list)
+	# equal_load_K = copy.deepcopy(K_list)
 
 	for i in range(iterate_times):
 
@@ -475,40 +475,39 @@ if __name__ == '__main__':
 		timeline = base_station.simulate_timeline(simulation_time)
 		base_station.choose_tdd_config(timeline, fixed=17)
 
-		# tune sleep cycle for testing
-		k = get_all_sleep_cycle(base_station, simulation_time)
-		equal_load_K['LAMBDA'].append(base_station.lambd['backhaul'])
-		equal_load_K['LOAD'].append(round(LBPS.getLoad(base_station), round_para))
-		update_nested_dict(equal_load_K, k)
+		# # tune sleep cycle for testing
+		# k = get_all_sleep_cycle(base_station, simulation_time)
+		# equal_load_K['LAMBDA'].append(base_station.lambd['backhaul'])
+		# equal_load_K['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		# update_nested_dict(equal_load_K, k)
 
-	export_sleep_cycle(base_station, equal_load_K, filename='equal_load_K')
+		# test lbps performance in transmission scheduling
+		performance = transmission_scheduling(base_station, timeline)
+		update_nested_dict(equal_load_performance, performance)
 
-	# 	# test lbps performance in transmission scheduling
-	# 	performance = transmission_scheduling(base_station, timeline)
-	# 	update_nested_dict(equal_load_performance, performance)
+		# test short DRX
+		performance = DRX(base_station,\
+			timeline,\
+			inactivity_timer=40,\
+			return_name="Std-DRX-1")
+		update_nested_dict(equal_load_performance, performance)
 
-	# 	# test short DRX
-	# 	performance = DRX(base_station,\
-	# 		timeline,\
-	# 		inactivity_timer=40,\
-	# 		return_name="Std-DRX-1")
-	# 	update_nested_dict(equal_load_performance, performance)
+		# test longDRX
+		performance = DRX(base_station,\
+			timeline,\
+			inactivity_timer=40,\
+			short_cycle=160,\
+			return_name="Std-DRX-2")
+		update_nested_dict(equal_load_performance, performance)
 
-	# 	# test longDRX
-	# 	performance = DRX(base_station,\
-	# 		timeline,\
-	# 		inactivity_timer=40,\
-	# 		short_cycle=160,\
-	# 		return_name="Std-DRX-2")
-	# 	update_nested_dict(equal_load_performance, performance)
+		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
+		equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		processing_time = "processing time: {}".format(datetime.now()-start_time)
+		msg_warning(processing_time)
 
-	# 	equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
-	# 	equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station), round_para))
-	# 	processing_time = "processing time: {}".format(datetime.now()-start_time)
-	# 	msg_warning(processing_time)
-
-	# pprint(equal_load_performance, indent=2)
-	# export_csv(equal_load_performance, filename="equal_load")
+	pprint(equal_load_performance, indent=2)
+	export_csv(equal_load_performance, filename="equal_load")
+	# export_sleep_cycle(base_station, equal_load_K, filename='equal_load_K')
 
 	processing_time = "processing time: {}".format(datetime.now()-start_time)
 	msg_success(processing_time)
@@ -546,8 +545,8 @@ if __name__ == '__main__':
 	iterate_times = 12
 	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
-	hot_spot_K = copy.deepcopy(K_list)
 	hot_spot_performance = copy.deepcopy(performance_list)
+	# hot_spot_K = copy.deepcopy(K_list)
 
 	for i in range(iterate_times):
 
@@ -559,40 +558,39 @@ if __name__ == '__main__':
 		timeline = base_station.simulate_timeline(simulation_time)
 		base_station.choose_tdd_config(timeline, fixed=17)
 
-		# tune sleep cycle for testing
-		k = get_all_sleep_cycle(base_station, simulation_time)
-		hot_spot_K['LAMBDA'].append(base_station.lambd['backhaul'])
-		hot_spot_K['LOAD'].append(round(LBPS.getLoad(base_station), round_para))
-		update_nested_dict(hot_spot_K, k)
+		# # tune sleep cycle for testing
+		# k = get_all_sleep_cycle(base_station, simulation_time)
+		# hot_spot_K['LAMBDA'].append(base_station.lambd['backhaul'])
+		# hot_spot_K['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		# update_nested_dict(hot_spot_K, k)
 
-	export_sleep_cycle(base_station, equal_load_K, filename='hot_spot_K')
+		# test lbps performance in transmission scheduling
+		performance = transmission_scheduling(base_station, timeline)
+		update_nested_dict(hot_spot_performance, performance)
 
-	# 	# test lbps performance in transmission scheduling
-	# 	performance = transmission_scheduling(base_station, timeline)
-	# 	update_nested_dict(hot_spot_performance, performance)
+		# test short DRX
+		performance = DRX(base_station,\
+			timeline,\
+			inactivity_timer=40,\
+			return_name="Std-DRX-1")
+		update_nested_dict(hot_spot_performance, performance)
 
-	# 	# test short DRX
-	# 	performance = DRX(base_station,\
-	# 		timeline,\
-	# 		inactivity_timer=40,\
-	# 		return_name="Std-DRX-1")
-	# 	update_nested_dict(hot_spot_performance, performance)
+		# test longDRX
+		performance = DRX(base_station,\
+			timeline,\
+			inactivity_timer=40,\
+			short_cycle=160,\
+			return_name="Std-DRX-2")
+		update_nested_dict(hot_spot_performance, performance)
 
-	# 	# test longDRX
-	# 	performance = DRX(base_station,\
-	# 		timeline,\
-	# 		inactivity_timer=40,\
-	# 		short_cycle=160,\
-	# 		return_name="Std-DRX-2")
-	# 	update_nested_dict(hot_spot_performance, performance)
+		hot_spot_performance['LAMBDA'].append(base_station.lambd['backhaul'])
+		hot_spot_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+		processing_time = "processing time: {}".format(datetime.now()-start_time)
+		msg_warning(processing_time)
 
-	# 	hot_spot_performance['LAMBDA'].append(base_station.lambd['backhaul'])
-	# 	hot_spot_performance['LOAD'].append(round(LBPS.getLoad(base_station), round_para))
-	# 	processing_time = "processing time: {}".format(datetime.now()-start_time)
-	# 	msg_warning(processing_time)
-
-	# pprint(hot_spot_performance, indent=2)
-	# export_csv(hot_spot_performance, filename="hot_spot")
+	pprint(hot_spot_performance, indent=2)
+	export_csv(hot_spot_performance, filename="hot_spot")
+	# export_sleep_cycle(base_station, equal_load_K, filename='hot_spot_K')
 
 	processing_time = "processing time: {}".format(datetime.now()-start_time)
 	msg_success(processing_time)
