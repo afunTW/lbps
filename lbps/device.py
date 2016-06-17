@@ -91,11 +91,15 @@ class Device(Bearer):
 		return self._CQI
 
 	@CQI.setter
-	def CQI(self, typeCQI):
+	def CQI(self, CQI):
+		pre="%s::CQI.setter\t\t" % self._name
+
 		try:
-			pre="%s::CQI.setter\t\t" % self._name
-			CQI_range = getCQIByType(typeCQI)
-			self._CQI = random.choice(CQI_range) if CQI_range else 0
+			if type(CQI) is list:
+				CQI_range = getCQIByType(CQI)
+				self._CQI = random.choice(CQI_range) if CQI_range else 0
+			elif type(CQI) is int and 0<CQI<=15:
+				self._CQI = CQI
 
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
