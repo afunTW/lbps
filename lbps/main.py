@@ -69,11 +69,13 @@ def transmission_scheduling(base_station, timeline):
 				rn.name:{
 					'sleep':0,
 					'awake':{'backhaul':0, 'access':0},
+					'transmission':{'backhaul':0, 'access':0},
 					'stuck':{'backhaul':False, 'access':False},
 					'force-awake':{'backhaul':0, 'access':0}
 				} for rn in base_station.childs})
 
 			for TTI in range(simulation_time):
+				available_cap = base_station.capacity
 
 				# check the arrival pkt from internet
 				if timeline[TTI]:
@@ -95,8 +97,9 @@ def transmission_scheduling(base_station, timeline):
 					(rn in lbps['backhaul'][TTI] or status[rn.name]['stuck']['backhaul']):
 						interface = 'backhaul'
 						status[rn.name]['awake'][interface] += 1
-						available_cap = rn.capacity[interface]
 						pass_pkt = []
+
+						status[rn.name]['transmission'][interface] += 1
 
 						for i, pkt in enumerate(base_station.queue[interface][rn.name]):
 							if available_cap < pkt['size']: break
@@ -121,6 +124,8 @@ def transmission_scheduling(base_station, timeline):
 						available_cap = rn.capacity[interface]
 						pass_pkt = []
 						rcv_ue = []
+
+						status[rn.name]['transmission'][interface] += 1
 
 						for i, pkt in enumerate(rn.queue['backhaul']):
 							ue = pkt['device']
@@ -167,8 +172,11 @@ def transmission_scheduling(base_station, timeline):
 				print(i.name, end='\t')
 				msg_execute("CQI= %d" % i.CQI, end='\t\t')
 				msg_execute("sleep: %d times" % status[i.name]['sleep'], end='\t\t')
-				msg_warning("force awake in backhaul: %d times" % status[i.name]['force-awake']['backhaul'], end='\t')
-				msg_warning("force awake in access: %d times" % status[i.name]['force-awake']['access'])
+				msg_execute("awake: %d times" % (status[i.name]['awake']['backhaul']+status[i.name]['awake']['access']), end='\t\t')
+				msg_warning("transmission in backhaul: %d times" % status[i.name]['transmission']['backhaul'], end='\t')
+				msg_warning("transmission in access: %d times" % status[i.name]['transmission']['access'])
+				# msg_warning("force awake in backhaul: %d times" % status[i.name]['force-awake']['backhaul'], end='\t')
+				# msg_warning("force awake in access: %d times" % status[i.name]['force-awake']['access'])
 
 			# performance
 			rn_pse = [status[rn.name]['sleep']/simulation_time\
@@ -460,17 +468,17 @@ if __name__ == '__main__':
 	for i in range(len(relays)):
 		relays[i].childs = users[i*40:i*40+40]
 		relays[i].parent = base_station
-		relays[i].CQI = ['H']
+		relays[i].CQI = 15
 		for j in range(i*40, i*40+40):
 			users[j].parent = relays[i]
-			users[j].CQI = ['M', 'H']
+			users[j].CQI = 15
 
 	# build up the bearer from parent to child
 	for i in base_station.childs:
 		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
 
 	iterate_times = 12
-	simulation_time = 1000
+	simulation_time = 10000
 	round_para = len(str(int(simulation_time/10)))
 	equal_load_performance = copy.deepcopy(performance_list)
 	# equal_load_K = copy.deepcopy(K_list)
@@ -535,18 +543,18 @@ if __name__ == '__main__':
 	for i in range(2):
 		relays[i].childs = users[i*96:i*96+96]
 		relays[i].parent = base_station
-		relays[i].CQI = ['H']
+		relays[i].CQI = 15
 		for j in range(i*96, i*96+96):
 			users[j].parent = relays[i]
-			users[j].CQI = ['M', 'H']
+			users[j].CQI = 15
 
 	for i in range(len(relays)-2):
 		relays[i+2].childs = users[192+i*12:192+i*12+12]
 		relays[i+2].parent = base_station
-		relays[i+2].CQI = ['H']
+		relays[i+2].CQI = 15
 		for j in range(192+i*12, 192+i*12+12):
 			users[j].parent = relays[i+2]
-			users[j].CQI = ['M', 'H']
+			users[j].CQI = 15
 
 	# build up the bearer from parent to child
 	for i in base_station.childs:
