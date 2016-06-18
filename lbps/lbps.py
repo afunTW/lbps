@@ -569,10 +569,8 @@ def merge_merge(device, simulation_time, check_K=False):
 		a_lbps_result = [[] for i in range(max([len(K['result']['access']) for K in rn_status.values()]))]
 
 		for (rn_name, info) in rn_status.items():
-			pkt_size = getAvgPktSize(info['device'])
-			DATA_TH = int(getDataTH(info['device'].virtualCapacity, pkt_size))
 			info['a-subframe-count'] = sum([1 for i in info['result']['access'] if i])
-			info['b-subframe-count'] = DATA_TH*info['a-subframe-count']*pkt_size/device.virtualCapacity
+			info['b-subframe-count'] = info['device'].virtualCapacity*info['a-subframe-count']/device.virtualCapacity
 			for i in range(len(info['result']['access'])):
 				a_lbps_result[i] += info['result']['access'][i]
 
