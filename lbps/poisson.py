@@ -39,16 +39,14 @@ def Prob_AccDataOverTH(lambd, threshold, simTime):
 	prob = Prob_AccDataUnderTH(lambd, threshold, simTime)
 	return 1-prob if prob else 1
 
-def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH= 0.8, view= None):
+def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH= 0.8):
 
 	# print("Calculating awake-sleep-cycle with DATA_TH(%d pkt), PROB_TH(%.2f)" % (DATA_TH, PROB_TH));
 	K= 1			# ms
-	d_K= dict()		# {K: prob}
 
 	while True:
 
 		p_acc= Prob_AccDataOverTH(lambd, DATA_TH, K)
-		d_K[K]= p_acc
 		# print("Get	prob: %f in %d TTI" % (p_acc, K))
 
 		if p_acc > PROB_TH:
@@ -56,18 +54,16 @@ def LengthAwkSlpCyl(lambd, DATA_TH, PROB_TH= 0.8, view= None):
 
 		K+=1
 
-	return d_K if view is True else K
+	return K
 
-def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
+def DataAcc(lambd, K, PROB_TH= 0.8):
 
 	# print("Calculating number of packet accumulate in %d TTI with lambd %g (packet/ms)" %(K, lambd))
 	pkt=0			# number of packet
-	d_K= dict()		# {pkt: prob}
 
 	while True:
 
 		p_acc= Prob_AccDataUnderTH(lambd, pkt, K)
-		d_K[pkt]= p_acc
 		# print("Get	prob: %f in %d TTI only accumulate %d packet" % (p_acc, K, pkt))
 
 		if not p_acc:
@@ -79,7 +75,7 @@ def DataAcc(lambd, K, PROB_TH= 0.8, view= None):
 
 		pkt+= 1;
 
-	return d_K if view is True else pkt;
+	return pkt;
 
 def getDataTH(capacity, pkt_size, percent=0.8):
 	return (capacity/pkt_size)*percent
