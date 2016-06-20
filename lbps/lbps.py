@@ -564,66 +564,93 @@ def merge_merge(device, simulation_time, check_K=False):
 				'result':merge(rn, duplex, two_hop=True),
 				'a-subframe-count':None,
 				'b-subframe-count': None,
+				'backhaul_K':None,
+				'access-failed':False
 			} for rn in device.childs
 		}
-		a_lbps_result = [[] for i in range(max([len(K['result']['access']) for K in rn_status.values()]))]
+		a_lbps_result = [[]\
+			for i in range(max([len(K['result']['access'])\
+			for K in rn_status.values()]))]
+		b_lbps_result = []
 
+		# considering the case of difference link quality
 		for (rn_name, info) in rn_status.items():
 			info['a-subframe-count'] = sum([1 for i in info['result']['access'] if i])
-			info['b-subframe-count'] = info['device'].virtualCapacity*info['a-subframe-count']/device.virtualCapacity
+			info['b-subframe-count'] = \
+				info['a-subframe-count']*\
+				info['device'].virtualCapacity/\
+				device.virtualCapacity
+
+			access_K = len(info['result']['access'])
+			info['backhaul_K'] = ceil(access_K/info['b-subframe-count'])
+			info['backhaul_K'] = 2**floor(log(info['backhaul_K'], 2))
+
+			# check access schedulability
+			if (1/info['backhaul_K'])+(info['a-subframe-count']/access_K)>1:
+				info['access-failed']=True
+
 			for i in range(len(info['result']['access'])):
 				a_lbps_result[i] += info['result']['access'][i]
 
-		failed_RN=[]
-		groups = [
-			{
-				'device': [i],
-				'K': len(rn_status[i.name]['result']['access'])
-			} for i in device.childs
-		]
-
-		while not schedulability([i['K'] for i in groups]):
-			groups.sort(key=lambda x:x['K'], reverse=True)
-			non_degraded_success = False
-			for source_G in groups:
-				for target_G in groups:
-					if target_G is not source_G and target_G['K'] == source_G['K']:
-						s_required = sum([rn_status[d.name]['b-subframe-count'] for d in source_G['device']])
-						t_required = sum([rn_status[d.name]['b-subframe-count'] for d in target_G['device']])
-						if s_required+t_required<source_G['K']:
-							non_degraded_success = True
-							source_G['device'] += target_G['device']
-							groups.remove(target_G)
-							break
-				else:
-					continue
-				break
-			if not non_degraded_success:
-				failed_RN = groups
-				break
-
-		if failed_RN:
-			b_lbps_result = [[rn for rn in device.childs]+[device]]*\
-				max([len(K['result']['access']) for K in rn_status.values()])
+		# check access schedulability
+		backhaul_failed = False
+		if any([rn_v['access-failed'] for rn_v in rn_status.values()]):
+			b_lbps_result = [[rn for rn in device.childs]]*len(a_lbps_result)
 		else:
-			# calc the times of waking up for group
-			max_K = max([G['K'] for G in groups])
-			groups.sort(key=lambda x: x['K'])
-			msg_execute("sleep cycle length = %d with %d groups" % \
-					(max_K, len(groups)), pre=prefix)
+			# backhaul merge process (non-degraded only)
+			groups = [
+				{
+					'device': [i],
+					'K': rn_status[i.name]['backhaul_K']
+				} for i in device.childs
+			]
 
-			result = {i:[] for i in range(max_K)}
+			while not schedulability([i['K'] for i in groups]):
+				groups.sort(key=lambda x:x['K'], reverse=True)
+				non_degraded_success = False
+				for source_G in groups:
+					for target_G in groups:
+						if target_G is not source_G and target_G['K'] == source_G['K']:
+							s_required = sum(\
+								[rn_status[d.name]['b-subframe-count']\
+								for d in source_G['device']])
+							t_required = sum(\
+								[rn_status[d.name]['b-subframe-count']\
+								for d in target_G['device']])
+							if ceil(s_required+t_required)<source_G['K']:
+								non_degraded_success = True
+								source_G['device'] += target_G['device']
+								groups.remove(target_G)
+								break
+					else:
+						continue
+					break
+				if not non_degraded_success:
+					backhaul_failed=True
+					break
 
-			for G in groups:
-				base = 0
-				for i in list(result.keys()):
-					if not result[i]:
-						base = i
-						break
-				for TTI in range(base, len(result), G['K']):
-					result[TTI] = G['device'] + [device]
+			# check backhaul schedulability
+			if backhaul_failed:
+				b_lbps_result = [[rn for rn in device.childs]]*len(a_lbps_result)
+			else:
+				# calc the times of waking up for group
+				max_K = max([G['K'] for G in groups])
+				groups.sort(key=lambda x: x['K'])
+				msg_execute("sleep cycle length = %d with %d groups" % \
+						(max_K, len(groups)), pre=prefix)
 
-			b_lbps_result = list(result.values())
+				result = {i:[] for i in range(max_K)}
+
+				for G in groups:
+					base = 0
+					for i in list(result.keys()):
+						if not result[i]:
+							base = i
+							break
+					for TTI in range(base, len(result), G['K']):
+						result[TTI] = G['device'] + [device]
+
+				b_lbps_result = list(result.values())
 
 		if check_K:
 			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
@@ -710,9 +737,9 @@ def bottom_up(a_lbps, device, simulation_time, check_K=False):
 		'merge': merge_merge
 	}
 
-	try:
-		return lbps_scheduling[a_lbps](device, simulation_time, check_K)
+	# try:
+	return lbps_scheduling[a_lbps](device, simulation_time, check_K)
 
-	except Exception as e:
-		msg_fail(str(e), pre=prefix)
-		return
+	# except Exception as e:
+	# 	msg_fail(str(e), pre=prefix)
+	# 	return
