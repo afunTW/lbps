@@ -564,7 +564,6 @@ def merge_merge(device, simulation_time, check_K=False):
 				'result':merge(rn, duplex, two_hop=True),
 				'a-subframe-count':None,
 				'b-subframe-count': None,
-				'backhaul_K':None,
 				'access-failed':False
 			} for rn in device.childs
 		}
@@ -582,49 +581,48 @@ def merge_merge(device, simulation_time, check_K=False):
 				device.virtualCapacity
 
 			access_K = len(info['result']['access'])
-			info['backhaul_K'] = ceil(access_K/info['b-subframe-count'])
-			info['backhaul_K'] = 2**floor(log(info['backhaul_K'], 2))
 
 			# check access schedulability
-			if (1/info['backhaul_K'])+(info['a-subframe-count']/access_K)>1:
+			if info['a-subframe-count']+info['b-subframe-count']>access_K:
 				info['access-failed']=True
+				msg_fail("%s access schedulability failed" % rn_name, pre=prefix)
 
-			for i in range(len(info['result']['access'])):
-				a_lbps_result[i] += info['result']['access'][i]
+			for i,v in enumerate(info['result']['access']):
+				a_lbps_result[i] += v
 
 		# check access schedulability
 		backhaul_failed = False
 		if any([rn_v['access-failed'] for rn_v in rn_status.values()]):
+			msg_fail("access schedulability failed", pre=prefix)
 			b_lbps_result = [[rn for rn in device.childs]]*len(a_lbps_result)
 		else:
 			# backhaul merge process (non-degraded only)
 			groups = [
 				{
 					'device': [i],
-					'K': rn_status[i.name]['backhaul_K']
+					'K': len(rn_status[i.name]['result']['access']),
+					'N_Bh': rn_status[i.name]['b-subframe-count']
 				} for i in device.childs
 			]
 
-			while not schedulability([i['K'] for i in groups]):
+			while sum([ceil(i['N_Bh'])/i['K'] for i in groups]) > 1:
+				msg_warning("backhaul schedulability failed", pre=prefix)
+
 				groups.sort(key=lambda x:x['K'], reverse=True)
 				non_degraded_success = False
 				for source_G in groups:
 					for target_G in groups:
-						if target_G is not source_G and target_G['K'] == source_G['K']:
-							s_required = sum(\
-								[rn_status[d.name]['b-subframe-count']\
-								for d in source_G['device']])
-							t_required = sum(\
-								[rn_status[d.name]['b-subframe-count']\
-								for d in target_G['device']])
-							if ceil(s_required+t_required)<source_G['K']:
-								non_degraded_success = True
-								source_G['device'] += target_G['device']
-								groups.remove(target_G)
-								break
-					else:
-						continue
+						if target_G is not source_G\
+						and target_G['K'] == source_G['K']\
+						and ceil(target_G['N_Bh']+source_G['N_Bh'])<source_G['K']:
+							non_degraded_success=True
+							source_G['device'] += target_G['device']
+							source_G['N_Bh'] += target_G['N_Bh']
+							groups.remove(target_G)
+							break
+					else: continue
 					break
+
 				if not non_degraded_success:
 					backhaul_failed=True
 					break
@@ -632,25 +630,20 @@ def merge_merge(device, simulation_time, check_K=False):
 			# check backhaul schedulability
 			if backhaul_failed:
 				b_lbps_result = [[rn for rn in device.childs]]*len(a_lbps_result)
+				msg_fail("backhaul schedulability failed", pre=prefix)
 			else:
 				# calc the times of waking up for group
 				max_K = max([G['K'] for G in groups])
-				groups.sort(key=lambda x: x['K'])
 				msg_execute("sleep cycle length = %d with %d groups" % \
 						(max_K, len(groups)), pre=prefix)
 
-				result = {i:[] for i in range(max_K)}
-
+				b_lbps_result = []
 				for G in groups:
-					base = 0
-					for i in list(result.keys()):
-						if not result[i]:
-							base = i
-							break
-					for TTI in range(base, len(result), G['K']):
-						result[TTI] = G['device'] + [device]
+					G['device'] += [device]
+					G['device'] = [G['device']]*ceil(G['N_Bh'])
+					b_lbps_result.extend(G['device'])
 
-				b_lbps_result = list(result.values())
+				b_lbps_result.extend([[]]*(max_K-len(b_lbps_result)))
 
 		if check_K:
 			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
@@ -737,9 +730,9 @@ def bottom_up(a_lbps, device, simulation_time, check_K=False):
 		'merge': merge_merge
 	}
 
-	# try:
-	return lbps_scheduling[a_lbps](device, simulation_time, check_K)
+	try:
+		return lbps_scheduling[a_lbps](device, simulation_time, check_K)
 
-	# except Exception as e:
-	# 	msg_fail(str(e), pre=prefix)
-	# 	return
+	except Exception as e:
+		msg_fail(str(e), pre=prefix)
+		return
