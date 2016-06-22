@@ -220,11 +220,13 @@ class RN(Device):
 	def virtualCapacity(self):
 		pre = "%s::virtualCapacity\t" % self._name
 
-		if self.tdd_config and self.__parent.idle_capacity:
-			times = self.tdd_config.count('D')-self.parent.tdd_config.count('D')+self.__parent.idle_capacity
-			return int(times*self.capacity['access']/10)
-		elif self.tdd_config:
-			return int(self.tdd_config.count('D')*self.capacity['access']/10)
+		if self.tdd_config and self.capacity['access']:
+			n_subframe = self.tdd_config.count('D')-self.parent.tdd_config.count('D')
+
+			if self.__parent.idle_capacity:
+				n_subframe += self.__parent.idle_capacity
+
+			return int(n_subframe*self.capacity['access']/10)
 
 		msg_fail("failed", pre=pre)
 		return
@@ -365,16 +367,22 @@ class eNB(Device):
 		radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
 		total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
 
-		# backhaul and access filter for TDD configuration decision
-		self._idle_capacity = round(math.ceil(total_pktSize/self.capacity)-(total_pktSize/self.capacity), 2)
-		n_b_subframe = math.ceil(total_pktSize/self.capacity)
-		n_b_subframe = n_b_subframe if n_b_subframe <= max_b_subframe else max_b_subframe
-		n_a_subframe = max([math.ceil(total_pktSize/len(self.childs)/i.capacity['access']) for i in self.childs])
-		n_a_subframe = n_a_subframe if n_a_subframe <= max_a_subframe else max_a_subframe
 
 		if fixed and type(fixed) is int and 0<=fixed<19:
+			n_b_subframe = TWO_HOP_TDD_CONFIG[fixed]['backhaul'].count('D')
+			required_b_subframe = total_pktSize/self.capacity
+			required_b_subframe = required_b_subframe\
+			if required_b_subframe<=n_b_subframe else n_b_subframe
+			self._idle_capacity = round(n_b_subframe-required_b_subframe, 2)
 			self.tdd_config = TWO_HOP_TDD_CONFIG[fixed]
 		else:
+			# backhaul and access filter for TDD configuration decision
+			n_b_subframe = math.ceil(total_pktSize/self.capacity)
+			n_b_subframe = n_b_subframe if n_b_subframe <= max_b_subframe else max_b_subframe
+			n_a_subframe = max([math.ceil(total_pktSize/len(self.childs)/i.capacity['access']) for i in self.childs])
+			n_a_subframe = n_a_subframe if n_a_subframe <= max_a_subframe else max_a_subframe
+			self._idle_capacity = round(n_b_subframe-(total_pktSize/self.capacity), 2)
+
 			candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
 			candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= n_a_subframe} \
 						if len(candidate) > 1 else candidate
