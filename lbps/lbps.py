@@ -689,9 +689,6 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
 
 		for rn in lbps_failed:
-			for TTI in b_lbps_result:
-				TTI.append(device)
-				TTI.append(rn)
 			for TTI in a_lbps_result:
 				TTI.append(rn)
 				TTI += rn.childs
