@@ -6,6 +6,8 @@ from datetime import datetime
 
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
+ITER_TIMES=10
+SIMULATION_TIME=10000
 
 def update_nested_dict(d1, d2):
 	for k,v in d2.items():
@@ -171,8 +173,8 @@ def transmission_scheduling(base_station, timeline):
 			for i in base_station.childs:
 				print(i.name, end='\t')
 				msg_execute("CQI= %d" % i.CQI, end='\t\t')
-				msg_execute("sleep: %d times" % status[i.name]['sleep'], end='\t\t')
-				msg_execute("awake: %d times" % (status[i.name]['awake']['backhaul']+status[i.name]['awake']['access']), end='\t\t')
+				msg_execute("sleep: %d times" % status[i.name]['sleep'], end='\t')
+				msg_execute("awake: %d times" % (status[i.name]['awake']['backhaul']+status[i.name]['awake']['access']), end='\t')
 				msg_warning("transmission in backhaul: %d times" % status[i.name]['transmission']['backhaul'], end='\t')
 				msg_warning("transmission in access: %d times" % status[i.name]['transmission']['access'])
 				# msg_warning("force awake in backhaul: %d times" % status[i.name]['force-awake']['backhaul'], end='\t')
@@ -454,6 +456,59 @@ if __name__ == '__main__':
 		'BU-split':{},'BU-merge':{}
 	}
 
+	def simulate(\
+		base_station,\
+		iterate_times=10,\
+		simulation_time=1000,\
+		filename='LBPS'):
+		round_para = len(str(int(simulation_time/10)))
+		equal_load_performance = copy.deepcopy(performance_list)
+		# equal_load_K = copy.deepcopy(K_list)
+
+		for i in range(iterate_times):
+
+			# increase lambda
+			for rn in base_station.childs:
+				for ue in rn.childs:
+					rn.connect(ue, interface='access', bandwidth=BANDWIDTH)
+
+			timeline = base_station.simulate_timeline(simulation_time)
+			base_station.choose_tdd_config(timeline, fixed=17)
+
+			# # tune sleep cycle for testing
+			# k = get_all_sleep_cycle(base_station, simulation_time)
+			# equal_load_K['LAMBDA'].append(base_station.lambd['backhaul'])
+			# equal_load_K['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+			# update_nested_dict(equal_load_K, k)
+
+			# test lbps performance in transmission scheduling
+			performance = transmission_scheduling(base_station, timeline)
+			update_nested_dict(equal_load_performance, performance)
+
+			# test short DRX
+			performance = DRX(base_station,\
+				timeline,\
+				inactivity_timer=40,\
+				return_name="Std-DRX-1")
+			update_nested_dict(equal_load_performance, performance)
+
+			# test longDRX
+			performance = DRX(base_station,\
+				timeline,\
+				inactivity_timer=40,\
+				short_cycle=160,\
+				return_name="Std-DRX-2")
+			update_nested_dict(equal_load_performance, performance)
+
+			equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
+			equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
+			processing_time = "processing time: {}".format(datetime.now()-start_time)
+			msg_warning(processing_time)
+
+		pprint(equal_load_performance, indent=2)
+		export_csv(equal_load_performance, filename=filename)
+		# export_sleep_cycle(base_station, equal_load_K, filename=filename+'_K')
+
 
 	"""[summary] Case: equal load
 
@@ -477,58 +532,13 @@ if __name__ == '__main__':
 	for i in base_station.childs:
 		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
 
-	iterate_times = 12
-	simulation_time = 10000
-	round_para = len(str(int(simulation_time/10)))
-	equal_load_performance = copy.deepcopy(performance_list)
-	# equal_load_K = copy.deepcopy(K_list)
-
-	for i in range(iterate_times):
-
-		# increase lambda
-		for rn in base_station.childs:
-			for ue in rn.childs:
-				rn.connect(ue, interface='access', bandwidth=BANDWIDTH)
-
-		timeline = base_station.simulate_timeline(simulation_time)
-		base_station.choose_tdd_config(timeline, fixed=17)
-
-		# # tune sleep cycle for testing
-		# k = get_all_sleep_cycle(base_station, simulation_time)
-		# equal_load_K['LAMBDA'].append(base_station.lambd['backhaul'])
-		# equal_load_K['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
-		# update_nested_dict(equal_load_K, k)
-
-		# test lbps performance in transmission scheduling
-		performance = transmission_scheduling(base_station, timeline)
-		update_nested_dict(equal_load_performance, performance)
-
-		# test short DRX
-		performance = DRX(base_station,\
-			timeline,\
-			inactivity_timer=40,\
-			return_name="Std-DRX-1")
-		update_nested_dict(equal_load_performance, performance)
-
-		# test longDRX
-		performance = DRX(base_station,\
-			timeline,\
-			inactivity_timer=40,\
-			short_cycle=160,\
-			return_name="Std-DRX-2")
-		update_nested_dict(equal_load_performance, performance)
-
-		equal_load_performance['LAMBDA'].append(base_station.lambd['backhaul'])
-		equal_load_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
-		processing_time = "processing time: {}".format(datetime.now()-start_time)
-		msg_warning(processing_time)
-
-	pprint(equal_load_performance, indent=2)
-	export_csv(equal_load_performance, filename="equal_load")
-	# export_sleep_cycle(base_station, equal_load_K, filename='equal_load_K')
-
+	simulate(base_station, ITER_TIMES, SIMULATION_TIME, filename="equal_load")
 	processing_time = "processing time: {}".format(datetime.now()-start_time)
 	msg_success(processing_time)
+
+	del base_station
+	del relays
+	del users
 
 	"""[summary] Case: 8:2 load
 
@@ -560,55 +570,6 @@ if __name__ == '__main__':
 	for i in base_station.childs:
 		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
 
-	iterate_times = 12
-	simulation_time = 10000
-	round_para = len(str(int(simulation_time/10)))
-	hot_spot_performance = copy.deepcopy(performance_list)
-	# hot_spot_K = copy.deepcopy(K_list)
-
-	for i in range(iterate_times):
-
-		# increase lambda
-		for rn in base_station.childs:
-			for ue in rn.childs:
-				rn.connect(ue, interface='access', bandwidth=BANDWIDTH)
-
-		timeline = base_station.simulate_timeline(simulation_time)
-		base_station.choose_tdd_config(timeline, fixed=17)
-
-		# # tune sleep cycle for testing
-		# k = get_all_sleep_cycle(base_station, simulation_time)
-		# hot_spot_K['LAMBDA'].append(base_station.lambd['backhaul'])
-		# hot_spot_K['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
-		# update_nested_dict(hot_spot_K, k)
-
-		# test lbps performance in transmission scheduling
-		performance = transmission_scheduling(base_station, timeline)
-		update_nested_dict(hot_spot_performance, performance)
-
-		# test short DRX
-		performance = DRX(base_station,\
-			timeline,\
-			inactivity_timer=40,\
-			return_name="Std-DRX-1")
-		update_nested_dict(hot_spot_performance, performance)
-
-		# test longDRX
-		performance = DRX(base_station,\
-			timeline,\
-			inactivity_timer=40,\
-			short_cycle=160,\
-			return_name="Std-DRX-2")
-		update_nested_dict(hot_spot_performance, performance)
-
-		hot_spot_performance['LAMBDA'].append(base_station.lambd['backhaul'])
-		hot_spot_performance['LOAD'].append(round(LBPS.getLoad(base_station, 'TDD'), round_para))
-		processing_time = "processing time: {}".format(datetime.now()-start_time)
-		msg_warning(processing_time)
-
-	pprint(hot_spot_performance, indent=2)
-	export_csv(hot_spot_performance, filename="hot_spot")
-	# export_sleep_cycle(base_station, equal_load_K, filename='hot_spot_K')
-
+	simulate(base_station, ITER_TIMES, SIMULATION_TIME, filename="hot_spot")
 	processing_time = "processing time: {}".format(datetime.now()-start_time)
 	msg_success(processing_time)
