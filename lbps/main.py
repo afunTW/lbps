@@ -99,9 +99,8 @@ def transmission_scheduling(base_station, timeline):
 					(rn in lbps['backhaul'][TTI] or status[rn.name]['stuck']['backhaul']):
 						interface = 'backhaul'
 						status[rn.name]['awake'][interface] += 1
-						pass_pkt = []
-
 						status[rn.name]['transmission'][interface] += 1
+						pass_pkt = []
 
 						for i, pkt in enumerate(base_station.queue[interface][rn.name]):
 							if available_cap < pkt['size']: break
@@ -167,6 +166,49 @@ def transmission_scheduling(base_station, timeline):
 						for ue in rn.childs:
 							status[ue.name]['sleep'] += 1
 
+			# Device all awake for collecting pkt
+			TTI = copy.deepcopy(simulation_time)
+			while any([len(q_rn) for q_rn in base_station.queue['backhaul'].values()])\
+			or any([len(rn.queue['backhaul']) for rn in base_station.childs]):
+				available_cap = base_station.capacity
+				for rn in base_station.childs:
+
+					# case: subframe 'S' or 'U'
+					if rn.tdd_config[TTI%10] != 'D':
+						continue
+
+					# backhaul transmission
+					if base_station.tdd_config[TTI%10] and\
+					base_station.queue['backhaul'][rn.name]:
+						interface = 'backhaul'
+						pass_pkt = []
+
+						for i, pkt in enumerate(base_station.queue[interface][rn.name]):
+							if available_cap < pkt['size']: break
+							rn.queue[interface].append(pkt)
+							pass_pkt.append(pkt)
+
+						for pkt in pass_pkt:
+							base_station.queue[interface][rn.name].remove(pkt)
+
+					# access transmission
+					elif rn.queue['backhaul']:
+						interface = 'access'
+						available_cap = rn.capacity[interface]
+						pass_pkt = []
+						for i, pkt in enumerate(rn.queue['backhaul']):
+							ue = pkt['device']
+							if available_cap < pkt['size']: break
+							rn.queue[interface][ue.name].append(pkt)
+							status[ue.name]['delay'] += TTI-pkt['arrival_time']
+							pass_pkt.append(pkt)
+							available_cap -= pkt['size']
+
+						for pkt in pass_pkt:
+							rn.queue['backhaul'].remove(pkt)
+
+				TTI += 1
+
 			# test
 			print(base_station.name, end='\t')
 			msg_execute("CQI= %d" % base_station.CQI)
@@ -174,7 +216,6 @@ def transmission_scheduling(base_station, timeline):
 				print(i.name, end='\t')
 				msg_execute("CQI= %d" % i.CQI, end='\t\t')
 				msg_execute("sleep: %d times" % status[i.name]['sleep'], end='\t')
-				msg_execute("awake: %d times" % (status[i.name]['awake']['backhaul']+status[i.name]['awake']['access']), end='\t')
 				msg_warning("transmission in backhaul: %d times" % status[i.name]['transmission']['backhaul'], end='\t')
 				msg_warning("transmission in access: %d times" % status[i.name]['transmission']['access'])
 				# msg_warning("force awake in backhaul: %d times" % status[i.name]['force-awake']['backhaul'], end='\t')
@@ -463,7 +504,7 @@ if __name__ == '__main__':
 		filename='LBPS'):
 		round_para = len(str(int(simulation_time/10)))
 		equal_load_performance = copy.deepcopy(performance_list)
-		# equal_load_K = copy.deepcopy(K_list)
+		equal_load_K = copy.deepcopy(K_list)
 
 		for i in range(iterate_times):
 
@@ -540,36 +581,36 @@ if __name__ == '__main__':
 	del relays
 	del users
 
-	"""[summary] Case: 8:2 load
+	# """[summary] Case: 8:2 load
 
-	"""
-	# create device instance
-	base_station = eNB()
-	relays = [RN() for i in range(NUMBER_OF_RN)]
-	users = [UE() for i in range(NUMBER_OF_UE)]
+	# """
+	# # create device instance
+	# base_station = eNB()
+	# relays = [RN() for i in range(NUMBER_OF_RN)]
+	# users = [UE() for i in range(NUMBER_OF_UE)]
 
-	# assign the relationship and CQI
-	base_station.childs = relays
-	for i in range(2):
-		relays[i].childs = users[i*96:i*96+96]
-		relays[i].parent = base_station
-		relays[i].CQI = 15
-		for j in range(i*96, i*96+96):
-			users[j].parent = relays[i]
-			users[j].CQI = 15
+	# # assign the relationship and CQI
+	# base_station.childs = relays
+	# for i in range(2):
+	# 	relays[i].childs = users[i*96:i*96+96]
+	# 	relays[i].parent = base_station
+	# 	relays[i].CQI = 15
+	# 	for j in range(i*96, i*96+96):
+	# 		users[j].parent = relays[i]
+	# 		users[j].CQI = 15
 
-	for i in range(len(relays)-2):
-		relays[i+2].childs = users[192+i*12:192+i*12+12]
-		relays[i+2].parent = base_station
-		relays[i+2].CQI = 15
-		for j in range(192+i*12, 192+i*12+12):
-			users[j].parent = relays[i+2]
-			users[j].CQI = 15
+	# for i in range(len(relays)-2):
+	# 	relays[i+2].childs = users[192+i*12:192+i*12+12]
+	# 	relays[i+2].parent = base_station
+	# 	relays[i+2].CQI = 15
+	# 	for j in range(192+i*12, 192+i*12+12):
+	# 		users[j].parent = relays[i+2]
+	# 		users[j].CQI = 15
 
-	# build up the bearer from parent to child
-	for i in base_station.childs:
-		base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
+	# # build up the bearer from parent to child
+	# for i in base_station.childs:
+	# 	base_station.connect(i, interface='backhaul', bandwidth=BANDWIDTH)
 
-	simulate(base_station, ITER_TIMES, SIMULATION_TIME, filename="hot_spot")
-	processing_time = "processing time: {}".format(datetime.now()-start_time)
-	msg_success(processing_time)
+	# simulate(base_station, ITER_TIMES, SIMULATION_TIME, filename="hot_spot")
+	# processing_time = "processing time: {}".format(datetime.now()-start_time)
+	# msg_success(processing_time)
