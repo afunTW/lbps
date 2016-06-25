@@ -161,6 +161,8 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 
 def check_mincycle(device, rn_status, b_min_cycle):
 	for rn in device.childs:
+		rate = rn.virtualCapacity/device.virtualCapacity
+
 		if len(rn_status[rn.name]['result']) > b_min_cycle:
 			pkt_size = getAvgPktSize(rn)
 			DATA_TH = int(getDataTH(rn.virtualCapacity, pkt_size))
@@ -168,43 +170,45 @@ def check_mincycle(device, rn_status, b_min_cycle):
 
 			if accumulate_K < b_min_cycle:
 				accumulate_pkt = DataAcc(rn.lambd['access'], b_min_cycle)
+
 				if not accumulate_pkt:
-					rn_status[rn.name].update({'result':aggr(rn, 'TDD')})
+					result = aggr(rn, 'TDD')
+					a_count = sum([1 for i in result if i])
 					rn_status[rn.name].update({
+						'result':result,
 						'a-availability':True,
-						'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i])
-					})
-					rn_status[rn.name].update({
-						'b-subframe-count':ceil(rn.virtualCapacity*rn_status[rn.name]['a-subframe-count']/device.virtualCapacity)
-					})
+						'a-subframe-count': a_count,
+						'b-subframe-count': a_count*rate})
 				else:
+					a_count = ceil(accumulate_pkt*pkt_size/rn.virtualCapacity)
 					rn_status[rn.name].update({
 						'a-availability':True,
-						'a-subframe-count':ceil(accumulate_pkt*pkt_size/rn.virtualCapacity),
-						'b-subframe-count':ceil(accumulate_pkt*pkt_size/device.virtualCapacity)
+						'a-subframe-count':a_count,
+						'b-subframe-count':ceil(a_count*rate)
 					})
 			else:
 				continue
 
 			if rn_status[rn.name]['a-subframe-count']\
-				+rn_status[rn.name]['b-subframe-count']\
-				>b_min_cycle:
+			+rn_status[rn.name]['b-subframe-count']\
+			>b_min_cycle:
 				rn_status[rn.name]['a-availability'] = False
 		else:
+			a_count = sum([1 for i in rn_status[rn.name]['result'] if i])
 			rn_status[rn.name].update({
 				'a-availability':True,
-				'a-subframe-count':sum([1 for i in rn_status[rn.name]['result'] if i])
-				})
-			rn_status[rn.name].update({
-				'b-subframe-count':ceil(rn.virtualCapacity*rn_status[rn.name]['a-subframe-count']/device.virtualCapacity)
-				})
+				'a-subframe-count':a_count,
+				'b-subframe-count':ceil(a_count*rate)})
 
 def allocate_mincycle_backhaul(device, rn_status, b_min_cycle):
 	b_lbps_result = [[] for i in range(b_min_cycle)]
 	for (rn, info) in rn_status.items():
 		for TTI in range(b_min_cycle):
-			if not b_lbps_result[TTI] and info['b-subframe-count'] and TTI+info['b-subframe-count']<b_min_cycle:
-				b_lbps_result[TTI:TTI+info['b-subframe-count']] = [[device, info['device']]]*info['b-subframe-count']
+			if not b_lbps_result[TTI]\
+			and info['b-subframe-count']\
+			and TTI+info['b-subframe-count']<b_min_cycle:
+				b_lbps_result[TTI:TTI+info['b-subframe-count']]\
+				=[[device, info['device']]]*info['b-subframe-count']
 				rn_status[rn]['b-availability'] = True
 				break
 		if not rn_status[rn]['b-availability']:
@@ -575,10 +579,10 @@ def merge_merge(device, simulation_time, check_K=False):
 		# considering the case of difference link quality
 		for (rn_name, info) in rn_status.items():
 			info['a-subframe-count'] = sum([1 for i in info['result']['access'] if i])
-			info['b-subframe-count'] = \
+			info['b-subframe-count'] = ceil(\
 				info['a-subframe-count']*\
 				info['device'].virtualCapacity/\
-				device.virtualCapacity
+				device.virtualCapacity)
 
 			access_K = len(info['result']['access'])
 
