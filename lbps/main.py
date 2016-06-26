@@ -514,7 +514,7 @@ if __name__ == '__main__':
 					rn.connect(ue, interface='access', bandwidth=BANDWIDTH)
 
 			timeline = base_station.simulate_timeline(simulation_time)
-			base_station.choose_tdd_config(timeline, fixed=17)
+			base_station.choose_tdd_config(fixed=17)
 
 			# # tune sleep cycle for testing
 			# k = get_all_sleep_cycle(base_station, simulation_time)
