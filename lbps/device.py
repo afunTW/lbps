@@ -358,41 +358,46 @@ class eNB(Device):
 		except Exception as e:
 			msg_fail(str(e), pre=pre)
 
-	def choose_tdd_config(self, timeline, fixed=None):
+	def choose_tdd_config(self, fixed=None):
 
 		# decide 2-hop TDD configuration (DL)
 		candidate = TWO_HOP_TDD_CONFIG.copy()
 		max_b_subframe = max([candidate[i]['backhaul'].count('D') for i in candidate])
 		max_a_subframe = max([candidate[i]['access'].count('D') for i in candidate])
-		radio_frame_pkt = [pkt for TTI in timeline for pkt in timeline[TTI] if TTI <= 10]
-		total_pktSize = sum([traffic[pkt['flow']]['pkt_size'] for pkt in radio_frame_pkt])
-
+		radio_frame_bitrate = self.lambd['backhaul']*10000
+		required_b_subframe = radio_frame_bitrate/self.capacity
 
 		if fixed and type(fixed) is int and 0<=fixed<19:
 			n_b_subframe = TWO_HOP_TDD_CONFIG[fixed]['backhaul'].count('D')
-			required_b_subframe = total_pktSize/self.capacity
 			required_b_subframe = required_b_subframe\
 			if required_b_subframe<=n_b_subframe else n_b_subframe
 			self._idle_capacity = round(n_b_subframe-required_b_subframe, 2)
 			self.tdd_config = TWO_HOP_TDD_CONFIG[fixed]
+			msg_success("idle Bh subframe\t%f"%self._idle_capacity)
 		else:
 			# backhaul and access filter for TDD configuration decision
-			n_b_subframe = math.ceil(total_pktSize/self.capacity)
+			n_b_subframe = math.ceil(required_b_subframe)
 			n_b_subframe = n_b_subframe if n_b_subframe <= max_b_subframe else max_b_subframe
-			n_a_subframe = max([math.ceil(total_pktSize/len(self.childs)/i.capacity['access']) for i in self.childs])
+			n_a_subframe = \
+			max([math.ceil(radio_frame_bitrate/len(self.childs)/i.capacity['access'])\
+				for i in self.childs])
 			n_a_subframe = n_a_subframe if n_a_subframe <= max_a_subframe else max_a_subframe
-			self._idle_capacity = round(n_b_subframe-(total_pktSize/self.capacity), 2)
+			self._idle_capacity = round(n_b_subframe-required_b_subframe, 2)
 
-			candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') >= n_b_subframe}
-			candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') >= n_a_subframe} \
-						if len(candidate) > 1 else candidate
+			candidate = {i: candidate[i] for i in candidate\
+			if candidate[i]['backhaul'].count('D') >= n_b_subframe}
+			candidate = {i: candidate[i] for i in candidate\
+			if candidate[i]['access'].count('D') >= n_a_subframe}\
+			if len(candidate) > 1 else candidate
 
 			b_sort = sorted(candidate, key=lambda x: candidate[x]['backhaul'].count('D'))
 			b_sort = candidate[b_sort[0]]['backhaul'].count('D')
-			candidate = {i: candidate[i] for i in candidate if candidate[i]['backhaul'].count('D') == b_sort}
+			candidate = {i: candidate[i] for i in candidate\
+			if candidate[i]['backhaul'].count('D') == b_sort}
 			a_sort = sorted(candidate, key=lambda x: candidate[x]['access'].count('D'))
 			a_sort = candidate[a_sort[0]]['access'].count('D')
-			candidate = {i: candidate[i] for i in candidate if candidate[i]['access'].count('D') == a_sort}
+			candidate = {i: candidate[i] for i in candidate\
+			if candidate[i]['access'].count('D') == a_sort}
 
 			candidate_key = random.choice(list(candidate.keys()))
 			self.tdd_config = candidate[candidate_key] if candidate else None
