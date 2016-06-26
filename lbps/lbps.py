@@ -129,10 +129,20 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 			'identity':su['identity'],
 			'TTI': [i*10+v for v in su['r_TTI']]} for su in mapping_pattern['access']]
 
+	# DEBUG
+	multisb=0
 	# backhaul mapping
+
 	for i in range(t):
+		# DEBUG
+		if len(vt_mapping['backhaul'][i])>1 and b_lbps_result[i]:
+			multisb += 1
+
 		for rsb in vt_mapping['backhaul'][i]:
 			timeline['backhaul'][rsb] += b_lbps_result[i]
+
+	# DEBUG
+	msg_warning("1-n case in backhaul\t%d"%multisb)
 
 	# access mapping
 	for i in range(0, t-k, k):
@@ -477,8 +487,11 @@ def min_aggr(device, simulation_time, check_K=False):
 		# access scheduling and scheduliability check
 		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
 
-		if check_K:
-			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+		msg_warning("access K= %d\t\tN_a= %d\tN_Bh= %d"%\
+			(len(a_lbps_result),\
+				rn_status[device.childs[0].name]['a-subframe-count'],\
+				rn_status[device.childs[0].name]['b-subframe-count']),\
+			pre=prefix)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
@@ -493,6 +506,9 @@ def min_aggr(device, simulation_time, check_K=False):
 			sum([1 for i in range(len(timeline['access'])) \
 				if timeline['backhaul'][i] and timeline['access'][i]]
 		)), pre=prefix)
+
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
 
 		return timeline
 
@@ -535,8 +551,11 @@ def min_split(device, simulation_time, check_K=False):
 		# access scheduling and scheduliability check
 		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
 
-		if check_K:
-			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+		msg_warning("access K= %d\t\tN_a= %d\tN_Bh= %d"%\
+			(len(a_lbps_result),\
+				rn_status[device.childs[0].name]['a-subframe-count'],\
+				rn_status[device.childs[0].name]['b-subframe-count']),\
+			pre=prefix)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
@@ -551,6 +570,9 @@ def min_split(device, simulation_time, check_K=False):
 			sum([1 for i in range(len(timeline['access'])) \
 				if timeline['backhaul'][i] and timeline['access'][i]]
 		)), pre=prefix)
+
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
 
 		return timeline
 
@@ -649,8 +671,11 @@ def merge_merge(device, simulation_time, check_K=False):
 
 				b_lbps_result.extend([[]]*(max_K-len(b_lbps_result)))
 
-		if check_K:
-			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+		msg_warning("access K= %d\t\tN_a= %d\t\tN_Bh= %d"%\
+			(len(a_lbps_result),\
+				rn_status[device.childs[0].name]['a-subframe-count'],\
+				rn_status[device.childs[0].name]['b-subframe-count']),\
+			pre=prefix)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
@@ -666,13 +691,16 @@ def merge_merge(device, simulation_time, check_K=False):
 				if timeline['backhaul'][i] and timeline['access'][i]]
 		)), pre=prefix)
 
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+
 		return timeline
 
 	except Exception as e:
 		msg_fail(str(e), pre=prefix)
 
 def top_down(b_lbps, device, simulation_time, check_K=False):
-	prefix = "TopDown::%s \t" % (b_lbps)
+	prefix = "TopDown::TD-%s \t" % (b_lbps)
 	duplex = 'TDD'
 	lbps_scheduling = {
 		'aggr': aggr,
@@ -697,9 +725,6 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 				TTI.append(rn)
 				TTI += rn.childs
 
-		if check_K:
-			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
-
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
 			simulation_time,
@@ -716,6 +741,9 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 			sum([1 for i in range(len(timeline['access'])) \
 				if timeline['backhaul'][i] and timeline['access'][i]]
 		)), pre=prefix)
+
+		if check_K:
+			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
 
 		return timeline
 
