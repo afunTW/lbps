@@ -131,8 +131,8 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 
 	# DEBUG
 	multisb=0
-	# backhaul mapping
 
+	# backhaul mapping
 	for i in range(t):
 		# DEBUG
 		if len(vt_mapping['backhaul'][i])>1 and b_lbps_result[i]:
@@ -143,6 +143,7 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 
 	# DEBUG
 	msg_warning("1-n case in backhaul\t%d"%multisb)
+	multisb=0
 
 	# access mapping
 	for i in range(0, t-k, k):
@@ -158,10 +159,17 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 			identity = 'mixed' if tmp_map['mixed'] else identity
 			identity = 'access' if tmp_map['access'] else identity
 
+			# DEBUG
+			if len(tmp_map[identity][0])>1:
+				multisb+=1
+
 			for rsb in tmp_map[identity][0]['TTI']:
 				timeline['access'][rsb] += vt
 
 			tmp_map[identity].pop(0)
+
+	# DEBUG
+	msg_warning("1-n case in access\t%d"%multisb)
 
 	for i in range(len(timeline['backhaul'])):
 		timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
@@ -177,27 +185,23 @@ def check_mincycle(device, rn_status, b_min_cycle):
 			pkt_size = getAvgPktSize(rn)
 			DATA_TH = int(getDataTH(rn.virtualCapacity, pkt_size))
 			accumulate_K = LengthAwkSlpCyl(rn.lambd['access'], DATA_TH, PROB_TH=0.2)
+			accumulate_pkt = DataAcc(rn.lambd['access'], b_min_cycle)
 
-			if accumulate_K < b_min_cycle:
-				accumulate_pkt = DataAcc(rn.lambd['access'], b_min_cycle)
-
-				if not accumulate_pkt:
-					result = aggr(rn, 'TDD')
-					a_count = sum([1 for i in result if i])
-					rn_status[rn.name].update({
-						'result':result,
-						'a-availability':True,
-						'a-subframe-count': a_count,
-						'b-subframe-count': a_count*rate})
-				else:
-					a_count = ceil(accumulate_pkt*pkt_size/rn.virtualCapacity)
-					rn_status[rn.name].update({
-						'a-availability':True,
-						'a-subframe-count':a_count,
-						'b-subframe-count':ceil(a_count*rate)
-					})
+			if not accumulate_pkt:
+				result = aggr(rn, 'TDD')
+				a_count = sum([1 for i in result if i])
+				rn_status[rn.name].update({
+					'result':result,
+					'a-availability':True,
+					'a-subframe-count': a_count,
+					'b-subframe-count': a_count*rate})
 			else:
-				continue
+				a_count = ceil(accumulate_pkt*pkt_size/rn.virtualCapacity)
+				rn_status[rn.name].update({
+					'a-availability':True,
+					'a-subframe-count':a_count,
+					'b-subframe-count':ceil(a_count*rate)
+				})
 
 			if rn_status[rn.name]['a-subframe-count']\
 			+rn_status[rn.name]['b-subframe-count']\
