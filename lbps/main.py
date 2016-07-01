@@ -76,13 +76,28 @@ def transmission_scheduling(base_station, timeline):
 					'force-awake':{'backhaul':0, 'access':0}
 				} for rn in base_station.childs})
 
+			FIFO_queue = []
 			for TTI in range(simulation_time):
 				available_cap = base_station.capacity
 
 				# check the arrival pkt from internet
 				if timeline[TTI]:
-					for arrPkt in timeline[TTI]:
-						base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
+					FIFO_queue += timeline[TTI]
+					pass_pkt = []
+
+					for pkt in FIFO_queue:
+						rn = pkt['device'].parent
+						if b_available_cap >= pkt['size']\
+						and (rn in lbps['backhaul'][TTI]\
+							or status[rn.name]['stuck']['backhaul']):
+							base_station.queue['backhaul'][rn.name].append(pkt)
+							pass_pkt.append(pkt)
+							b_available_cap -= pkt['size']
+
+					for pkt in pass_pkt:
+						FIFO_queue.remove(pkt)
+
+				b_available_cap = base_station.capacity
 
 				for rn in base_station.childs:
 
@@ -94,18 +109,20 @@ def transmission_scheduling(base_station, timeline):
 						continue
 
 					# backhaul transmission
-					if base_station.tdd_config[TTI%10] and\
-					base_station.queue['backhaul'][rn.name] and\
-					(rn in lbps['backhaul'][TTI] or status[rn.name]['stuck']['backhaul']):
+					if base_station.tdd_config[TTI%10]\
+					and base_station.queue['backhaul'][rn.name]\
+					and (rn in lbps['backhaul'][TTI]\
+						or status[rn.name]['stuck']['backhaul']):
 						interface = 'backhaul'
 						status[rn.name]['awake'][interface] += 1
 						status[rn.name]['transmission'][interface] += 1
 						pass_pkt = []
 
 						for i, pkt in enumerate(base_station.queue[interface][rn.name]):
-							if available_cap < pkt['size']: break
+							if b_available_cap < pkt['size']: break
 							rn.queue[interface].append(pkt)
 							pass_pkt.append(pkt)
+							b_available_cap -= pkt['size']
 
 						for pkt in pass_pkt:
 							base_station.queue[interface][rn.name].remove(pkt)
@@ -170,7 +187,7 @@ def transmission_scheduling(base_station, timeline):
 			TTI = copy.deepcopy(simulation_time)
 			while any([len(q_rn) for q_rn in base_station.queue['backhaul'].values()])\
 			or any([len(rn.queue['backhaul']) for rn in base_station.childs]):
-				available_cap = base_station.capacity
+				b_available_cap = base_station.capacity
 				for rn in base_station.childs:
 
 					# case: subframe 'S' or 'U'
@@ -184,9 +201,10 @@ def transmission_scheduling(base_station, timeline):
 						pass_pkt = []
 
 						for i, pkt in enumerate(base_station.queue[interface][rn.name]):
-							if available_cap < pkt['size']: break
+							if b_available_cap < pkt['size']: break
 							rn.queue[interface].append(pkt)
 							pass_pkt.append(pkt)
+							b_available_cap -= pkt['size']
 
 						for pkt in pass_pkt:
 							base_station.queue[interface][rn.name].remove(pkt)
@@ -278,26 +296,22 @@ def DRX(base_station,\
 		if status[device.name]['inactivity_time'] and\
 		not status[device.name]['off']:
 			status[device.name]['inactivity_time'] -= 1
-		# sleep
-		else:
-			# short cycle
-			if status[device.name]['short_cycle_count']:
+		elif status[device.name]['short_cycle_count']:
+			if status[device.name]['short_cycle']:
 				status[device.name]['off'] = True
-				if status[device.name]['short_cycle']:
-					status[device.name]['short_cycle'] -= 1
-					status[device.name]['sleep'] += 1
-				else:
-					status[device.name]['off'] = False
-					status[device.name]['short_cycle_count'] -= 1
-					status[device.name]['short_cycle'] = short_cycle
-			# long cycle
-			elif status[device.name]['long_cycle']:
-				status[device.name]['off'] = True
-				status[device.name]['long_cycle'] -= 1
+				status[device.name]['short_cycle'] -= 1
 				status[device.name]['sleep'] += 1
 			else:
 				status[device.name]['off'] = False
-				status[device.name]['long_cycle'] = long_cycle
+				status[device.name]['short_cycle_count'] -= 1
+				status[device.name]['short_cycle'] = short_cycle
+		elif status[device.name]['long_cycle']:
+			status[device.name]['off'] = True
+			status[device.name]['long_cycle'] -= 1
+			status[device.name]['sleep'] += 1
+		else:
+			status[device.name]['off'] = False
+			status[device.name]['long_cycle'] = long_cycle
 
 	base_station.clearQueue()
 	simulation_time = len(timeline)-1
@@ -332,12 +346,27 @@ def DRX(base_station,\
 	msg_success("==========\t\t%s simulation with lambda %g Mbps start\t\t=========="%\
 					(return_name, base_station.lambd['backhaul']))
 
+	FIFO_queue = []
 	for TTI in range(simulation_time):
+		b_available_cap = base_station.capacity
 
 		# check the arrival pkt from internet
 		if timeline[TTI]:
-			for arrPkt in timeline[TTI]:
-				base_station.queue['backhaul'][arrPkt['device'].parent.name].append(arrPkt)
+			FIFO_queue += timeline[TTI]
+			pass_pkt = []
+
+			for pkt in FIFO_queue:
+				rn = pkt['device'].parent
+				if b_available_cap >= pkt['size']\
+				and not status[rn.name]['off']:
+					base_station.queue['backhaul'][rn.name].append(pkt)
+					pass_pkt.append(pkt)
+					b_available_cap -= pkt['size']
+
+			for pkt in pass_pkt:
+				FIFO_queue.remove(pkt)
+
+		b_available_cap = base_station.capacity
 
 		for rn in base_station.childs:
 
@@ -352,14 +381,13 @@ def DRX(base_station,\
 			if base_station.tdd_config[TTI%10] == 'D' and\
 			base_station.queue['backhaul'][rn.name]:
 				reset(rn, status)
-				available_cap = rn.capacity['backhaul']
 				pass_pkt = []
 
 				for pkt in base_station.queue['backhaul'][rn.name]:
-					if available_cap >= pkt['size']:
+					if b_available_cap >= pkt['size']:
 						rn.queue['backhaul'].append(pkt)
 						pass_pkt.append(pkt)
-						available_cap -= pkt['size']
+						b_available_cap -= pkt['size']
 					else:
 						break
 
@@ -504,7 +532,7 @@ if __name__ == '__main__':
 		filename='LBPS'):
 		round_para = len(str(int(simulation_time/10)))
 		equal_load_performance = copy.deepcopy(performance_list)
-		equal_load_K = copy.deepcopy(K_list)
+		# equal_load_K = copy.deepcopy(K_list)
 
 		for i in range(iterate_times):
 
