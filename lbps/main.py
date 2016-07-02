@@ -8,7 +8,7 @@ import gc
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
 ITER_TIMES=10
-SIMULATION_TIME=1000
+SIMULATION_TIME=10000
 
 def update_nested_dict(d1, d2):
 	for k,v in d2.items():
