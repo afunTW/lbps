@@ -347,7 +347,7 @@ def DRX(base_station,\
 		# case: DRX sleep
 		for rn in base_station.childs:
 			if rn.tdd_config[TTI%10] != 'D'\
-			or status[rn.name]['off']
+			or status[rn.name]['off']:
 				drx_check(rn, status)
 				for ue in rn.childs:
 					drx_check(ue, status)
