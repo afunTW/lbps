@@ -473,12 +473,6 @@ def min_aggr(device, simulation_time, check_K=False):
 		# access scheduling and scheduliability check
 		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
 
-		msg_warning("access K= %d\t\tN_a= %d\tN_Bh= %d"%\
-			(len(a_lbps_result),\
-				rn_status[device.childs[0].name]['a-subframe-count'],\
-				rn_status[device.childs[0].name]['b-subframe-count']),\
-			pre=prefix)
-
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
@@ -534,12 +528,6 @@ def min_split(device, simulation_time, check_K=False):
 
 		# access scheduling and scheduliability check
 		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
-
-		msg_warning("access K= %d\t\tN_a= %d\tN_Bh= %d"%\
-			(len(a_lbps_result),\
-				rn_status[device.childs[0].name]['a-subframe-count'],\
-				rn_status[device.childs[0].name]['b-subframe-count']),\
-			pre=prefix)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
@@ -654,12 +642,6 @@ def merge_merge(device, simulation_time, check_K=False):
 					b_lbps_result.extend(G['device'])
 
 				b_lbps_result.extend([[]]*(max_K-len(b_lbps_result)))
-
-		msg_warning("access K= %d\t\tN_a= %d\t\tN_Bh= %d"%\
-			(len(a_lbps_result),\
-				rn_status[device.childs[0].name]['a-subframe-count'],\
-				rn_status[device.childs[0].name]['b-subframe-count']),\
-			pre=prefix)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
