@@ -8,7 +8,7 @@ import gc
 NUMBER_OF_RN = 6
 NUMBER_OF_UE = 240
 ITER_TIMES=10
-SIMULATION_TIME=10000
+SIMULATION_TIME=1000
 
 def update_nested_dict(d1, d2):
 	for k,v in d2.items():
@@ -181,6 +181,7 @@ def transmission_scheduling(base_station, timeline):
 
 				# case: subframe 'S' or 'U'
 				if base_station.childs[0].tdd_config[TTI%10] != 'D':
+					TTI += 1
 					continue
 
 				# backhaul checking
@@ -193,12 +194,10 @@ def transmission_scheduling(base_station, timeline):
 					for pkt in FIFO_queue:
 						rn = pkt['device'].parent
 						if available_cap < pkt['size']: break
-						if rn in lbps[interface][TTI]\
-						or status[rn.name]['stuck'][interface]:
-							backhaul_active_rn.append(rn)
-							rn.queue[interface].append(pkt)
-							FIFO_queue.remove(pkt)
-							available_cap -= pkt['size']
+						backhaul_active_rn.append(rn)
+						rn.queue[interface].append(pkt)
+						FIFO_queue.remove(pkt)
+						available_cap -= pkt['size']
 
 				# access checking
 				else:
