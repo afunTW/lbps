@@ -339,80 +339,63 @@ def DRX(base_station,\
 
 	FIFO_queue = []
 	for TTI in range(simulation_time):
-		b_available_cap = base_station.capacity
 
 		# check the arrival pkt from internet
 		if timeline[TTI]:
 			FIFO_queue += timeline[TTI]
-			pass_pkt = []
 
-			for pkt in FIFO_queue:
-				rn = pkt['device'].parent
-				if b_available_cap >= pkt['size']\
-				and not status[rn.name]['off']:
-					base_station.queue['backhaul'][rn.name].append(pkt)
-					pass_pkt.append(pkt)
-					b_available_cap -= pkt['size']
-
-			for pkt in pass_pkt:
-				FIFO_queue.remove(pkt)
-
-		b_available_cap = base_station.capacity
-
+		# case: DRX sleep
 		for rn in base_station.childs:
-
-			if rn.tdd_config[TTI%10] != 'D' or\
-			status[rn.name]['off']:
+			if rn.tdd_config[TTI%10] != 'D'\
+			or status[rn.name]['off']
 				drx_check(rn, status)
 				for ue in rn.childs:
 					drx_check(ue, status)
 				continue
 
-			# check backhaul
-			if base_station.tdd_config[TTI%10] == 'D' and\
-			base_station.queue['backhaul'][rn.name]:
+		# backhaul checking
+		backhaul_active_rn = []
+		if base_station.tdd_config[TTI%10]:
+			interface = 'backhaul'
+			available_cap = base_station.capacity
+
+			# transmission
+			for pkt in FIFO_queue:
+				rn = pkt['device'].parent
+				if b_available_cap < pkt['size']: break
+				if not status[rn.name]['off']:
+					backhaul_active_rn.append(rn)
+					rn.queue[interface].append(pkt)
+					FIFO_queue.remove(pkt)
+					available_cap -= pkt['size']
+
+			# performance
+			for rn in backhaul_active_rn:
 				reset(rn, status)
-				pass_pkt = []
 
-				for pkt in base_station.queue['backhaul'][rn.name]:
-					if b_available_cap >= pkt['size']:
-						rn.queue['backhaul'].append(pkt)
-						pass_pkt.append(pkt)
-						b_available_cap -= pkt['size']
-					else:
-						break
+		# access checking
+		else:
+			interface = 'access'
+			for rn in base_station.childs:
+				rn.queue['backhaul'] and reset(rn, status)
+				available_cap = rn.capacity[interface]
+				active_ue = []
 
-				for pkt in pass_pkt:
-					base_station.queue['backhaul'][rn.name].remove(pkt)
-
-			# check access
-			elif rn.queue['backhaul']:
-				available_cap = rn.capacity['access']
-				pass_pkt = []
-				rcv_ue = []
+				# transmission
 				for pkt in rn.queue['backhaul']:
-					if available_cap >= pkt['size']:
-						if not status[pkt['device'].name]['off']:
-							rn.queue['access'][pkt['device'].name].append(pkt)
-							status[pkt['device'].name]['delay'] += TTI-pkt['arrival_time']
-							available_cap -= pkt['size']
+					ue = pkt['device']
+					if available_cap < pkt['size']: break
+					if not status[ue.name]['off']:
+						active_ue.append(ue)
+						rn.queue[interface][ue.name].append(pkt)
+						rn.queue['backhaul'].remove(pkt)
+						status[ue.name]['delay'] += TTI-pkt['arrival_time']
+						available_cap -= pkt['size']
 
-							rcv_ue.append(pkt['device'])
-							pass_pkt.append(pkt)
-					else:
-						break
-
-				for pkt in pass_pkt:
-					rn.queue['backhaul'].remove(pkt)
-
+				# performance
 				for ue in rn.childs:
-					ue not in rcv_ue and drx_check(ue, status)
-					ue in rcv_ue and reset(ue, status)
-
-			else:
-				drx_check(rn, status)
-				for ue in rn.childs:
-					drx_check(ue, status)
+					ue not in active_ue and drx_check(ue, status)
+					ue in active_ue and reset(ue, status)
 
 	# test
 	print(base_station.name, end='\t')
