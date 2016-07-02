@@ -103,13 +103,13 @@ def transmission_scheduling(base_station, timeline):
 					# transmission
 					for pkt in FIFO_queue:
 						rn = pkt['device'].parent
-						if b_available_cap < pkt['size']: break
+						if available_cap < pkt['size']: break
 						if rn in lbps[interface][TTI]\
 						or status[rn.name]['stuck'][interface]:
 							backhaul_active_rn.append(rn)
 							rn.queue[interface].append(pkt)
 							FIFO_queue.remove(pkt)
-							b_available_cap -= pkt['size']
+							available_cap -= pkt['size']
 
 					# performance
 					stuck_rn = [pkt['device'].parent for pkt in FIFO_queue]
@@ -146,7 +146,7 @@ def transmission_scheduling(base_station, timeline):
 								if available_cap < pkt['size']: break
 								if ue in lbps[interface][TTI]\
 								or status[ue.name]['stuck']:
-									activity_ue.append(ue)
+									active_ue.append(ue)
 									rn.queue[interface][ue.name].append(pkt)
 									rn.queue['backhaul'].remove(pkt)
 									status[ue.name]['delay'] += TTI-pkt['arrival_time']
@@ -192,13 +192,13 @@ def transmission_scheduling(base_station, timeline):
 					# transmission
 					for pkt in FIFO_queue:
 						rn = pkt['device'].parent
-						if b_available_cap < pkt['size']: break
+						if available_cap < pkt['size']: break
 						if rn in lbps[interface][TTI]\
 						or status[rn.name]['stuck'][interface]:
 							backhaul_active_rn.append(rn)
 							rn.queue[interface].append(pkt)
 							FIFO_queue.remove(pkt)
-							b_available_cap -= pkt['size']
+							available_cap -= pkt['size']
 
 				# access checking
 				else:
@@ -362,7 +362,7 @@ def DRX(base_station,\
 			# transmission
 			for pkt in FIFO_queue:
 				rn = pkt['device'].parent
-				if b_available_cap < pkt['size']: break
+				if available_cap < pkt['size']: break
 				if not status[rn.name]['off']:
 					backhaul_active_rn.append(rn)
 					rn.queue[interface].append(pkt)
