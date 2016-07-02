@@ -129,21 +129,10 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 			'identity':su['identity'],
 			'TTI': [i*10+v for v in su['r_TTI']]} for su in mapping_pattern['access']]
 
-	# DEBUG
-	multisb=0
-
 	# backhaul mapping
 	for i in range(t):
-		# DEBUG
-		if len(vt_mapping['backhaul'][i])>1 and b_lbps_result[i]:
-			multisb += 1
-
 		for rsb in vt_mapping['backhaul'][i]:
 			timeline['backhaul'][rsb] += b_lbps_result[i]
-
-	# DEBUG
-	msg_warning("1-n case in backhaul\t%d"%multisb)
-	multisb=0
 
 	# access mapping
 	for i in range(0, t-k, k):
@@ -159,17 +148,10 @@ def two_hop_realtimeline(mapping_pattern, t, b, a):
 			identity = 'mixed' if tmp_map['mixed'] else identity
 			identity = 'access' if tmp_map['access'] else identity
 
-			# DEBUG
-			if len(tmp_map[identity][0])>1:
-				multisb+=1
-
 			for rsb in tmp_map[identity][0]['TTI']:
 				timeline['access'][rsb] += vt
 
 			tmp_map[identity].pop(0)
-
-	# DEBUG
-	msg_warning("1-n case in access\t%d"%multisb)
 
 	for i in range(len(timeline['backhaul'])):
 		timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
@@ -541,13 +523,11 @@ def min_split(device, simulation_time, check_K=False):
 
 		for (rn_name, info) in rn_status.items():
 			boundary_group = len(info['device'].childs)
-			# info['a-subframe-count'] = sum([1 for i in rn_status[rn_name]['result'] if i])
 
 			while not info['a-availability'] and boundary_group>1:
 				boundary_group -= 1
 				info['result'].update(split(info['device'], duplex, boundary_group))
 				check_mincycle(device, rn_status, b_min_cycle)
-				# info['a-subframe-count'] = sum([1 for i in rn_status[rn_name]['result'] if i])
 
 		# backhaul scheduling and scheduliability check
 		b_lbps_result = allocate_mincycle_backhaul(device, rn_status, b_min_cycle)
