@@ -72,7 +72,6 @@ def transmission_scheduling(base_station, timeline):
 				rn.name:{
 					'sleep':0,
 					'awake':{'backhaul':0, 'access':0},
-					'transmission':{'backhaul':0, 'access':0},
 					'stuck':{'backhaul':False, 'access':False},
 					'force-awake':{'backhaul':0, 'access':0}
 				} for rn in base_station.childs})
@@ -123,56 +122,56 @@ def transmission_scheduling(base_station, timeline):
 
 						if rn in backhaul_active_rn:
 							status[rn.name]['awake'][interface] += 1
-							status[rn.name]['transmission'][interface] += 1
 							for ue in rn.childs:
-								status[ue.name]['sleep'] += 1
+								if not status[ue.name]['stuck']\
+								and ue not in lbps['access'][TTI]:
+									status[ue.name]['sleep'] += 1
 
 				# access checking
-				else:
-					interface = 'access'
-					for rn in base_station.childs:
-						if rn not in backhaul_active_rn\
-						and (rn in lbps[interface][TTI]\
-							or status[rn.name]['stuck'][interface]):
+				interface = 'access'
+				for rn in base_station.childs:
+					if rn in backhaul_active_rn: continue
+					if rn in lbps[interface][TTI]\
+					or status[rn.name]['stuck'][interface]:
 
-							status[rn.name]['awake'][interface] += 1
-							status[rn.name]['transmission'][interface] += 1
-							available_cap = rn.capacity[interface]
-							active_ue = []
+						status[rn.name]['awake'][interface] += 1
+						available_cap = rn.capacity[interface]
+						active_ue = []
 
-							# transmission
-							for pkt in rn.queue['backhaul']:
-								ue = pkt['device']
-								if available_cap < pkt['size']: break
-								if ue in lbps[interface][TTI]\
-								or status[ue.name]['stuck']:
-									active_ue.append(ue)
-									rn.queue[interface][ue.name].append(pkt)
-									rn.queue['backhaul'].remove(pkt)
-									status[ue.name]['delay'] += TTI-pkt['arrival_time']
-									available_cap -= pkt['size']
+						# transmission
+						for pkt in rn.queue['backhaul']:
+							ue = pkt['device']
+							if available_cap < pkt['size']: break
+							if ue in lbps[interface][TTI]\
+							or status[ue.name]['stuck']:
+								active_ue.append(ue)
+								rn.queue[interface][ue.name].append(pkt)
+								rn.queue['backhaul'].remove(pkt)
+								status[ue.name]['delay'] += TTI-pkt['arrival_time']
+								available_cap -= pkt['size']
 
-							# performance
-							stuck_ue = [pkt['device'] for pkt in rn.queue['backhaul']]
-							for ue in rn.childs:
-								item = 'awake' if ue in active_ue else 'sleep'
-								status[ue.name][item] += 1
-								if ue in stuck_ue:
-									status[ue.name]['stuck'] = True
-									status[ue.name]['force-awake'] += 1
-								else:
-									status[ue.name]['stuck'] = False
+						# performance
+						stuck_ue = [pkt['device'] for pkt in rn.queue['backhaul']]
+						for ue in rn.childs:
+							item = 'awake' if ue in active_ue else 'sleep'
+							status[ue.name][item] += 1
+							if ue in stuck_ue:
+								status[ue.name]['stuck'] = True
+								status[ue.name]['force-awake'] += 1
+							else:
+								status[ue.name]['stuck'] = False
 
-							status[rn.name]['stuck'][interface] =\
-							True if any([status[ue.name]['stuck'] for ue in rn.childs]) else False
-							status[rn.name]['force-awake'][interface] += \
-							1 if status[rn.name]['stuck'][interface] else 0
+						status[rn.name]['stuck'][interface] =\
+						True if any([status[ue.name]['stuck'] for ue in rn.childs]) else False
+						status[rn.name]['force-awake'][interface] += \
+						1 if status[rn.name]['stuck'][interface] else 0
 
-						else:
-							status[rn.name]['sleep'] += 1
-							for ue in rn.childs:
-								if status[ue.name]['stuck']: continue
-								status[ue.name]['sleep'] += 1
+					else:
+						status[rn.name]['sleep'] += 1
+						for ue in rn.childs:
+								if not status[ue.name]['stuck']\
+								and ue not in lbps['access'][TTI]:
+									status[ue.name]['sleep'] += 1
 
 			# out of simulation time
 			TTI = copy.deepcopy(simulation_time)
@@ -224,8 +223,8 @@ def transmission_scheduling(base_station, timeline):
 				print(i.name, end='\t')
 				msg_execute("CQI= %d" % i.CQI, end='\t\t')
 				msg_execute("sleep: %d times" % status[i.name]['sleep'], end='\t')
-				msg_warning("transmission in backhaul: %d times" % status[i.name]['transmission']['backhaul'], end='\t')
-				msg_warning("transmission in access: %d times" % status[i.name]['transmission']['access'])
+				msg_warning("awake in backhaul: %d times" % status[i.name]['awake']['backhaul'], end='\t')
+				msg_warning("awake in access: %d times" % status[i.name]['awake']['access'])
 				# msg_warning("force awake in backhaul: %d times" % status[i.name]['force-awake']['backhaul'], end='\t')
 				# msg_warning("force awake in access: %d times" % status[i.name]['force-awake']['access'])
 
