@@ -373,7 +373,6 @@ class eNB(Device):
 			if required_b_subframe<=n_b_subframe else n_b_subframe
 			self._idle_capacity = round(n_b_subframe-required_b_subframe, 2)
 			self.tdd_config = TWO_HOP_TDD_CONFIG[fixed]
-			msg_success("idle Bh subframe\t%f"%self._idle_capacity)
 		else:
 			# backhaul and access filter for TDD configuration decision
 			n_b_subframe = math.ceil(required_b_subframe)
