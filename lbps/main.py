@@ -302,6 +302,57 @@ def DRX(base_station,\
 			status[device.name]['off'] = False
 			status[device.name]['long_cycle'] = long_cycle
 
+	def pkt_scheduling(TTI, FIFO_queue, base_station, status, clear_pkt=False):
+
+		# backhaul checking
+		backhaul_active_rn = []
+		if base_station.tdd_config[TTI%10]:
+			interface = 'backhaul'
+			available_cap = base_station.capacity
+
+			# transmission
+			for pkt in FIFO_queue:
+				rn = pkt['device'].parent
+				if available_cap < pkt['size']: break
+				if not status[rn.name]['off'] or clear_pkt:
+					backhaul_active_rn.append(rn)
+					rn.queue[interface].append(pkt)
+					FIFO_queue.remove(pkt)
+					available_cap -= pkt['size']
+
+			# performance
+			if not clear_pkt:
+				for rn in backhaul_active_rn:
+					reset(rn, status)
+					for ue in rn.childs:
+						drx_check(ue,status)
+
+		# access checking
+		else:
+			interface = 'access'
+			for rn in base_station.childs:
+				if rn in backhaul_active_rn: continue
+				not clear_pkt and rn.queue['backhaul'] and reset(rn, status)
+				available_cap = rn.capacity[interface]
+				active_ue = []
+
+				# transmission
+				for pkt in rn.queue['backhaul']:
+					ue = pkt['device']
+					if available_cap < pkt['size']: break
+					if not status[ue.name]['off'] or clear_pkt:
+						active_ue.append(ue)
+						rn.queue[interface][ue.name].append(pkt)
+						rn.queue['backhaul'].remove(pkt)
+						status[ue.name]['delay'] += TTI-pkt['arrival_time']
+						available_cap -= pkt['size']
+
+				# performance
+				if not clear_pkt:
+					for ue in rn.childs:
+						ue not in active_ue and drx_check(ue, status)
+						ue in active_ue and reset(ue, status)
+
 	base_station.clearQueue()
 	simulation_time = len(timeline)-1
 	round_para = len(str(int(simulation_time/10)))
@@ -335,6 +386,7 @@ def DRX(base_station,\
 	msg_success("==========\t\t%s simulation with lambda %g Mbps start\t\t=========="%\
 					(return_name, base_station.lambd['backhaul']))
 
+	# in simulation time
 	FIFO_queue = []
 	for TTI in range(simulation_time):
 
@@ -351,49 +403,20 @@ def DRX(base_station,\
 					drx_check(ue, status)
 				continue
 
-		# backhaul checking
-		backhaul_active_rn = []
-		if base_station.tdd_config[TTI%10]:
-			interface = 'backhaul'
-			available_cap = base_station.capacity
+		pkt_scheduling(TTI, FIFO_queue, base_station, status)
 
-			# transmission
-			for pkt in FIFO_queue:
-				rn = pkt['device'].parent
-				if available_cap < pkt['size']: break
-				if not status[rn.name]['off']:
-					backhaul_active_rn.append(rn)
-					rn.queue[interface].append(pkt)
-					FIFO_queue.remove(pkt)
-					available_cap -= pkt['size']
+	# out of simulation time
+	TTI = copy.deepcopy(simulation_time)
+	while FIFO_queue\
+	or any([rn.queue['backhaul'] for rn in base_station.childs]):
 
-			# performance
-			for rn in backhaul_active_rn:
-				reset(rn, status)
+		# case: subframe 'S' or 'U'
+		if base_station.childs[0].tdd_config[TTI%10] != 'D':
+			TTI += 1
+			continue
 
-		# access checking
-		else:
-			interface = 'access'
-			for rn in base_station.childs:
-				rn.queue['backhaul'] and reset(rn, status)
-				available_cap = rn.capacity[interface]
-				active_ue = []
-
-				# transmission
-				for pkt in rn.queue['backhaul']:
-					ue = pkt['device']
-					if available_cap < pkt['size']: break
-					if not status[ue.name]['off']:
-						active_ue.append(ue)
-						rn.queue[interface][ue.name].append(pkt)
-						rn.queue['backhaul'].remove(pkt)
-						status[ue.name]['delay'] += TTI-pkt['arrival_time']
-						available_cap -= pkt['size']
-
-				# performance
-				for ue in rn.childs:
-					ue not in active_ue and drx_check(ue, status)
-					ue in active_ue and reset(ue, status)
+		pkt_scheduling(TTI, FIFO_queue, base_station, status, clear_pkt=True)
+		TTI += 1
 
 	# test
 	print(base_station.name, end='\t')
