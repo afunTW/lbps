@@ -296,7 +296,7 @@ def DRX(base_station,\
 
 			# performance
 			if not clear_pkt:
-				for rn in backhaul_active_rn:
+				for rn in list(set(backhaul_active_rn)):
 					reset(rn, status)
 					for ue in rn.childs:
 						drx_check(ue,status)
