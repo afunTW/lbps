@@ -21,6 +21,88 @@ def update_nested_dict(d1, d2):
 def transmission_scheduling(base_station, timeline):
 	prefix = "transmissing_scheduling failed"
 
+	def pkt_scheduling(TTI, FIFO_queue, base_station, status, clear_pkt=False):
+		# backhaul checking
+		backhaul_active_rn = []
+		if base_station.tdd_config[TTI%10]:
+			available_cap = base_station.capacity
+			interface = 'backhaul'
+
+			# transmission
+			for pkt in FIFO_queue:
+				rn = pkt['device'].parent
+				if available_cap < pkt['size']: break
+				if clear_pkt\
+				or rn in lbps[interface][TTI]\
+				or status[rn.name]['stuck'][interface]:
+					backhaul_active_rn.append(rn)
+					rn.queue[interface].append(pkt)
+					FIFO_queue.remove(pkt)
+					available_cap -= pkt['size']
+
+			# performance
+			stuck_rn = [pkt['device'].parent for pkt in FIFO_queue]
+			if not clear_pkt:
+				for rn in base_station.childs:
+					status[rn.name]['stuck'][interface] = False
+					if rn in stuck_rn:
+						status[rn.name]['stuck'][interface] = True
+						status[rn.name]['force-awake'][interface] += 1
+					if rn in backhaul_active_rn:
+						status[rn.name]['awake'][interface] += 1
+						for ue in rn.childs:
+							if not status[ue.name]['stuck']\
+							and ue not in lbps['access'][TTI]:
+								status[ue.name]['sleep'] += 1
+
+		# access checking
+		interface = 'access'
+		for rn in base_station.childs:
+			if rn in backhaul_active_rn: continue
+			if clear_pkt\
+			or rn in lbps[interface][TTI]\
+			or status[rn.name]['stuck'][interface]:
+				status[rn.name]['awake'][interface] += 1
+				available_cap = rn.capacity[interface]
+				active_ue = []
+
+				# transmission
+				for pkt in rn.queue['backhaul']:
+					ue = pkt['device']
+					if available_cap < pkt['size']: break
+					if clear_pkt\
+					or ue in lbps[interface][TTI]\
+					or status[ue.name]['stuck']:
+						active_ue.append(ue)
+						rn.queue[interface][ue.name].append(pkt)
+						rn.queue['backhaul'].remove(pkt)
+						status[ue.name]['delay'] += TTI-pkt['arrival_time']
+						available_cap -= pkt['size']
+
+				# performance
+				if not clear_pkt:
+					stuck_ue = [pkt['device'] for pkt in rn.queue['backhaul']]
+					for ue in rn.childs:
+						item = 'awake' if ue in active_ue else 'sleep'
+						status[ue.name][item] += 1
+						if ue in stuck_ue:
+							status[ue.name]['stuck'] = True
+							status[ue.name]['force-awake'] += 1
+						else:
+							status[ue.name]['stuck'] = False
+
+					status[rn.name]['stuck'][interface] =\
+					True if any([status[ue.name]['stuck'] for ue in rn.childs]) else False
+					status[rn.name]['force-awake'][interface] += \
+					1 if status[rn.name]['stuck'][interface] else 0
+
+			elif not clear_pkt:
+				status[rn.name]['sleep'] += 1
+				for ue in rn.childs:
+						if not status[ue.name]['stuck']\
+						and ue not in lbps['access'][TTI]:
+							status[ue.name]['sleep'] += 1
+
 	try:
 		simulation_time = len(timeline)-1
 		round_para = len(str(int(simulation_time/10)))
@@ -93,85 +175,7 @@ def transmission_scheduling(base_station, timeline):
 						status[rn.name]['sleep'] += 1
 					continue
 
-				# backhaul checking
-				backhaul_active_rn = []
-				if base_station.tdd_config[TTI%10]:
-					available_cap = base_station.capacity
-					interface = 'backhaul'
-
-					# transmission
-					for pkt in FIFO_queue:
-						rn = pkt['device'].parent
-						if available_cap < pkt['size']: break
-						if rn in lbps[interface][TTI]\
-						or status[rn.name]['stuck'][interface]:
-							backhaul_active_rn.append(rn)
-							rn.queue[interface].append(pkt)
-							FIFO_queue.remove(pkt)
-							available_cap -= pkt['size']
-
-					# performance
-					stuck_rn = [pkt['device'].parent for pkt in FIFO_queue]
-					for rn in base_station.childs:
-
-						if rn in stuck_rn:
-							status[rn.name]['stuck'][interface] = True
-							status[rn.name]['force-awake'][interface] += 1
-						else:
-							status[rn.name]['stuck'][interface] = False
-
-						if rn in backhaul_active_rn:
-							status[rn.name]['awake'][interface] += 1
-							for ue in rn.childs:
-								if not status[ue.name]['stuck']\
-								and ue not in lbps['access'][TTI]:
-									status[ue.name]['sleep'] += 1
-
-				# access checking
-				interface = 'access'
-				for rn in base_station.childs:
-					if rn in backhaul_active_rn: continue
-					if rn in lbps[interface][TTI]\
-					or status[rn.name]['stuck'][interface]:
-
-						status[rn.name]['awake'][interface] += 1
-						available_cap = rn.capacity[interface]
-						active_ue = []
-
-						# transmission
-						for pkt in rn.queue['backhaul']:
-							ue = pkt['device']
-							if available_cap < pkt['size']: break
-							if ue in lbps[interface][TTI]\
-							or status[ue.name]['stuck']:
-								active_ue.append(ue)
-								rn.queue[interface][ue.name].append(pkt)
-								rn.queue['backhaul'].remove(pkt)
-								status[ue.name]['delay'] += TTI-pkt['arrival_time']
-								available_cap -= pkt['size']
-
-						# performance
-						stuck_ue = [pkt['device'] for pkt in rn.queue['backhaul']]
-						for ue in rn.childs:
-							item = 'awake' if ue in active_ue else 'sleep'
-							status[ue.name][item] += 1
-							if ue in stuck_ue:
-								status[ue.name]['stuck'] = True
-								status[ue.name]['force-awake'] += 1
-							else:
-								status[ue.name]['stuck'] = False
-
-						status[rn.name]['stuck'][interface] =\
-						True if any([status[ue.name]['stuck'] for ue in rn.childs]) else False
-						status[rn.name]['force-awake'][interface] += \
-						1 if status[rn.name]['stuck'][interface] else 0
-
-					else:
-						status[rn.name]['sleep'] += 1
-						for ue in rn.childs:
-								if not status[ue.name]['stuck']\
-								and ue not in lbps['access'][TTI]:
-									status[ue.name]['sleep'] += 1
+				pkt_scheduling(TTI, FIFO_queue, base_station, status)
 
 			# out of simulation time
 			TTI = copy.deepcopy(simulation_time)
@@ -182,37 +186,7 @@ def transmission_scheduling(base_station, timeline):
 				if base_station.childs[0].tdd_config[TTI%10] != 'D':
 					TTI += 1
 					continue
-
-				# backhaul checking
-				backhaul_active_rn = []
-				if base_station.tdd_config[TTI%10]:
-					available_cap = base_station.capacity
-					interface = 'backhaul'
-
-					# transmission
-					for pkt in FIFO_queue:
-						rn = pkt['device'].parent
-						if available_cap < pkt['size']: break
-						backhaul_active_rn.append(rn)
-						rn.queue[interface].append(pkt)
-						FIFO_queue.remove(pkt)
-						available_cap -= pkt['size']
-
-				# access checking
-				else:
-					interface = 'access'
-					for rn in base_station.childs:
-						if rn not in backhaul_active_rn:
-							available_cap = rn.capacity[interface]
-
-							# transmission
-							for pkt in rn.queue['backhaul']:
-								ue = pkt['device']
-								if available_cap < pkt['size']: break
-								rn.queue[interface][ue.name].append(pkt)
-								rn.queue['backhaul'].remove(pkt)
-								status[ue.name]['delay'] += TTI-pkt['arrival_time']
-								available_cap -= pkt['size']
+				pkt_scheduling(TTI, FIFO_queue, base_station, status, clear_pkt=True)
 
 				TTI += 1
 
