@@ -280,7 +280,7 @@ def DRX(base_station,\
 
 		# backhaul checking
 		backhaul_active_rn = []
-		if base_station.tdd_config[TTI%10]:
+		if base_station.tdd_config[TTI%10] == 'D':
 			interface = 'backhaul'
 			available_cap = base_station.capacity
 
@@ -294,38 +294,45 @@ def DRX(base_station,\
 					FIFO_queue.remove(pkt)
 					available_cap -= pkt['size']
 
+			backhaul_active_rn = list(set(backhaul_active_rn))
+
 			# performance
 			if not clear_pkt:
-				for rn in list(set(backhaul_active_rn)):
+				for rn in backhaul_active_rn:
+					status[rn.name]['b_awake']+=1
 					reset(rn, status)
 					for ue in rn.childs:
 						drx_check(ue,status)
 
 		# access checking
-		else:
-			interface = 'access'
-			for rn in base_station.childs:
-				if rn in backhaul_active_rn: continue
-				not clear_pkt and rn.queue['backhaul'] and reset(rn, status)
-				available_cap = rn.capacity[interface]
-				active_ue = []
+		# else:
+		interface = 'access'
+		for rn in base_station.childs:
+			if rn in backhaul_active_rn\
+			or rn.tdd_config[TTI%10] != 'D' : continue
+			not clear_pkt and rn.queue['backhaul'] and reset(rn, status)
+			available_cap = rn.capacity[interface]
+			active_ue = []
 
-				# transmission
-				for pkt in rn.queue['backhaul']:
-					ue = pkt['device']
-					if available_cap < pkt['size']: break
-					if not status[ue.name]['off'] or clear_pkt:
-						active_ue.append(ue)
-						rn.queue[interface][ue.name].append(pkt)
-						rn.queue['backhaul'].remove(pkt)
-						status[ue.name]['delay'] += TTI-pkt['arrival_time']
-						available_cap -= pkt['size']
+			if rn.queue['backhaul']:
+				status[rn.name]['a_awake'] += 1
 
-				# performance
-				if not clear_pkt:
-					for ue in rn.childs:
-						ue not in active_ue and drx_check(ue, status)
-						ue in active_ue and reset(ue, status)
+			# transmission
+			for pkt in rn.queue['backhaul']:
+				ue = pkt['device']
+				if available_cap < pkt['size']: break
+				if not status[ue.name]['off'] or clear_pkt:
+					active_ue.append(ue)
+					rn.queue[interface][ue.name].append(pkt)
+					rn.queue['backhaul'].remove(pkt)
+					status[ue.name]['delay'] += TTI-pkt['arrival_time']
+					available_cap -= pkt['size']
+
+			# performance
+			if not clear_pkt:
+				for ue in rn.childs:
+					ue not in active_ue and drx_check(ue, status)
+					ue in active_ue and reset(ue, status)
 
 	base_station.clearQueue()
 	simulation_time = len(timeline)-1
@@ -341,6 +348,9 @@ def DRX(base_station,\
 		rn.name:{
 			'inactivity_time':inactivity_timer,
 			'sleep':0,
+			'b_awake':0,
+			'a_awake':0,
+			'pass_sleep':0,
 			'off':False,
 			'short_cycle_count': short_cycle_count,
 			'short_cycle':short_cycle*short_cycle_count,
@@ -372,6 +382,7 @@ def DRX(base_station,\
 		for rn in base_station.childs:
 			if rn.tdd_config[TTI%10] != 'D'\
 			or status[rn.name]['off']:
+				status[rn.name]['pass_sleep']+=1
 				drx_check(rn, status)
 				for ue in rn.childs:
 					drx_check(ue, status)
@@ -398,8 +409,9 @@ def DRX(base_station,\
 	for i in base_station.childs:
 		print(i.name, end='\t')
 		msg_execute("CQI= %d" % i.CQI, end='\t\t')
-		msg_execute("total ue sleep: %d times" %\
-			sum([status[ue.name]['sleep'] for ue in i.childs]))
+		msg_execute("pass: %d times"%status[i.name]['pass_sleep'], end='\t\t')
+		msg_execute("awake in backhaul: %d times" %status[i.name]['b_awake'], end='\t')
+		msg_execute("awake in access: %d times" %status[i.name]['a_awake'])
 
 	# performance
 	rn_pse = [status[rn.name]['sleep']/simulation_time\
