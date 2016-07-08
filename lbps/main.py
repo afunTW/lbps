@@ -62,7 +62,6 @@ def transmission_scheduling(base_station, timeline):
 			if clear_pkt\
 			or rn in lbps[interface][TTI]\
 			or status[rn.name]['stuck'][interface]:
-				status[rn.name]['awake'][interface] += 1
 				available_cap = rn.capacity[interface]
 				active_ue = []
 
@@ -81,6 +80,7 @@ def transmission_scheduling(base_station, timeline):
 
 				# performance
 				if not clear_pkt:
+					status[rn.name]['awake'][interface] += 1
 					stuck_ue = [pkt['device'] for pkt in rn.queue['backhaul']]
 					for ue in rn.childs:
 						item = 'awake' if ue in active_ue else 'sleep'
