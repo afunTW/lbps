@@ -86,32 +86,6 @@ def non_degraded(G, interface, DATA_TH):
 
 	return G
 
-def access_aggr(device, b_result):
-
-	if b_result:
-		lbps_failed = []
-
-		for rn in device.childs:
-			b_TTI = None
-			a_subframe = ceil(device.virtualCapacity/rn.virtualCapacity)
-
-			if a_subframe > len(b_result)-1:
-				lbps_failed.append(rn)
-				continue
-
-			for i in b_result:
-				if a_subframe == 0:
-					break
-				if rn in i:
-					continue
-				i += rn.childs
-				i.append(rn)
-				a_subframe -= 1
-
-		return lbps_failed
-
-	return
-
 def two_hop_realtimeline(mapping_pattern, t, b, a):
 	k = len(a)
 
@@ -674,28 +648,59 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 		'merge': merge
 	}
 
+	def access_scheduling(device, lbps_result):
+		Bh_K = len(lbps_result)
+		rn_stauts = {
+			rn:{
+				'Ai_K':int(Bh_K/sum([1 for TTI in lbps_result if rn in TTI])),
+				'Bh_count':sum([1 for TTI in lbps_result if rn in TTI]),
+				'Ai_count':ceil(device.capacity/rn.capacity['access'])
+			}
+			for rn in device.childs
+		}
+
+		# check access schedulability
+		# TD do not need check ackhaul schedulability
+		check = []
+		for rn in device.childs:
+			if rn_stauts[rn]['Ai_count']+1<=rn_stauts[rn]['Ai_K']:
+				check.append(True)
+			else:
+				check.append(False)
+
+		# scheduling failed
+		if not all(check):
+			Bh_result = [rn for rn in device.childs]
+			Bh_result.append(device)
+			Bh_result = [Bh_result]*Bh_K
+			Ai_result = [ue for rn in device.childs for ue in rn.childs]
+			Ai_result += device.childs
+			Ai_result = [Ai_result]*Bh_K
+			return Bh_result, Ai_result
+
+		# have schedulability
+		Bh_result = lbps_result
+		Ai_result = [[] for i in range(Bh_K)]
+		for rn in device.childs:
+			Ai_rn_result = [ue for ue in rn.childs]
+			Ai_rn_result.append(rn)
+			for cycle_start in range(0, Bh_K, rn_stauts[rn]['Ai_K']):
+				for TTI in range(rn_stauts[rn]['Ai_count']):
+					print(Ai_result[cycle_start+TTI+2])
+					Ai_result[cycle_start+TTI] += Ai_rn_result
+
+		return Bh_result, Ai_result
+
 	try:
 		lbps_result = lbps_scheduling[b_lbps](device, duplex)
-		b_lbps_result = [[j.name for j in i] for i in lbps_result]
-		lbps_failed = access_aggr(device, lbps_result)
-		a_lbps_result = [[j.name for j in i] for i in lbps_result]
-		a_lbps_result = [list(set(a_lbps_result[i])-set(b_lbps_result[i]))\
-						for i in range(len(a_lbps_result))]
-
+		Bh_result, Ai_result = access_scheduling(device, lbps_result)
 		mapping_pattern = m_2hop(device.tdd_config)
-		b_lbps_result = [getDeviceByName(device, i) for i in b_lbps_result]
-		a_lbps_result = [getDeviceByName(device, i) for i in a_lbps_result]
-
-		for rn in lbps_failed:
-			for TTI in a_lbps_result:
-				TTI.append(rn)
-				TTI += rn.childs
 
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
 			simulation_time,
-			b_lbps_result,
-			a_lbps_result)
+			Bh_result,
+			Ai_result)
 
 		for i in range(len(timeline['backhaul'])):
 			timeline['backhaul'][i] = list(set(timeline['backhaul'][i]))
@@ -709,7 +714,7 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 		)), pre=prefix)
 
 		if check_K:
-			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
+			return get_sleep_cycle(device, Bh_result, Ai_result)
 
 		return timeline
 
