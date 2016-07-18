@@ -686,7 +686,6 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 			Ai_rn_result.append(rn)
 			for cycle_start in range(0, Bh_K, rn_stauts[rn]['Ai_K']):
 				for TTI in range(rn_stauts[rn]['Ai_count']):
-					print(Ai_result[cycle_start+TTI+2])
 					Ai_result[cycle_start+TTI] += Ai_rn_result
 
 		return Bh_result, Ai_result
@@ -695,6 +694,9 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 		lbps_result = lbps_scheduling[b_lbps](device, duplex)
 		Bh_result, Ai_result = access_scheduling(device, lbps_result)
 		mapping_pattern = m_2hop(device.tdd_config)
+
+		if check_K:
+			return get_sleep_cycle(device, Bh_result, Ai_result)
 
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
@@ -712,9 +714,6 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 			sum([1 for i in range(len(timeline['access'])) \
 				if timeline['backhaul'][i] and timeline['access'][i]]
 		)), pre=prefix)
-
-		if check_K:
-			return get_sleep_cycle(device, Bh_result, Ai_result)
 
 		return timeline
 
