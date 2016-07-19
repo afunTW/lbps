@@ -201,6 +201,13 @@ def allocate_mincycle_access(rn_status, b_min_cycle):
 			a_lbps_result = [i+[info['device']]+info['device'].childs for i in a_lbps_result]
 	return a_lbps_result
 
+def schedule_failed(device):
+	Bh_result = [rn for rn in device.childs]
+	Bh_result.append(device)
+	Ai_result = [ue for rn in device.childs for ue in rn.childs]
+	Ai_result += [rn for rn in device.childs]
+	return Bh_result, Ai_result
+
 def get_sleep_cycle(device, b_lbps_result, a_lbps_result):
 	return {
 		'RN':{rn.name:\
@@ -426,33 +433,62 @@ def min_aggr(device, simulation_time, check_K=False):
 	duplex = 'TDD'
 
 	try:
-		rn_status = {
-			rn.name:{
-				'device':rn,
-				'result':aggr(rn, duplex),
-				'a-availability':False,
-				'b-availability':False,
-				'a-subframe-count':None,
-				'b-subframe-count': None
-			} for rn in device.childs
-		}
+		# refactor
+		rn_status = {rn:{'Ai_result':aggr(rn, duplex)} for rn in device.childs}
+		for rn in rn_status.keys():
+			rate = rn.virtualCapacity/device.virtualCapacity
+			rn_status[rn].update({
+				'Ai_K':len(rn_status[rn]['Ai_result']),
+				'Ai_count':1,
+				'Bh_count':ceil(rate)
+				})
 
-		# minCycle availability check
-		b_min_cycle = min([len(rn_status[i]['result']) for i in rn_status])
-		check_mincycle(device, rn_status, b_min_cycle)
+		Bh_K = min([v['Ai_K'] for v in rn_status.values()])
 
-		# backhaul scheduling and scheduliability check
-		b_lbps_result = allocate_mincycle_backhaul(device, rn_status, b_min_cycle)
+		# shrink the cycle to match the min cycle
+		for rn in rn_status.keys():
+			if rn_status[rn]['Ai_K'] > Bh_K:
+				pkt_size = getAvgPktSize(rn)
+				accumulate_pkt = DataAcc(rn.lambd['access'], Bh_K)
+				rn_status[rn].update({'Ai_K':Bh_K})
+				accumulate_pkt and\
+				rn_status[rn].update({'Bh_count':ceil(accumulate_pkt*pkt_size*rate)})
 
-		# access scheduling and scheduliability check
-		a_lbps_result = allocate_mincycle_access(rn_status, b_min_cycle)
+		# schedulability
+		Ai_success = []
+		for v in rn_status.values():
+			check = True if v['Ai_count']+v['Bh_count']<=Bh_K else False
+			Ai_success.append(check)
+
+		# scheduling
+		Bh_result = [[] for i in range(Bh_K)]
+		Ai_result = [[] for i in range(Bh_K)]
+		if sum([v['Bh_count'] for v in rn_status.values()])<=Bh_K and all(Ai_success):
+			for rn in rn_status.keys():
+				Bh = [device, rn]
+
+				# backhaul
+				for TTI in range(Bh_K):
+					if Bh_result[TTI]: continue
+					for i in range(rn_status[rn]['Bh_count']):
+						Bh_result[TTI+i] += Bh
+					break
+
+				# access
+				for i, TTI in enumerate(rn_status[rn]['Ai_result']):
+					Ai_result[i] += TTI
+		else:
+			Bh_result, Ai_result = schedule_failed(device)
+
+		if check_K:
+			return get_sleep_cycle(device, Bh_result, Ai_result)
 
 		mapping_pattern = m_2hop(device.tdd_config)
 		timeline = two_hop_realtimeline(
 			mapping_pattern,
 			simulation_time,
-			b_lbps_result,
-			a_lbps_result)
+			Bh_result,
+			Ai_result)
 
 		msg_warning("total awake: %d times" %\
 			(sum([1 for i in timeline['backhaul'] if i])+\
@@ -460,9 +496,6 @@ def min_aggr(device, simulation_time, check_K=False):
 			sum([1 for i in range(len(timeline['access'])) \
 				if timeline['backhaul'][i] and timeline['access'][i]]
 		)), pre=prefix)
-
-		if check_K:
-			return get_sleep_cycle(device, b_lbps_result, a_lbps_result)
 
 		return timeline
 
@@ -654,7 +687,7 @@ def top_down(b_lbps, device, simulation_time, check_K=False):
 			rn:{
 				'Ai_K':int(Bh_K/sum([1 for TTI in lbps_result if rn in TTI])),
 				'Bh_count':sum([1 for TTI in lbps_result if rn in TTI]),
-				'Ai_count':ceil(device.capacity/rn.capacity['access'])
+				'Ai_count':ceil(device.virtualCapacity/rn.virtualCapacity)
 			}
 			for rn in device.childs
 		}
