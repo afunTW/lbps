@@ -206,7 +206,7 @@ def schedule_failed(device):
 	Bh_result.append(device)
 	Ai_result = [ue for rn in device.childs for ue in rn.childs]
 	Ai_result += [rn for rn in device.childs]
-	return Bh_result, Ai_result
+	return [Bh_result], [Ai_result]
 
 def get_sleep_cycle(device, b_lbps_result, a_lbps_result):
 	return {
@@ -433,7 +433,6 @@ def min_aggr(device, simulation_time, check_K=False):
 	duplex = 'TDD'
 
 	try:
-		# refactor
 		rn_status = {rn:{'Ai_result':aggr(rn, duplex)} for rn in device.childs}
 		for rn in rn_status.keys():
 			rate = rn.virtualCapacity/device.virtualCapacity
