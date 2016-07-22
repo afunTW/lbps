@@ -509,7 +509,7 @@ def merge_merge(device, simulation_time, check_K=False):
 		} for rn in rn_status.keys()]
 
 	while sum([ceil(i['Bh_count'])/i['Ai_K'] for i in groups])>1:
-		groups.sort(key=lambda x:x['K'], reverse=True)
+		groups.sort(key=lambda x:x['Ai_K'], reverse=True)
 		non_degraded_success = False
 		for source_G in groups:
 			for target_G in groups:
