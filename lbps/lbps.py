@@ -515,8 +515,16 @@ def merge_merge(device, simulation_time, check_K=False):
 			for target_G in groups:
 				if target_G is not source_G\
 				and target_G['Ai_K'] == source_G['Ai_K']\
-				and ceil(target_G['Bh_count']+source_G['Bh_count'])\
-				<source_G['Ai_K']:
+				and ceil(target_G['Bh_count']+source_G['Bh_count'])<source_G['Ai_K']:
+					# check access schedulability respectively
+					target_Ai = sum([\
+						sum([1 for TTI in rn_status[rn]['Ai_result'] if TTI])\
+						for rn in target_G['device']])
+					source_Ai = sum([\
+						sum([1 for TTI in rn_status[rn]['Ai_result'] if TTI])\
+						for rn in source_G['device']])
+					if sum(target_Ai, source_Ai)>source_G['Ai_K']: break
+
 					non_degraded_success=True
 					source_G['device'] += target_G['device']
 					source_G['Bh_count'] += target_G['Bh_count']
@@ -560,13 +568,9 @@ def merge_merge(device, simulation_time, check_K=False):
 			# access
 			Ai_group_result = [[] for i in range(g['Ai_K'])]
 			for rn in g['device']:
-				Ai = [ue for ue in rn.childs]
-				Ai.append(rn)
 				for TTI, v in enumerate(Ai_group_result):
-					if v: continue
-					for count in range(rn_status[rn]['Ai_count']):
-						Ai_group_result[TTI+count] += Ai
-					break
+					Ai_group_result[TTI] += rn_status[rn]['Ai_result'][TTI]
+
 			for i, v in enumerate(Ai_group_result):
 				Ai_result[i] += v
 	else:
