@@ -523,7 +523,7 @@ def merge_merge(device, simulation_time, check_K=False):
 					source_Ai = sum([\
 						sum([1 for TTI in rn_status[rn]['Ai_result'] if TTI])\
 						for rn in source_G['device']])
-					if sum(target_Ai, source_Ai)>source_G['Ai_K']: break
+					if target_Ai+source_Ai>source_G['Ai_K']: break
 
 					non_degraded_success=True
 					source_G['device'] += target_G['device']
