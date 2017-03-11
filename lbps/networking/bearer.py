@@ -1,5 +1,6 @@
 import random
 
+# FIXED: bandwidth meaning?
 class Bearer(object):
     def __init__(self, src, dest, interface, bandwidth=0, CQI=0, flow='VoIP'):
         self.__source = src
