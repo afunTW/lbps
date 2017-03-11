@@ -2,7 +2,7 @@ import sys
 import logging
 
 sys.path.append('../..')
-import lbps.definition
+import definition
 
 # FIXME: keep buffer an bearer in type of list
 class LBPSDevice(object):

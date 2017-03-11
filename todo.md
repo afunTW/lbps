@@ -1,9 +1,0 @@
-- [*] reform module structure
-- [*] function of assigning cqi in bearer
-- [*] function of determining lambda by traffic in device
-- [*] function of calculation wideband capacity in device
-- [] function of calculation virtual capacity in device
-- [] tdd mapping
-- [] function of tdd setting in device
-- [] lbps algorithm
-- [] two hopping lbps algorithm
