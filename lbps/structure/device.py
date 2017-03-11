@@ -2,17 +2,13 @@ import sys
 import logging
 
 sys.path.append('../..')
-from lbps.networking import bearer
-from lbps.definition import capacity
-from lbps.definition import cqi
-from lbps.definition import tdd
-from lbps.definition import traffic
+import lbps.definition
 
 # FIXME: keep buffer an bearer in type of list
 class LBPSDevice(object):
     def __init__(self, name='device'):
         self.name = name
-        self.buffer = {'downlink': [], 'uplink': []}
+        self.buffer = {'backhaul': [], 'access': []}
         self.bearer = {'backhaul': [], 'access': []}
         self.sleep = False
         self.__interface = ''

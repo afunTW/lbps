@@ -1,1 +1,1 @@
-__all__ = ['capacity', 'cqi', 'traffic']
+__all__ = ['bearer','capacity', 'cqi', 'tdd', 'traffic']
