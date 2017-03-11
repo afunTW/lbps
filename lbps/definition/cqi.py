@@ -1,7 +1,7 @@
 import logging
 import traceback
 
-__cqi = {
+cqi_info = {
 	1: { 'modulation': 'QPSK', 'code-rate': 78, 'eff': 0.1523 },
 	2: { 'modulation': 'QPSK', 'code-rate': 120, 'eff': 0.2344 },
 	3: { 'modulation': 'QPSK', 'code-rate': 193, 'eff': 0.3770 },
@@ -19,22 +19,8 @@ __cqi = {
 	15: { 'modulation': '64QAM', 'code-rate': 948, 'eff': 5.5547 }
 }
 
-__intfrastructure_type = {
+infra_type = {
 	'L': [1, 2, 3, 4, 5, 6],
 	'M': [7, 8, 9],
 	'H': [10, 11, 12, 13, 14, 15]
 }
-
-def cqi_info(level):
-	try:
-		if int(level) > 0 and int(level) < 16:
-			return __cqi[int(level)]
-		return
-	except Exception as e:
-		traceback.print_exc(e)
-		logging.exception(e)
-
-def infra_type(t):
-	if t in __intfrastructure_type.keys():
-		return __intfrastructure_type[t]
-	return
