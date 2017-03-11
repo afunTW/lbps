@@ -22,7 +22,7 @@ class LBPSDevice(object):
     def interface(self): return self.__interface
     @interface.setter
     def interface(self, interface):
-        if isintance(interface, str) and\
+        if isinstance(interface, str) and\
         interface in ['backhaul', 'access']:
             self.__interface = interface
 
@@ -56,5 +56,6 @@ class LBPSDevice(object):
         if not self.__interface: return
         if not self.bearer[self.__interface]: return
         each_cqi = [bearer.CQI for bearer in self.bearer[self.__interface]]
-        each_eff = [cqi.cqi_info(cqi)['eff'] for cqi in each_cqi]
-        aggr_cap = sum([for eff in each_eff])
+        each_eff = [cqi.cqi_info(i)['eff'] for i in each_cqi]
+        aggr_cap = sum([capacity.RE_TTI*eff for eff in each_eff])
+        return aggr_cap
