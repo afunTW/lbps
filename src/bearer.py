@@ -1,12 +1,10 @@
 import random
 
-# FIXED: bandwidth meaning?
+
 class Bearer(object):
-    def __init__(self, src, dest, interface, bandwidth=0, CQI=0, flow='VoIP'):
+    def __init__(self, src, dest, CQI=0, flow='VoIP'):
         self.__source = src
         self.__destination = dest
-        self.__interface = interface
-        self.__bandwidth = bandwidth
         self.__CQI = CQI
         self.__flow = flow
         self.__CQI_type = {
@@ -22,13 +20,8 @@ class Bearer(object):
     def destination(self): return self.__destination
 
     @property
-    def interface(self): return self.__interface
-
-    @property
-    def bandwidth(self): return self.__bandwidth
-
-    @property
     def CQI(self): return self.__CQI
+
     @CQI.setter
     def CQI(self, value):
         if isinstance(value, str) and value in self.__CQI_type.keys():
