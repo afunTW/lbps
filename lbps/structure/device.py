@@ -13,9 +13,24 @@ class OneHopDevice(object):
     def __init__(self, name='one_hop_device'):
         self.name = name
         self.buffer = []
-        self.bearer = []
         self.sleep = False
+        self.__bearer = []
         self.__tdd_config = []
+
+    @property
+    def bearer(self):
+        return self.__bearer
+
+    def append_bearer(self, b):
+        try:
+            assert isinstance(b, bearer.Bearer),\
+            'given data is not bearer.Bearer'
+            self.__bearer.append(b)
+        except Exception as e:
+            logging.exception(e)
+
+    def clear_bearer(self):
+        self.__bearer = []
 
     @property
     def tdd_config(self):
@@ -44,14 +59,7 @@ class OneHopDevice(object):
     @property
     def lambd(self):
         try:
-            # Bearer lambda aggregation
-            flow_map = {
-                'VoIP': traffic.VoIP(),
-                'Video': traffic.Video(),
-                'OnlineVideo': traffic.OnlineVideo()
-            }
-
-            aggr_lambd = [flow_map[b.flow].lambd for b in self.bearer]
+            aggr_lambd = [b.flow.lambd for b in self.__bearer]
             return round(sum(aggr_lambd), 2)
         except Exception as e:
             logging.exception(e)
@@ -59,8 +67,8 @@ class OneHopDevice(object):
     @property
     def wideband_capacity(self):
         try:
-            assert self.bearer, self.name + ' no bearer given'
-            each_cqi = [bearer.CQI for bearer in self.bearer]
+            assert self.__bearer, self.name + ' no bearer given'
+            each_cqi = [bearer.CQI for bearer in self.__bearer]
             each_eff = [cqi.cqi_info(i)['eff'] for i in each_cqi]
             aggr_cap = sum([capacity.RE_TTI*eff for eff in each_eff])
             return aggr_cap
