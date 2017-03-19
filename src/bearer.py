@@ -1,8 +1,18 @@
+import sys
 import random
+import logging
+
+sys.path.append('..')
+from traffic import Traffic
+from lbps.structure import device
 
 
 class Bearer(object):
-    def __init__(self, src, dest, CQI=0, flow='VoIP'):
+    def __init__(self, src, dest, CQI=0, flow=None):
+        assert isinstance(src, device.OneHopDevice) and\
+        isinstance(dest, device.OneHopDevice),\
+        'connection device is not the lbps.structure.device instances'
+
         self.__source = src
         self.__destination = dest
         self.__CQI = CQI
@@ -14,13 +24,16 @@ class Bearer(object):
         }
 
     @property
-    def source(self): return self.__source
+    def source(self):
+        return self.__source
 
     @property
-    def destination(self): return self.__destination
+    def destination(self):
+        return self.__destination
 
     @property
-    def CQI(self): return self.__CQI
+    def CQI(self):
+        return self.__CQI
 
     @CQI.setter
     def CQI(self, value):
@@ -34,6 +47,15 @@ class Bearer(object):
         elif isinstance(value, int) and value > 0 and value < 16:
             self.__CQI = value
 
-
     @property
-    def flow(self): return self.__flow
+    def flow(self):
+        return self.__flow
+
+    @flow.setter
+    def flow(self, flow_type):
+        try:
+            assert isinstance(flow_type, Traffic),\
+            'not the Traffic instance'
+            self.__flow = flow_type
+        except Exception as e:
+            logging.exception(e)
