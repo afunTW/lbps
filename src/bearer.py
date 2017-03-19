@@ -3,7 +3,7 @@ import random
 import logging
 
 sys.path.append('..')
-from traffic import Traffic
+from src.traffic import Traffic
 from lbps.structure import device
 
 
