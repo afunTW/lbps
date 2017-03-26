@@ -16,6 +16,7 @@ class OneHopDevice(object):
         self.sleep = False
         self.__bearer = []
         self.__tdd_config = []
+        self.__division_mode = 'TDD'
 
     @property
     def bearer(self):
@@ -84,6 +85,19 @@ class OneHopDevice(object):
             return int(avaliable_frame_cap/10)
         except Exception as e:
             logging.exception(e)
+
+    @property
+    def division_mode(self):
+        return self.__division_mode
+
+    @division_mode.setter
+    def division_mode(self, mode):
+        try:
+            assert isinstance(mode, str), 'given mode is not string'
+            assert mode in ['FDD', 'TDD'], 'given mode is not FDD either TDD'
+            self.__division_mode = mode
+        except Exception as e:
+            raise e
 
     @classmethod
     def is_tdd_config(cls, conf):
