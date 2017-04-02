@@ -87,6 +87,13 @@ class OneHopDevice(object):
             logging.exception(e)
 
     @property
+    def lbps_capacity(self):
+        if self.division_mode and self.division_mode == 'TDD':
+            return self.virtual_capacity
+        if self.division_mode and self.division_mode == 'FDD':
+            return self.wideband_capacity
+
+    @property
     def division_mode(self):
         return self.__division_mode
 
