@@ -10,8 +10,14 @@ from src import capacity
 
 
 class OneHopDevice(object):
-    def __init__(self, name='one_hop_device'):
-        self.name = name
+    count = 0
+
+    def __init__(self, name=None):
+        self.name = (
+            name or '_'.join(
+                [self.__class__.__name__, str(self.__class__.count)]
+            )
+        )
         self.buffer = []
         self.sleep = False
         self.__bearer = []
@@ -119,8 +125,14 @@ class OneHopDevice(object):
 
 
 class TwoHopDevice(OneHopDevice):
-    def __init__(self, name='two_hop_device'):
-        self.name = name
+    count = 0
+
+    def __init__(self, name=None):
+        self.name = (
+            name or '_'.join(
+                [self.__class__.__name__, str(self.__class__.count)]
+            )
+        )
         self.backhaul = super().__init__(name=name)
         self.access = super().__init__(name=name)
         self.__tdd_config = None
