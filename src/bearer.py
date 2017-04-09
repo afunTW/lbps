@@ -8,20 +8,21 @@ from lbps.structure import device
 
 
 class Bearer(object):
-    def __init__(self, src, dest):
+    def __init__(self, src, dest, CQI=None):
         assert isinstance(src, device.OneHopDevice) and\
         isinstance(dest, device.OneHopDevice),\
         'connection device is not the lbps.structure.device instances'
 
         self.__source = src
         self.__destination = dest
-        self.__CQI = 0
         self.__flow = None
+        self.__CQI = None
         self.__CQI_type = {
             'L': [1,2,3,4,5,6],
             'M': [7,8,9],
             'H': [10,11,12,13,14,15]
         }
+        self.CQI = CQI
 
     @property
     def source(self):
@@ -38,11 +39,11 @@ class Bearer(object):
     @CQI.setter
     def CQI(self, value):
         if isinstance(value, str) and value in self.__CQI_type.keys():
-            self.CQI = random.choice(self.__CQI_type[value])
-        elif isinstance(value, list) and\
+            self.__CQI = random.choice(self.__CQI_type[value])
+        elif isinstance(value, list) and \
         set(value).issubset(list(self.__CQI_type.keys())):
-            cqi_range = [self.__CQI_type[value] for t in value]
-            cqi_range = [item for subset in _ for item in subset]
+            cqi_range = [self.__CQI_type[t] for t in value]
+            cqi_range = [_ for item in cqi_range for _ in item]
             self.__CQI = random.choice(cqi_range)
         elif isinstance(value, int) and value > 0 and value < 16:
             self.__CQI = value
