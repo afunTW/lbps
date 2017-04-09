@@ -1,7 +1,7 @@
 import sys
 import logging
 
-sys.oath.append('../..')
+sys.path.append('../..')
 from lbps.structure import device as dev
 from lbps.algorithm import poisson
 
