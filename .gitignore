@@ -7,4 +7,5 @@ bin/
 build/
 
 # customize
+log/
 design.txt
