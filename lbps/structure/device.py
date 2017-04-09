@@ -40,6 +40,17 @@ class OneHopDevice(object):
         self.__bearer = []
 
     @property
+    def target_device(self):
+        assert self.__bearer, '%s have no connected to another device' % self.name
+        def get_target_device(bearer):
+            assert isinstance(bearer, bearer.Bearer)
+            if bearer.source is self:
+                return bearer.destination
+            elif bearer.destination is self:
+                return bearer.source
+        return [get_target_device(b) for b in self.__bearer]
+
+    @property
     def tdd_config(self):
         return self.__tdd_config
 
