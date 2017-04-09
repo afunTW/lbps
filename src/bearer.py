@@ -70,8 +70,7 @@ class Bearer(object):
 
         logging.info(
             'build connection between %s and %s' %
-            self.__source.name,
-            self.__destination.name
+            (self.__source.name, self.__destination.name)
             )
         self.__source.append_bearer(self)
         self.__destination.append_bearer(self)
