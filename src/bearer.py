@@ -8,7 +8,7 @@ from lbps.structure import device
 
 
 class Bearer(object):
-    def __init__(self, src, dest, CQI=None):
+    def __init__(self, src, dest, CQI=None, flow=None):
         assert isinstance(src, device.OneHopDevice) and\
         isinstance(dest, device.OneHopDevice),\
         'connection device is not the lbps.structure.device instances'
@@ -23,6 +23,7 @@ class Bearer(object):
             'H': [10,11,12,13,14,15]
         }
         self.CQI = CQI
+        self.flow = flow
 
     @property
     def source(self):
@@ -67,5 +68,10 @@ class Bearer(object):
         assert self.__flow,\
         'please define flow'
 
+        logging.info(
+            'build connection between %s and %s' %
+            self.__source.name,
+            self.__destination.name
+            )
         self.__source.append_bearer(self)
         self.__destination.append_bearer(self)
