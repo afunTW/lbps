@@ -14,21 +14,30 @@ from src.bearer import Bearer
 rn_count = 6
 ue_count = 240
 
+# relay_users represent the number of relay ues for each relay
+def network_setup(backhaul_CQI, access_CQI, *relay_users):
+    bs = BS()
+
+    for rue in relay_users:
+        # backhaul
+        rn = RN()
+        Bearer(
+            bs, rn.backhaul, CQI=backhaul_CQI, flow=VoIP()
+            ).build_connection()
+
+        # access
+        assert isinstance(rue, int)
+        for i in range(rue):
+            Bearer(
+                rn.access, UE(), CQI=access_CQI, flow=VoIP()
+                ).build_connection()
+
+    return bs
+
 def main():
     global rn_count, ue_count
-
-    # build equal load network
-    base_station = BS()
-    relay_nodes = [RN() for i in range(rn_count)]
-    user_nodes = [UE() for i in range(ue_count)]
-    backhaul_bearear = [
-        Bearer(
-            base_station,
-            r.backhaul,
-            CQI=15,
-            flow=VoIP()
-            ).build_connection() for r in relay_nodes
-    ]
+    # equal_load_network = network_setup(15, 15, 40, 40, 40, 40, 40, 40)
+    hot_spot_network = network_setup(15, 15, 96, 96, 12, 12, 12, 12)
 
 if __name__ == '__main__':
     now = datetime.now()
