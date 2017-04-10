@@ -69,7 +69,7 @@ class Bearer(object):
         'please define flow'
 
         logging.info(
-            'build connection between %s and %s' %
+            'build connection with %s and %s' %
             (self.__source.name, self.__destination.name)
             )
         self.__source.append_bearer(self)
