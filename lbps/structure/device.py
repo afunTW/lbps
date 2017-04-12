@@ -33,13 +33,7 @@ class OneHopDevice(object):
     @property
     def target_device(self):
         assert self.__bearer, '%s have no connected to another device' % self.name
-        def get_target_device(b):
-            assert isinstance(b, bearer.Bearer)
-            if b.source is self:
-                return b.destination
-            elif b.destination is self:
-                return b.source
-        return [get_target_device(b) for b in self.__bearer]
+        return [self.get_target_device(b) for b in self.__bearer]
 
     @property
     def tdd_config(self):
@@ -106,6 +100,13 @@ class OneHopDevice(object):
         assert len(conf) == 1,\
         cls.name + ' tdd config validation over length'
         return conf in ['D', 'U', '']
+
+    def get_target_device(self, b):
+        assert isinstance(b, bearer.Bearer)
+        if b.source is self:
+            return b.destination
+        elif b.destination is self:
+            return b.source
 
 
 class TwoHopDevice(object):
