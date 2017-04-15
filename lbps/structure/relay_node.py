@@ -1,4 +1,5 @@
 import sys
+import logging
 
 sys.path.append('../..')
 from . import device
@@ -28,7 +29,9 @@ class RelayNode(device.TwoHopDevice):
 
         if isinstance(dest, base_station.BaseStation):
             self.backhaul.append_bearer(bearer.Bearer(self, dest, CQI, flow))
+            logging.debug('Build backhaul bearer (%s, %s)' % (self.name, dest.name))
         elif isinstance(dest, user_equipment.UserEquipment):
             self.access.append_bearer(bearer.Bearer(self, dest, CQI, flow))
+            logging.debug('Build access bearer (%s, %s)' % (self.name, dest.name))
 
         dest.append_bearer(bearer.Bearer(dest, self, CQI, flow))
