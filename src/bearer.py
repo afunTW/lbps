@@ -9,7 +9,7 @@ from lbps.structure import device
 
 class Bearer(object):
     def __init__(self, src, dest, CQI=None, flow=None):
-        assert isinstance(src, device.OneHopDevice) and\
+        assert isinstance(src, device.OneHopDevice) or\
         isinstance(dest, device.OneHopDevice),\
         'connection device is not the lbps.structure.device instances'
 
@@ -56,21 +56,7 @@ class Bearer(object):
     @flow.setter
     def flow(self, flow_type):
         try:
-            assert isinstance(flow_type, Traffic),\
-            'not the Traffic instance'
+            assert isinstance(flow_type, Traffic), 'not the Traffic instance'
             self.__flow = flow_type
         except Exception as e:
             logging.exception(e)
-
-    def build_connection(self):
-        assert self.__CQI > 0 and self.__CQI < 16,\
-        'please define CQI'
-        assert self.__flow,\
-        'please define flow'
-
-        logging.info(
-            'build connection with %s and %s' %
-            (self.__source.name, self.__destination.name)
-            )
-        self.__source.append_bearer(self)
-        self.__destination.append_bearer(self)
