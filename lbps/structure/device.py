@@ -33,7 +33,7 @@ class OneHopDevice(object):
     @property
     def target_device(self):
         assert self.__bearer, '%s have no connected to another device' % self.name
-        return [self.get_target_device(b) for b in self.__bearer]
+        return set([self.get_target_device(b) for b in self.__bearer])
 
     @property
     def tdd_config(self):
