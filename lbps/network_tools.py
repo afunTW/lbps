@@ -16,6 +16,7 @@ class LBPSNetwork(object):
     '''
     def __init__(self, backhaul_CQI, access_CQI, *relay_users):
         self.root = self.network_setup(backhaul_CQI, access_CQI, *relay_users)
+        self.traffic = None
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         bs = BaseStation()
@@ -41,7 +42,7 @@ class LBPSNetwork(object):
         return bs
 
     def simulate(self, simulation_time):
-        return self.root.simulate_timeline(simulation_time)
+        self.traffic = self.root.simulate_timeline(simulation_time)
 
     def set_tdd_configuration(self, n_hop, config_index):
         assert isinstance(n_hop, str)
