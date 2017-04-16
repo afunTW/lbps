@@ -13,6 +13,7 @@ simulation_time = 10000
 
 def main():
     equal_load_network = nt.network_setup(15, 15, 40, 40, 40, 40, 40, 40)
+    nt.set_tdd_configuration(equal_load_network, 'two-hop', 17)
     # hot_spot_network = network_setup(15, 15, 96, 96, 12, 12, 12, 12)
 
 if __name__ == '__main__':

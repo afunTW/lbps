@@ -41,20 +41,11 @@ class OneHopDevice(object):
 
     @tdd_config.setter
     def tdd_config(self, conf):
-        if instance(conf, int):
-            assert conf in tdd.one_hop_config.keys(),\
-            self.name + ' given index out of range'
-            self.__tdd_config = tdd.one_hop_config[conf]
-        elif isinstance(conf, list):
-            assert all(map(is_tdd_config, conf)),\
-            self.name + 'tdd config validation failed'
-            assert len(conf) == 10,\
-            self.name + ' given list length should be 10'
-            self.__tdd_config = conf
-        else:
-            raise Exception(
-                self.name + ' given tdd config shuold be int either list'
-            )
+        assert (
+            conf in tdd.one_hop_config.values() or
+            conf in [_['backhaul'] for _ in tdd.two_hop_config.values()]
+        )
+        self.__tdd_config = conf
 
     @property
     def lambd(self):
