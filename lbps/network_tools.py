@@ -35,3 +35,7 @@ def network_setup(backhaul_CQI, access_CQI, *relay_users):
         'Builded network with backhaul lambd %g and access lambd %g' %
         (bs.lambd, sum([_.lambd for _ in bs.target_device])))
     return bs
+
+def simulation(base_station, simulation_time):
+    assert isinstance(base_station, BS)
+    return base_station.simulate_timeline(simulation_time)
