@@ -67,3 +67,16 @@ class LBPSNetwork(object):
 
         else:
             logging.warning('No %s config method' % (n_hop))
+
+    def set_division_mode(self, mode):
+        assert isinstance(mode, str), 'given mode is not string'
+        assert mode in ['FDD', 'TDD'], 'given mode is not FDD either TDD'
+
+        self.root.division_mode = mode
+        for rn in self.root.target_device:
+            rn.backhaul.division_mode = mode
+            rn.access.division_mode = mode
+            for ue in rn.access.target_device:
+                ue.division_mode = mode
+
+        logging.info('Set network division mode in %s' % (mode))
