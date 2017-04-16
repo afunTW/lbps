@@ -19,8 +19,10 @@ def get_data_threshold(capacity, packet_size, percentage=0.8):
 
 def aggr(device):
     try:
-        assert isinstance(device, dev.OneHopDevice),\
-        'given device is not fit in lbps structure'
+        assert (
+            isinstance(device, dev.OneHopDevice) or
+            isinstance(device, dev.TwoHopDevice)
+            ), 'given device is not fit in lbps structure'
 
         if isinstance(device, dev.TwoHopDevice):
             device = device.access

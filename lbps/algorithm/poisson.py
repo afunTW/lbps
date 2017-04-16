@@ -2,7 +2,7 @@ from scipy.stats import poisson
 
 
 def prob_acc_under(lambd, threshold, sleep_cycle):
-    assert isinstance(threshold, int), 'please confirm the type of threshold'
+    assert isinstance(threshold, float), 'please confirm the type of threshold'
     prob_acc = 0
 
     while threshold >= 0:

@@ -56,7 +56,7 @@ class OneHopDevice(object):
     def wideband_capacity(self):
         assert self.__bearer, self.name + ' no bearer given'
         each_cqi = [bearer.CQI for bearer in self.__bearer]
-        each_eff = [cqi.cqi_info(i)['eff'] for i in each_cqi]
+        each_eff = [cqi.cqi_info[i]['eff'] for i in each_cqi]
         aggr_cap = sum([capacity.RE_TTI*eff for eff in each_eff])
         return aggr_cap
 
