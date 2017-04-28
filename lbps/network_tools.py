@@ -43,6 +43,8 @@ class LBPSNetwork(object):
 
     def simulate(self, simulation_time):
         self.traffic = self.root.simulate_timeline(simulation_time)
+        logging.info('Generate {} packet for simulation time {} ms'.format(
+            sum([len(v) for v in self.traffic.values()]), simulation_time))
 
     def set_tdd_configuration(self, n_hop, config_index):
         assert isinstance(n_hop, str)
