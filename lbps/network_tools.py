@@ -1,10 +1,12 @@
 import sys
+import lbps
 import logging
 
 sys.path.append('..')
 from lbps.structure.base_station import BaseStation
 from lbps.structure.relay_node import RelayNode
 from lbps.structure.user_equipment import UserEquipment
+from lbps.algorithm.basic import aggr
 from src import tdd
 from src.traffic import VoIP
 from src.bearer import Bearer
@@ -15,8 +17,17 @@ class LBPSNetwork(object):
     *relay_users represent the number of relay ues for each relay
     '''
     def __init__(self, backhaul_CQI, access_CQI, *relay_users):
-        self.root = self.network_setup(backhaul_CQI, access_CQI, *relay_users)
-        self.traffic = None
+        self.__root = self.network_setup(backhaul_CQI, access_CQI, *relay_users)
+        self.__traffic = None
+        self.demo = None
+
+    @property
+    def root(self):
+        return self.__root
+
+    @property
+    def traffic(self):
+        return self.__traffic
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         bs = BaseStation()
@@ -34,15 +45,17 @@ class LBPSNetwork(object):
             logging.debug('%s builded access bearer with %d user' % (rn.name, rue))
             logging.debug('builded access network, current lambd %g' % (bs.lambd))
 
-        logging.debug('%s builded backhaul bearer with %d relays' % (bs.name, len(relay_users)))
+        logging.debug(
+            '%s builded backhaul bearer with %d relays'.format(
+            bs.name, len(relay_users)))
         logging.info(
-            'Builded network with backhaul lambd %g and access lambd %g' %
-            (bs.lambd, sum([_.lambd for _ in bs.target_device])))
+            'Builded network with backhaul lambd %g and access lambd %g'.format(
+                bs.lambd, sum([_.lambd for _ in bs.target_device])))
 
         return bs
 
     def simulate(self, simulation_time):
-        self.traffic = self.root.simulate_timeline(simulation_time)
+        self.__traffic = self.root.simulate_timeline(simulation_time)
         logging.info('Generate {} packet for simulation time {} ms'.format(
             sum([len(v) for v in self.traffic.values()]), simulation_time))
 
@@ -83,3 +96,12 @@ class LBPSNetwork(object):
                 ue.division_mode = mode
 
         logging.info('Set network division mode in %s' % (mode))
+
+    def run(self, method):
+        '''
+        wrapper of lbps/DRX algorithm implementation
+        '''
+        if method == lbps.ALGORITHM_LBPS_AGGR:
+            self.demo = aggr(self.root)
+        else:
+            logging.warning('{} not found'.format(method))
