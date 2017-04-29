@@ -6,7 +6,7 @@ sys.path.append('..')
 from lbps.structure.base_station import BaseStation
 from lbps.structure.relay_node import RelayNode
 from lbps.structure.user_equipment import UserEquipment
-from lbps.algorithm.basic import aggr
+from lbps.algorithm.basic import Aggr
 from src import tdd
 from src.traffic import VoIP
 from src.bearer import Bearer
@@ -102,6 +102,7 @@ class LBPSNetwork(object):
         wrapper of lbps/DRX algorithm implementation
         '''
         if method == lbps.ALGORITHM_LBPS_AGGR:
-            self.demo = aggr(self.root)
+            aggr = Aggr(self.root)
+            self.demo = aggr.run()
         else:
             logging.warning('{} not found'.format(method))

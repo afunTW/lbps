@@ -6,38 +6,56 @@ from lbps.structure import device
 from lbps.algorithm import poisson
 
 
-def get_load(root):
-    avg_pkt_size = get_packet_size(root.bearer)
-    return root.lambd*avg_pkt_size/root.lbps_capacity
+class BaseLBPS(object):
+    def __init__(self, root, threshold_percentage=0.8):
+        assert (
+            isinstance(root, device.OneHopDevice) or
+            isinstance(root, device.TwoHopDevice)
+            ), 'given root is not fit in lbps structure'
 
-def get_packet_size(bearer_buffer):
-    total_pkt_size = sum([b.flow.packet_size for b in bearer_buffer])
-    return total_pkt_size/len(bearer_buffer)
+        if isinstance(root, device.TwoHopDevice):
+            root = root.access
 
-def get_data_threshold(capacity, packet_size, percentage=0.8):
-    return capacity/packet_size*percentage
+        self.threshold_percentage=threshold_percentage
+        self.__root = root
 
-def aggr(root):
-    assert (
-        isinstance(root, device.OneHopDevice) or
-        isinstance(root, device.TwoHopDevice)
-        ), 'given root is not fit in lbps structure'
+    @property
+    def root(self):
+        return self.__root
 
-    if isinstance(root, device.TwoHopDevice):
-        root = root.access
+    @property
+    def capacity(self):
+        return self.root.lbps_capacity
 
-    capacity = root.lbps_capacity
-    packet_size = get_packet_size(root.bearer)
-    data_threshold = get_data_threshold(capacity, packet_size)
-    logging.info('running aggr under %f load' % get_load(root))
+    @property
+    def packet_size(self):
+        total_pkt_size = sum([b.flow.packet_size for b in self.root.bearer])
+        return total_pkt_size/len(self.root.bearer)
 
-    # core
-    sleep_cycle = poisson.get_sleep_cycle(root.lambd, data_threshold)
-    logging.info('%s sleep cycle: %d' % (root.name, sleep_cycle))
+    @property
+    def load(self):
+        avg_pkt_size = self.packet_size
+        return self.root.lambd*avg_pkt_size/self.root.lbps_capacity
 
-    timeline = [[] for i in range(sleep_cycle)]
-    timeline[0] = [i for i in root.target_device]
-    timeline[0].append(root)
-    timeline[0] = sorted(timeline[0], key=lambda d: d.name)
-    return timeline
+    @property
+    def data_threshold(self):
+        return self.capacity/self.packet_size*self.threshold_percentage
 
+    @property
+    def sleep_cycle(self):
+         return poisson.get_sleep_cycle(self.root.lambd, self.data_threshold)
+
+
+class Aggr(BaseLBPS):
+    def __init__(self, root):
+        super().__init__(root)
+
+    def run(self):
+        sleep_cycle = self.sleep_cycle
+        logging.info('running aggr under {} load'.format(self.load))
+        logging.info('{} sleep cycle: {}'.format(self.root.name, sleep_cycle))
+
+        timeline = [[] for i in range(sleep_cycle)]
+        timeline[0] = [i for i in self.root.target_device]
+        timeline[0].append(self.root)
+        return timeline
