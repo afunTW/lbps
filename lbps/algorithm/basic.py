@@ -18,29 +18,26 @@ def get_data_threshold(capacity, packet_size, percentage=0.8):
     return capacity/packet_size*percentage
 
 def aggr(root):
-    try:
-        assert (
-            isinstance(root, device.OneHopDevice) or
-            isinstance(root, device.TwoHopDevice)
-            ), 'given root is not fit in lbps structure'
+    assert (
+        isinstance(root, device.OneHopDevice) or
+        isinstance(root, device.TwoHopDevice)
+        ), 'given root is not fit in lbps structure'
 
-        if isinstance(root, device.TwoHopDevice):
-            root = root.access
+    if isinstance(root, device.TwoHopDevice):
+        root = root.access
 
-        capacity = root.lbps_capacity
-        packet_size = get_packet_size(root.bearer)
-        data_threshold = get_data_threshold(capacity, packet_size)
-        logging.info('running aggr under %f load' % get_load(root))
+    capacity = root.lbps_capacity
+    packet_size = get_packet_size(root.bearer)
+    data_threshold = get_data_threshold(capacity, packet_size)
+    logging.info('running aggr under %f load' % get_load(root))
 
-        # core
-        sleep_cycle = poisson.get_sleep_cycle(root.lambd, data_threshold)
-        logging.info('%s sleep cycle: %d' % (root.name, sleep_cycle))
+    # core
+    sleep_cycle = poisson.get_sleep_cycle(root.lambd, data_threshold)
+    logging.info('%s sleep cycle: %d' % (root.name, sleep_cycle))
 
-        timeline = [[] for i in range(sleep_cycle)]
-        timeline[0] = [i for i in root.target_device]
-        timeline[0].append(root)
-        timeline[0] = sorted(timeline[0], key=lambda d: d.name)
-        return timeline
+    timeline = [[] for i in range(sleep_cycle)]
+    timeline[0] = [i for i in root.target_device]
+    timeline[0].append(root)
+    timeline[0] = sorted(timeline[0], key=lambda d: d.name)
+    return timeline
 
-    except Exception as e:
-        logging.exception(e)
