@@ -33,24 +33,27 @@ class LBPSNetwork(object):
         bs = BaseStation()
         for rue in relay_users:
 
-            # backhaul
             rn = RelayNode()
-            bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP())
-            logging.debug('builded backhaul network, current lambd %d' % (bs.lambd))
+            backhaul_lambd = 0
 
             # access
             assert isinstance(rue, int)
             for i in range(rue):
                 rn.connect_to(UserEquipment(), CQI=access_CQI, flow=VoIP())
+                backhaul_lambd += VoIP().lambd
             logging.debug('%s builded access bearer with %d user' % (rn.name, rue))
             logging.debug('builded access network, current lambd %g' % (bs.lambd))
 
+            # backhaul
+            bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP(lambd=backhaul_lambd))
+            logging.debug('builded backhaul network, current lambd %d' % (bs.lambd))
+
         logging.debug(
-            '%s builded backhaul bearer with %d relays'.format(
-            bs.name, len(relay_users)))
+            '{} builded {} backhaul bearer with {} relays'.format(
+            bs.name, len(bs.bearer), len(relay_users)))
         logging.info(
-            'Builded network with backhaul lambd %g and access lambd %g'.format(
-                bs.lambd, sum([_.lambd for _ in bs.target_device])))
+            'Builded network with backhaul lambd {} and access lambd {}'.format(
+                bs.lambd, [_.lambd for _ in bs.target_device]))
 
         return bs
 
