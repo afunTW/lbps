@@ -14,7 +14,7 @@ def main(simulation_time):
     equal_load_network.set_tdd_configuration('two-hop', 17)
     equal_load_network.set_division_mode('TDD')
     equal_load_network.simulate(simulation_time)
-    result = equal_load_network.run(lbps.ALGORITHM_LBPS_AGGR)
+    equal_load_network.run(lbps.ALGORITHM_LBPS_SPLIT)
 
 if __name__ == '__main__':
     now = datetime.now()

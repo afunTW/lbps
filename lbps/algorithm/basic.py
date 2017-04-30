@@ -1,4 +1,5 @@
 import sys
+import random
 import logging
 
 sys.path.append('../..')
@@ -34,16 +35,18 @@ class BaseLBPS(object):
 
     @property
     def load(self):
-        avg_pkt_size = self.packet_size
-        return self.root.lambd*avg_pkt_size/self.root.lbps_capacity
+        return self.root.lambd*self.packet_size/self.root.lbps_capacity
 
     @property
     def data_threshold(self):
         return self.capacity/self.packet_size*self.threshold_percentage
 
-    @property
-    def sleep_cycle(self):
-         return poisson.get_sleep_cycle(self.root.lambd, self.data_threshold)
+    def sleep_cycle(self, lambd=None, data_threshold=None):
+        if not lambd: lambd = self.root.lambd
+        if not data_threshold: data_threshold = self.data_threshold
+        K = poisson.get_sleep_cycle(lambd, data_threshold)
+        logging.debug(' - sleep cycle {}'.format(K))
+        return K
 
 
 class Aggr(BaseLBPS):
@@ -51,11 +54,69 @@ class Aggr(BaseLBPS):
         super().__init__(root)
 
     def run(self):
-        sleep_cycle = self.sleep_cycle
-        logging.info('running aggr under {} load'.format(self.load))
-        logging.info('{} sleep cycle: {}'.format(self.root.name, sleep_cycle))
+        logging.info('{} running aggr'.format(self.root.name))
+        logging.info(' - load {}'.format(self.load))
+        sleep_cycle = self.sleep_cycle()
 
         timeline = [[] for i in range(sleep_cycle)]
         timeline[0] = [i for i in self.root.target_device]
         timeline[0].append(self.root)
+        return timeline
+
+
+class Split(BaseLBPS):
+    def __init__(self, root):
+        super().__init__(root)
+        self.__groups = {}
+
+    @property
+    def groups(self):
+        return self.__groups
+
+    def run(self, boundary=None):
+        logging.info('{} running split'.format(self.root.name))
+        logging.info(' - load {}'.format(self.load))
+        sleep_cycle = self.sleep_cycle()
+
+        if boundary:
+            assert isinstance(boundary, int)
+
+        if not boundary or boundary > len(self.root.target_device):
+            boundary = len(self.root.target_device)
+
+
+        while True:
+            groups = { i: {
+                'device': [], 'lambda': 0, 'K': 0
+            } for i in range(min(sleep_cycle, boundary))}
+
+            for i in self.root.target_device:
+
+                # find minumn lambda group
+                min_lambd = min([groups[g]['lambda'] for g in groups])
+                target = [g for g in groups if groups[g]['lambda'] == min_lambd]
+                target = random.choice(target)
+
+                # append device to minimum lambda group
+                groups[target]['device'].append(i)
+                groups[target]['lambda'] += i.lambd
+                groups[target]['K'] = self.sleep_cycle(groups[target]['lambda'])
+
+            K = min(groups[g]['K'] for g in groups)
+            logging.info(' - iteration with sleep cycle {}'.format(K))
+
+            if K == sleep_cycle: break
+            elif len(groups) == boundary:
+                sleep_cycle = K if K > 0 else sleep_cycle
+                break
+            else:
+                sleep_cycle = K if K > 0 else sleep_cycle
+
+        self.__groups = groups
+        timeline = [[] for i in range(sleep_cycle)]
+
+        for i in groups:
+            groups[i]['device'] and groups[i]['device'].append(self.root)
+            timeline[i] += groups[i]['device']
+
         return timeline
