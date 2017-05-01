@@ -6,7 +6,8 @@ sys.path.append('..')
 from lbps.structure.base_station import BaseStation
 from lbps.structure.relay_node import RelayNode
 from lbps.structure.user_equipment import UserEquipment
-from lbps.algorithm import basic
+from lbps.algorithm import basic as lbps_basic
+from lbps.tdd import basic as mapping_basic
 from src import tdd
 from src.traffic import VoIP
 from src.bearer import Bearer
@@ -19,7 +20,14 @@ class LBPSNetwork(object):
     def __init__(self, backhaul_CQI, access_CQI, *relay_users):
         self.__root = self.network_setup(backhaul_CQI, access_CQI, *relay_users)
         self.__traffic = None
+        self.__map_pattern = None
         self.demo = None
+
+        # flag
+        self.__hop = None
+        self.__method = None
+        self.__division = None
+        self.__tdd_config = None
 
     @property
     def root(self):
@@ -68,6 +76,8 @@ class LBPSNetwork(object):
             self.root.tdd_config = config
             for ue in self.root.target_device:
                 ue.tdd_config = config
+            self.__hop = lbps.MODE_ONE_HOP
+            self.__tdd_config = config
 
         elif n_hop == lbps.MODE_TWO_HOP:
             # FIXME: considering two-hop and direct link mixed
@@ -79,6 +89,8 @@ class LBPSNetwork(object):
                 for ue in rn.access.target_device:
                     ue.tdd_config = config['access']
 
+            self.__hop = lbps.MODE_TWO_HOP
+            self.__tdd_config = config
             logging.info('Set two-hop tdd configuration %d' % (config_index))
             logging.debug('backhaul configuration\t%s' % (str(config['backhaul'])))
             logging.debug('access configuration\t\t%s' % (str(config['access'])))
@@ -97,20 +109,36 @@ class LBPSNetwork(object):
             for ue in rn.access.target_device:
                 ue.division_mode = mode
 
+        self.__division = mode
         logging.info('Set network division mode in %s' % (mode))
 
-    def run(self, method):
+    def run(self, method, mapping=None):
         '''
         wrapper of lbps/DRX algorithm implementation
         '''
+        if not mapping and not self.__division:
+            self.set_division_mode('TDD')
+
+        # lbps algorithm
         if method == lbps.ALGORITHM_LBPS_AGGR:
-            aggr = basic.Aggr(self.root)
+            aggr = lbps_basic.Aggr(self.root)
             self.demo = aggr.run()
+            self.__method = method
         elif method == lbps.ALGORITHM_LBPS_SPLIT:
-            split = basic.Split(self.root)
+            split = lbps_basic.Split(self.root)
             self.demo = split.run()
+            self.__method = method
         elif method == lbps.ALGORITHM_LBPS_MERGE:
-            merge = basic.Merge(self.root)
+            merge = lbps_basic.Merge(self.root)
             self.demo = merge.run()
+            self.__method = method
         else:
-            logging.warning('{} not found'.format(method))
+            logging.warning('{} lbps algorithm not found'.format(method))
+
+        # mapping
+        if self.__method and self.__division == 'TDD':
+            if self.__hop == lbps.MODE_ONE_HOP:
+                if mapping == lbps.MAPPING_M1:
+                    self.__map_pattern = mapping_basic(self.__tdd_config)
+                else:
+                    logging.warning('{} mapping not found')
