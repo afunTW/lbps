@@ -139,6 +139,6 @@ class LBPSNetwork(object):
         if self.__method and self.__division == 'TDD':
             if self.__hop == lbps.MODE_ONE_HOP:
                 if mapping == lbps.MAPPING_M1:
-                    self.__map_pattern = mapping_basic(self.__tdd_config)
+                    self.__map_pattern = mapping_basic.one2all(self.__tdd_config)
                 else:
                     logging.warning('{} mapping not found')
