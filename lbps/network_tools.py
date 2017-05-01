@@ -110,5 +110,8 @@ class LBPSNetwork(object):
         elif method == lbps.ALGORITHM_LBPS_SPLIT:
             split = basic.Split(self.root)
             self.demo = split.run()
+        elif method == lbps.ALGORITHM_LBPS_MERGE:
+            merge = basic.Merge(self.root)
+            self.demo = merge.run()
         else:
             logging.warning('{} not found'.format(method))

@@ -5,6 +5,9 @@ import logging
 sys.path.append('../..')
 from lbps.structure import device
 from lbps.algorithm import poisson
+from math import log
+from math import ceil
+from math import floor
 
 
 class BaseLBPS(object):
@@ -118,5 +121,90 @@ class Split(BaseLBPS):
         for i in groups:
             groups[i]['device'] and groups[i]['device'].append(self.root)
             timeline[i] += groups[i]['device']
+
+        return timeline
+
+
+class Merge(BaseLBPS):
+    def __init__(self, root):
+        super().__init__(root)
+        self.__groups = {}
+        self.__non_degraded_status = False
+
+    @property
+    def groups(self):
+        return self.__groups
+
+    def schedulability(self, sleep_cycle):
+        assert isinstance(sleep_cycle, list)
+        assert all(map(lambda x: isinstance(x, int), sleep_cycle))
+        result = sum([1/K for K in sleep_cycle]) <= 1
+        logging.debug(' - check schedulability: {}'.format(result))
+        return result
+
+    def non_degraded_merge(self, groups):
+        assert isinstance(sleep_cycle, list)
+        assert all(map(lambda x: isinstance(x, dict), sleep_cycle))
+
+        if len(groups) == 1:
+            logging.debug(' - non degraded merge, nothing changed')
+            return groups
+
+        groups.sort(key=lambda x: x['K'], reverse=True)
+        src_g = groups.pop(0)
+        self.__non_degraded_status = False
+
+        for g in groups:
+            new_K = self.sleep_cycle(src_g['lambda'] + g['lambda'])
+            new_K = 2**(floor(log(new_K, 2)))
+
+            if new_K == g['K']:
+                g['device'] += src_g['device']
+                g['lambda'] += src_g['lambda']
+                self.__non_degraded_status = True
+                logging.debug(' - non degraded merge, success')
+                break
+
+        not self.__non_degraded_status and groups.append(src_g)
+        groups.sort(key=lambda x: x['K'], reverse=True)
+        return groups
+
+    def run(self):
+        logging.info('{} running merge'.format(self.root.name))
+        logging.info(' - load {}'.format(self.load))
+        sleep_cycle = self.sleep_cycle()
+
+        groups = [{
+            'device': [i],
+            'lambda': i.lambd,
+            'K': 2**floor(log(sleep_cycle, 2))
+        } for i in self.root.target_device]
+
+        while True:
+            if self.schedulability([g['K'] for g in groups]): break
+
+            # non degradeed merge
+            groups = self.non_degraded_merge(groups)
+
+            # degraded merge if non-degraded merge failed
+            if not self.__non_degraded_status and len(groups) > 1:
+                groups[1]['device'] += groups[0]['device']
+                groups[1]['lambda'] += groups[0]['lambda']
+                groups[1]['K'] = self.sleep_cycle(groups[1]['lambda'])
+                groups.pop(0)
+                logging.debug(' - non degraded merge, failed')
+                logging.debug(' - degraded merge, done')
+
+        # schedule groups
+        max_K = max([g['K'] for g in groups])
+        groups.sort(key=lambda x: x['K'])
+        timeline = [[] for i in range(max_K)]
+
+        for i, g in enumerate(groups):
+            base = next((TTI for TTI, _ in enumerate(timeline) if not _), None)
+            assert base is not None
+
+            for TTI in range(base, max_K, g['K']):
+                timeline[TTI] = g['device'] + [self.root]
 
         return timeline
