@@ -1,4 +1,8 @@
 
+# hop
+MODE_ONE_HOP = 0
+MODE_TWO_HOP = 1
+
 # algorithm
 ALGORITHM_DRX = 0
 ALGORITHM_LBPS_AGGR = 1

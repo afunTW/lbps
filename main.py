@@ -11,7 +11,7 @@ from lbps.algorithm import basic
 def main(simulation_time):
     # hot_spot_network = network_setup(15, 15, 96, 96, 12, 12, 12, 12)
     equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
-    equal_load_network.set_tdd_configuration('two-hop', 17)
+    equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
     equal_load_network.set_division_mode('TDD')
     equal_load_network.simulate(simulation_time)
     equal_load_network.run(lbps.ALGORITHM_LBPS_MERGE)

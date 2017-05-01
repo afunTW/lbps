@@ -63,14 +63,13 @@ class LBPSNetwork(object):
             sum([len(v) for v in self.traffic.values()]), simulation_time))
 
     def set_tdd_configuration(self, n_hop, config_index):
-        assert isinstance(n_hop, str)
-        if n_hop == 'one-hop':
+        if n_hop == lbps.MODE_ONE_HOP:
             config = tdd.one_hop_config[config_index]
             self.root.tdd_config = config
             for ue in self.root.target_device:
                 ue.tdd_config = config
 
-        elif n_hop == 'two-hop':
+        elif n_hop == lbps.MODE_TWO_HOP:
             # FIXME: considering two-hop and direct link mixed
             config = tdd.two_hop_config[config_index]
             self.root.tdd_config = config['backhaul']
