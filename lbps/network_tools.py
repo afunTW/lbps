@@ -141,5 +141,8 @@ class LBPSNetwork(object):
                 if mapping == lbps.MAPPING_M1:
                     M1 = mapping_basic.one2all(self.__tdd_config)
                     self.__map_pattern = M1.pattern
+                elif mapping == lbps.MAPPING_M2:
+                    M2 = mapping_basic.continuous(self.__tdd_config)
+                    self.__map_pattern = M2.pattern
                 else:
                     logging.warning('{} mapping not found')

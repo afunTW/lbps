@@ -77,7 +77,35 @@ class one2all(BaseMapping):
             allocate_rsc = rv['rsc']/10
             for vk, vv in enumerate(self.virtual_timeline):
                 if vv['vsc'] >= allocate_rsc:
-                    vv['r_TTI'].append(rv['r_TTI'])
                     vv['vsc'] -= allocate_rsc
                     rv['rsc'] -= allocate_rsc
+                    vv['r_TTI'].append(rv['r_TTI'])
+        self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
+
+class continuous(BaseMapping):
+    '''
+    M2 mapping: continuous mapping
+    '''
+    def __init__(self, tdd_config):
+        super().__init__(tdd_config)
+        self.__pattern = None
+        self.run()
+
+    @property
+    def pattern(self):
+        return self.__pattern
+
+    def run(self):
+        for rk, rv in enumerate(self.real_timeline):
+            for vk, vv in enumerate(self.virtual_timeline):
+                if not rv['rsc']: break
+                elif not vv['vsc']: continue
+                elif rv['rsc'] >= vv['vsc']:
+                    rv['rsc'] -= vv['vsc']
+                    vv['vsc'] = 0
+                    vv['r_TTI'].append(rv['r_TTI'])
+                else:
+                    vv['vsc'] -= rv['rsc']
+                    rv['rsc'] = 0
+                    vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
