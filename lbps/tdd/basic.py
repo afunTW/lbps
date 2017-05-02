@@ -66,6 +66,7 @@ class one2all(BaseMapping):
     def __init__(self, tdd_config):
         super().__init__(tdd_config)
         self.__pattern = None
+        self.run()
 
     @property
     def pattern(self):
