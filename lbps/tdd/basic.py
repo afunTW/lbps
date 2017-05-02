@@ -109,3 +109,35 @@ class continuous(BaseMapping):
                     rv['rsc'] = 0
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
+
+class one2one_first(BaseMapping):
+    '''
+    M3 mapping: one to one irst mapping
+    '''
+    def __init__(self, tdd_config):
+        super().__init__(tdd_config)
+        self.__pattern = None
+        self.run()
+
+    @property
+    def pattern(self):
+        return self.__pattern
+
+    def run(self):
+        for vk, vv in enumerate(self.virtual_timeline):
+            whole_allocated_rsc = any([
+                r['rsc'] > vv['vsc'] for r in self.real_timeline])
+            for rk, rv in enumerate(self.real_timeline):
+                if not vv['vsc']: break
+                elif not rv['rsc']: continue
+                elif whole_allocated_rsc:
+                    if rv['rsc'] < vv['vsc']: continue
+                    else:
+                        rv['rsc'] -= vv['vsc']
+                        vv['vsc'] = 0
+                        vv['r_TTI'].append(rv['r_TTI'])
+                else:
+                    vv['vsc'] -= rv['rsc']
+                    rv['rsc'] = 0
+                    vv['r_TTI'].append(rv['r_TTI'])
+        self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
