@@ -14,7 +14,7 @@ def main(simulation_time):
     equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
     equal_load_network.set_division_mode('TDD')
     equal_load_network.simulate(simulation_time)
-    equal_load_network.run((lbps.ALGORITHM_LBPS_MERGE))
+    equal_load_network.run((lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN))
 
 if __name__ == '__main__':
     now = datetime.now()

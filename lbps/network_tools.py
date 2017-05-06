@@ -7,6 +7,7 @@ from lbps.structure.base_station import BaseStation
 from lbps.structure.relay_node import RelayNode
 from lbps.structure.user_equipment import UserEquipment
 from lbps.algorithm import basic as lbps_basic
+from lbps.algorithm import topdown as lbps_topdown
 from lbps.tdd import basic as mapping_basic
 from src import tdd
 from src.traffic import VoIP
@@ -136,6 +137,13 @@ class LBPSNetwork(object):
                 self.__method = method
             else:
                 logging.warning('{} lbps algorithm not found'.format(method))
+        # two hops lbps algorithm
+        elif isinstance(method, tuple) and len(method) == 2:
+            backhaul_method, access_method = method
+            if access_method == lbps.ALGORITHM_LBPS_TOPDOWN:
+                td = lbps_topdown.TopDown(self.__root)
+                self.demo = td.run(backhaul_method)
+                self.__method = method
 
         # mapping
         if self.__method and self.__division == 'TDD':
