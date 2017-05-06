@@ -116,24 +116,26 @@ class LBPSNetwork(object):
         '''
         wrapper of lbps/DRX algorithm implementation
         '''
+        assert isinstance(method, (tuple, int))
         if not mapping and not self.__division:
             self.set_division_mode('TDD')
 
-        # lbps algorithm
-        if method == lbps.ALGORITHM_LBPS_AGGR:
-            aggr = lbps_basic.Aggr(self.root)
-            self.demo = aggr.run()
-            self.__method = method
-        elif method == lbps.ALGORITHM_LBPS_SPLIT:
-            split = lbps_basic.Split(self.root)
-            self.demo = split.run()
-            self.__method = method
-        elif method == lbps.ALGORITHM_LBPS_MERGE:
-            merge = lbps_basic.Merge(self.root)
-            self.demo = merge.run()
-            self.__method = method
-        else:
-            logging.warning('{} lbps algorithm not found'.format(method))
+        # one hop lbps algorithm
+        if isinstance(method, int):
+            if method == lbps.ALGORITHM_LBPS_AGGR:
+                aggr = lbps_basic.Aggr(self.root)
+                self.demo = aggr.run()
+                self.__method = method
+            elif method == lbps.ALGORITHM_LBPS_SPLIT:
+                split = lbps_basic.Split(self.root)
+                self.demo = split.run()
+                self.__method = method
+            elif method == lbps.ALGORITHM_LBPS_MERGE:
+                merge = lbps_basic.Merge(self.root)
+                self.demo = merge.run()
+                self.__method = method
+            else:
+                logging.warning('{} lbps algorithm not found'.format(method))
 
         # mapping
         if self.__method and self.__division == 'TDD':
