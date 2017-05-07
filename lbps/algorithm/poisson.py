@@ -53,6 +53,7 @@ def get_sleep_cycle(lambd, data_threshold, prob_threshold=0.8):
 
 # FIXME: need test
 def get_data_accumulation(lambd, sleep_cycle, prob_threshold=0.8):
+
     key = 'lambd={},sleep_cycle={},PROB_TH={}'.format(
         lambd, sleep_cycle, prob_threshold)
     key = sha256(key.encode('utf-8')).hexdigest()
@@ -65,7 +66,6 @@ def get_data_accumulation(lambd, sleep_cycle, prob_threshold=0.8):
     else:
         with open(packet_accu_log, 'r') as f:
             records = json.load(f)
-
 
     # check records
     if key in records.keys():
