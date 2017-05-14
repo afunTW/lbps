@@ -82,6 +82,21 @@ class MinCycle(basic.BaseLBPS):
         access_timeline += all_rn
         return (backhaul_timeline, access_timeline)
 
+    def scheduling(self, backhaul_K):
+        backhaul_timeline = [[] for TTI in range(backhaul_K)]
+        access_timeline = backhaul_timeline.copy()
+
+        for rn, info in self.__rn_info.items():
+            for i, slot in enumerate(backhaul_timeline):
+                if slot: continue
+                for count in range(info['backhaul_awake']):
+                    backhaul_timeline[i+count] += [self.root, rn]
+                break
+            for i, slot in enumerate(info['access_timeline']):
+                access_timeline[i] += slot
+
+        return (backhaul_timeline, access_timeline)
+
 
 class MinCycleAggr(MinCycle):
     def __init__(self, root):
@@ -96,19 +111,6 @@ class MinCycleAggr(MinCycle):
         can_backhaul, can_access = self.schedulability(self.__rn_info, backhaul_K)
 
         if can_backhaul and can_access:
-            backhaul_timeline = [[] for TTI in range(backhaul_K)]
-            access_timeline = backhaul_timeline.copy()
-
-            for rn, info in self.__rn_info.items():
-                for i, slot in enumerate(backhaul_timeline):
-                    if slot: continue
-                    for count in range(info['backhaul_awake']):
-                        backhaul_timeline[i+count] += [self.root, rn]
-                    break
-                for i, slot in enumerate(info['access_timeline']):
-                    access_timeline[i] += slot
-
-            return (backhaul_timeline, access_timeline)
-
+            return self.scheduling(backhaul_K)
         else:
             return self.all_awake()
