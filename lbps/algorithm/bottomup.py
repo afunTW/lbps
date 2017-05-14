@@ -8,7 +8,7 @@ from lbps.algorithm import basic
 from lbps.algorithm import poisson
 
 
-class MinCycle(basic.BaseLBPS):
+class BottomUp(basic.BaseLBPS):
     '''
     Two hop lbps algorithm
     Defined some support function by data structure rn_info:
@@ -22,12 +22,10 @@ class MinCycle(basic.BaseLBPS):
         super().__init__(root)
         self.__rn_info = None
 
-    @property
-    def rn_info(self):
-        return self.__rn_info
-
     def rn_access_info(self, method):
-        assert method in [ALGORITHM_LBPS_AGGR, ALGORITHM_LBPS_SPLIT]
+        assert method in [
+            ALGORITHM_LBPS_AGGR, ALGORITHM_LBPS_SPLIT, ALGORITHM_LBPS_MERGE]
+
         all_rn = self.root.target_device
         self.__rn_info = None
 
@@ -37,6 +35,9 @@ class MinCycle(basic.BaseLBPS):
         elif method == ALGORITHM_LBPS_SPLIT:
             self.__rn_info = { rn: {
             'access_timeline': basic.Split(rn.access).run()} for rn in all_rn}
+        elif method == ALGORITHM_LBPS_MERGE:
+            self.__rn_info = { rn: {
+            'access_timeline': basic.Merge(rn.access).run()} for rn in all_rn}
 
         self.update_rn_access_info()
         return self.__rn_info
@@ -55,6 +56,16 @@ class MinCycle(basic.BaseLBPS):
         for i, device in enumerate(devices):
             if device.name == target.name:
                 devices[i] = target
+
+
+class MinCycle(BottomUp):
+    def __init__(self, root, method):
+        super().__init__(root)
+        self.__rn_info = self.rn_access_info(method)
+
+    @property
+    def rn_info(self):
+        return self.__rn_info
 
     def degrade_cycle(self, rn_info, bound_K):
         for i, rn in enumerate(rn_info):
@@ -103,8 +114,8 @@ class MinCycle(basic.BaseLBPS):
 
 class MinCycleAggr(MinCycle):
     def __init__(self, root):
-        super().__init__(root)
-        self.__rn_info = self.rn_access_info(ALGORITHM_LBPS_AGGR)
+        super().__init__(root, ALGORITHM_LBPS_AGGR)
+        self.__rn_info = self.rn_info
 
     def run(self):
         backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
@@ -119,8 +130,8 @@ class MinCycleAggr(MinCycle):
 
 class MinCycleSplit(MinCycle):
     def __init__(self, root):
-        super().__init__(root)
-        self.__rn_info = self.rn_access_info(ALGORITHM_LBPS_SPLIT)
+        super().__init__(root, ALGORITHM_LBPS_SPLIT)
+        self.__rn_info = self.rn_info
 
     def run(self):
         backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
