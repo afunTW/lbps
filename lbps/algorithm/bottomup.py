@@ -38,6 +38,10 @@ class MinCycle(basic.BaseLBPS):
             self.__rn_info = { rn: {
             'access_timeline': basic.Split(rn.access).run()} for rn in all_rn}
 
+        self.update_rn_access_info()
+        return self.__rn_info
+
+    def update_rn_access_info(self):
         for rn, v in self.__rn_info.items():
             rate = rn.access.lbps_capacity / self.root.lbps_capacity
             v['access_K'] = len(v['access_timeline'])
@@ -46,8 +50,6 @@ class MinCycle(basic.BaseLBPS):
 
             for i, slot in enumerate(v['access_timeline']):
                 self.device_replacement(slot, rn)
-
-        return self.__rn_info
 
     def device_replacement(self, devices, target):
         for i, device in enumerate(devices):
@@ -76,6 +78,7 @@ class MinCycle(basic.BaseLBPS):
         return (backhaul_schedulability, access_schedulability)
 
     def all_awake(self):
+        logging.debug(' - schedule failed, all awaken')
         all_rn = [rn for rn in self.root.target_device]
         backhaul_timeline = all_rn + [self.root]
         access_timeline = [ue for rn in self.root.target_device for ue in rn.access]
@@ -114,3 +117,41 @@ class MinCycleAggr(MinCycle):
             return self.scheduling(backhaul_K)
         else:
             return self.all_awake()
+
+
+class MinCycleSplit(MinCycle):
+    def __init__(self, root):
+        super().__init__(root)
+        self.__backhaul_timeline = None
+        self.__access_timeline = None
+        self.__rn_info = self.rn_access_info(ALGORITHM_LBPS_SPLIT)
+
+    def run(self):
+        backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
+        self.__rn_info = self.degrade_cycle(self.__rn_info, backhaul_K)
+        backhaul_timeline = [[] for TTI in range(backhaul_K)]
+        access_timeline = backhaul_timeline.copy()
+
+        while True:
+            can_backhaul, can_access = self.schedulability(self.__rn_info, backhaul_K)
+            if can_backhaul and can_access:
+                return self.scheduling(backhaul_K)
+            else:
+                logging.debug(' - reversing split')
+                reverse_target = None
+                for rn, info in self.__rn_info.items():
+                    if info['access_K'] == backhaul_K and info['access_awake'] > 1:
+                        reverse_target = rn
+                        break
+
+                if not reverse_target:
+                    return self.all_awake()
+
+                # reversing split and update
+                groups = self.__rn_info[reverse_target]['access_awake']
+                self.__rn_info[reverse_target].update({
+                    'access_timeline': basic.Split(rn.access, boundary=groups-1)
+                    })
+                self.update_rn_access_info()
+                backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
+                self.__rn_info = self.degrade_cycle(self.__rn_info, backhaul_K)

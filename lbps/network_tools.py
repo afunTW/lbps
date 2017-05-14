@@ -139,6 +139,7 @@ class LBPSNetwork(object):
                 self.__method = method
             else:
                 logging.warning('{} lbps algorithm not found'.format(method))
+
         # two hops lbps algorithm
         elif isinstance(method, tuple) and len(method) == 2:
             backhaul_method, access_method = method
@@ -149,6 +150,9 @@ class LBPSNetwork(object):
             elif backhaul_method == lbps.ALGORITHM_LBPS_MINCYCLE:
                 if access_method == lbps.ALGORITHM_LBPS_AGGR:
                     bu = lbps_bottomup.MinCycleAggr(self.__root)
+                    self.demo = bu.run()
+                elif access_method == lbps.ALGORITHM_LBPS_SPLIT:
+                    bu = lbps_bottomup.MinCycleSplit(self.__root)
                     self.demo = bu.run()
 
         # mapping
