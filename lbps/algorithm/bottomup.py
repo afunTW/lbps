@@ -41,8 +41,7 @@ class MinCycle(basic.BaseLBPS):
         for rn, v in self.__rn_info.items():
             rate = rn.access.lbps_capacity / self.root.lbps_capacity
             v['access_K'] = len(v['access_timeline'])
-            v['access_awake'] = sum(
-                [1 for i in v['access_timeline'] if rn.access in i])
+            v['access_awake'] = sum([1 for i in v['access_timeline'] if i])
             v['backhaul_awake'] = ceil(v['access_awake']*rate)
 
             for i, slot in enumerate(v['access_timeline']):
