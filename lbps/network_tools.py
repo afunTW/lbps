@@ -50,12 +50,13 @@ class LBPSNetwork(object):
             assert isinstance(rue, int)
             for i in range(rue):
                 rn.connect_to(UserEquipment(), CQI=access_CQI, flow=VoIP())
-                backhaul_lambd += VoIP().lambd
+                bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP())
+                # backhaul_lambd += VoIP().lambd
             logging.debug('%s builded access bearer with %d user' % (rn.name, rue))
             logging.debug('builded access network, current lambd %g' % (bs.lambd))
 
             # backhaul
-            bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP(lambd=backhaul_lambd))
+            # bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP(lambd=backhaul_lambd))
             logging.debug('builded backhaul network, current lambd %d' % (bs.lambd))
 
         logging.debug(
