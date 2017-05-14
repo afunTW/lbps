@@ -8,6 +8,7 @@ from lbps.structure.relay_node import RelayNode
 from lbps.structure.user_equipment import UserEquipment
 from lbps.algorithm import basic as lbps_basic
 from lbps.algorithm import topdown as lbps_topdown
+from lbps.algorithm import bottomup as lbps_bottomup
 from lbps.tdd import basic as mapping_basic
 from src import tdd
 from src.traffic import VoIP
@@ -144,6 +145,10 @@ class LBPSNetwork(object):
                 td = lbps_topdown.TopDown(self.__root)
                 self.demo = td.run(backhaul_method)
                 self.__method = method
+            elif backhaul_method == lbps.ALGORITHM_LBPS_MINCYCLE:
+                if access_method == lbps.ALGORITHM_LBPS_AGGR:
+                    bu = lbps_bottomup.MinCycleAggr(self.__root)
+                    self.demo = bu.run()
 
         # mapping
         if self.__method and self.__division == 'TDD':
