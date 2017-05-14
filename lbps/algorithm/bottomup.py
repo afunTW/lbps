@@ -104,8 +104,6 @@ class MinCycle(basic.BaseLBPS):
 class MinCycleAggr(MinCycle):
     def __init__(self, root):
         super().__init__(root)
-        self.__backhaul_timeline = None
-        self.__access_timeline = None
         self.__rn_info = self.rn_access_info(ALGORITHM_LBPS_AGGR)
 
     def run(self):
@@ -122,8 +120,6 @@ class MinCycleAggr(MinCycle):
 class MinCycleSplit(MinCycle):
     def __init__(self, root):
         super().__init__(root)
-        self.__backhaul_timeline = None
-        self.__access_timeline = None
         self.__rn_info = self.rn_access_info(ALGORITHM_LBPS_SPLIT)
 
     def run(self):
