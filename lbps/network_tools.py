@@ -154,9 +154,13 @@ class LBPSNetwork(object):
                 elif access_method == lbps.ALGORITHM_LBPS_SPLIT:
                     bu = lbps_bottomup.MinCycleSplit(self.__root)
                     self.demo = bu.run()
+            elif backhaul_method == lbps.ALGORITHM_LBPS_MERGECYCLE:
+                if access_method == lbps.ALGORITHM_LBPS_MERGE:
+                    bu = lbps_bottomup.MergeCycleMerge(self.__root)
+                    self.demo = bu.run()
 
         # mapping
-        if self.__method and self.__division == 'TDD':
+        if self.demo and self.__method and self.__division == 'TDD':
             if self.__hop == lbps.MODE_ONE_HOP:
                 if mapping == lbps.MAPPING_M1:
                     M1 = mapping_basic.one2all(self.__tdd_config)

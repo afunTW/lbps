@@ -57,6 +57,14 @@ class BottomUp(basic.BaseLBPS):
             if device.name == target.name:
                 devices[i] = target
 
+    def all_awake(self):
+        logging.debug(' - schedule failed, all awaken')
+        all_rn = [rn for rn in self.root.target_device]
+        backhaul_timeline = all_rn + [self.root]
+        access_timeline = [ue for rn in self.root.target_device for ue in rn.access]
+        access_timeline += all_rn
+        return (backhaul_timeline, access_timeline)
+
 
 class MinCycle(BottomUp):
     def __init__(self, root, method):
@@ -81,20 +89,13 @@ class MinCycle(BottomUp):
                         accumulate_packet * packet_size / self.root.lbps_capacity)
         return rn_info
 
-    def schedulability(self, rn_info, bound_K):
+    def schedulability(self, bound_K):
+        rn_info = self.__rn_info
         checked = lambda x: (x['access_awake']+x['backhaul_awake']) <= bound_K
         backhaul_schedulability = sum([v['backhaul_awake'] for v in rn_info.values()])
         backhaul_schedulability = backhaul_schedulability <= bound_K
         access_schedulability = all([checked(v) for v in rn_info.values()])
         return (backhaul_schedulability, access_schedulability)
-
-    def all_awake(self):
-        logging.debug(' - schedule failed, all awaken')
-        all_rn = [rn for rn in self.root.target_device]
-        backhaul_timeline = all_rn + [self.root]
-        access_timeline = [ue for rn in self.root.target_device for ue in rn.access]
-        access_timeline += all_rn
-        return (backhaul_timeline, access_timeline)
 
     def scheduling(self, backhaul_K):
         backhaul_timeline = [[] for TTI in range(backhaul_K)]
@@ -120,7 +121,7 @@ class MinCycleAggr(MinCycle):
     def run(self):
         backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
         self.__rn_info = self.degrade_cycle(self.__rn_info, backhaul_K)
-        can_backhaul, can_access = self.schedulability(self.__rn_info, backhaul_K)
+        can_backhaul, can_access = self.schedulability(backhaul_K)
 
         if can_backhaul and can_access:
             return self.scheduling(backhaul_K)
@@ -140,7 +141,7 @@ class MinCycleSplit(MinCycle):
         access_timeline = backhaul_timeline.copy()
 
         while True:
-            can_backhaul, can_access = self.schedulability(self.__rn_info, backhaul_K)
+            can_backhaul, can_access = self.schedulability(backhaul_K)
             if can_backhaul and can_access:
                 return self.scheduling(backhaul_K)
             else:
@@ -162,3 +163,102 @@ class MinCycleSplit(MinCycle):
                 self.update_rn_access_info()
                 backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
                 self.__rn_info = self.degrade_cycle(self.__rn_info, backhaul_K)
+
+
+class MergeCycle(BottomUp):
+    def __init__(self, root, method):
+        super().__init__(root)
+        self.__rn_info = self.rn_access_info(method)
+
+    @property
+    def rn_info(self):
+        return self.__rn_info
+
+    def schedulability(self, groups):
+        ratio = lambda g: ceil(g['backhaul_awake']) / g['access_K']
+        access_awake = lambda g: sum(
+            [self.__rn_info[rn]['access_awake'] for rn in g['device']])
+        access_check = lambda g: (
+            access_awake(g) + ceil(g['backhaul_awake']) <= g['access_K'])
+
+        can_access = all([access_check(g) for g in groups])
+        can_backhaul = (sum([ratio(g) for g in groups]) <= 1)
+        return (can_backhaul, can_access)
+
+    def scheduling(self, groups):
+        backhaul_K = max([v['access_K'] for v in self.__rn_info.values()])
+        backhaul_timeline = [[] for i in range(backhaul_K)]
+        access_timeline = backhaul_timeline.copy()
+
+        for i, group in enumerate(groups):
+            TTI = 0
+            while TTI < backhaul_K:
+                if backhaul_timeline[TTI]:
+                    TTI += 1
+                    continue
+                for count in range(ceil(group['backhaul_awake'])):
+                    backhaul_timeline[TTI+count] += group['device']
+                    backhaul_timeline[TTI+count] += [self.root]
+                TTI += group['access_K']
+
+            for rn in group['device']:
+                for i, slot in enumerate(access_timeline):
+                    slot += self.__rn_info[rn]['access_timeline'][i]
+
+        return (backhaul_timeline, access_timeline)
+
+
+class MergeCycleMerge(MergeCycle):
+    def __init__(self, root):
+        super().__init__(root, ALGORITHM_LBPS_MERGE)
+        self.__rn_info = self.rn_info
+        self.__is_non_degraded = False
+
+    def non_degraded(self, groups):
+        self.__is_non_degraded = False
+        groups.sort(key=lambda x: x['access_K'], reverse=True)
+
+        for i, source in enumerate(groups):
+            for j, target in enumerate(groups[i+1:]):
+                same_K = (target['access_K'] == source['access_K'])
+                can_backhaul = target['backhaul_awake']+source['backhaul_awake']
+                can_backhaul = (ceil(can_backhaul) < source['access_K'])
+
+                if same_K and can_backhaul:
+                    access_awake = lambda rn: sum([
+                        1 for i in self.__rn_info[rn]['access_timeline'] if i])
+                    target_access = sum([access_awake(rn) for rn in target['device']])
+                    source_access = sum([access_awake(rn) for rn in source['device']])
+                    if target_access + source_access > source['access_K']: break
+
+                self.__is_non_degraded = True
+                source['device'] += target['device']
+                source['backhaul_awake'] += target['backhaul_awake']
+                groups.remove(target)
+                break
+            else:
+                continue
+            break
+
+        return groups
+
+    def run(self):
+        groups = [{
+            'device': [rn],
+            'access_K': info['access_K'],
+            'backhaul_awake': info['backhaul_awake']
+        } for rn, info in self.__rn_info.items()]
+
+        # backhaul merge process
+        ratio = lambda g: ceil(g['backhaul_awake'] / g['access_K'])
+        can_merge = lambda x: sum([ratio(g) for g in x]) > 1
+        while can_merge(groups):
+            groups = self.non_degraded(groups)
+            if not self.__is_non_degraded: break
+
+        can_backhaul, can_access = self.schedulability(groups)
+
+        if can_backhaul and can_access:
+            return self.scheduling(groups)
+        else:
+            return self.all_awake()
