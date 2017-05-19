@@ -16,6 +16,13 @@ def main(simulation_time):
     equal_load_network.simulate(simulation_time)
     equal_load_network.run((lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE))
 
+    for i in range(9):
+        equal_load_network.build_connection(15, 15, 40, 40, 40, 40, 40, 40)
+        equal_load_network.set_division_mode('TDD')
+        equal_load_network.simulate(simulation_time)
+        equal_load_network.run((
+            lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE))
+
 if __name__ == '__main__':
     now = datetime.now()
     logname = './log/%s.log' % now.strftime('%Y%m%d')

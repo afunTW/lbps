@@ -20,7 +20,8 @@ class LBPSNetwork(object):
     *relay_users represent the number of relay ues for each relay
     '''
     def __init__(self, backhaul_CQI, access_CQI, *relay_users):
-        self.__root = self.network_setup(backhaul_CQI, access_CQI, *relay_users)
+        self.__root = None
+        self.__rns = []
         self.__traffic = None
         self.__map_pattern = None
         self.demo = None
@@ -31,42 +32,46 @@ class LBPSNetwork(object):
         self.__division = None
         self.__tdd_config = None
 
+        # constructor
+        self.network_setup(backhaul_CQI, access_CQI, *relay_users)
+
     @property
     def root(self):
         return self.__root
+
+    @property
+    def builded_rn(self):
+        return self.__rns
 
     @property
     def traffic(self):
         return self.__traffic
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
-        bs = BaseStation()
-        for rue in relay_users:
+        self.__root = BaseStation()
 
+        for i in range(len(relay_users)):
             rn = RelayNode()
-            backhaul_lambd = 0
+            self.__rns.append(rn)
 
-            # access
+        self.build_connection(backhaul_CQI, access_CQI, *relay_users)
+
+    def build_connection(self, backhaul_CQI, access_CQI, *relay_users):
+        assert len(relay_users) == len(self.__rns)
+
+        for rn_index, rue in enumerate(relay_users):
             assert isinstance(rue, int)
+            rn = self.__rns[rn_index]
             for i in range(rue):
                 rn.connect_to(UserEquipment(), CQI=access_CQI, flow=VoIP())
-                bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP())
-                # backhaul_lambd += VoIP().lambd
-            logging.debug('%s builded access bearer with %d user' % (rn.name, rue))
-            logging.debug('builded access network, current lambd %g' % (bs.lambd))
-
-            # backhaul
-            # bs.connect_to(rn, CQI=backhaul_CQI, flow=VoIP(lambd=backhaul_lambd))
-            logging.debug('builded backhaul network, current lambd %d' % (bs.lambd))
+                self.root.connect_to(rn, CQI=backhaul_CQI, flow=VoIP())
 
         logging.debug(
             '{} builded {} backhaul bearer with {} relays'.format(
-            bs.name, len(bs.bearer), len(relay_users)))
+            self.root.name, len(self.root.bearer), len(relay_users)))
         logging.info(
             'Builded network with backhaul lambd {} and access lambd {}'.format(
-                bs.lambd, [_.lambd for _ in bs.target_device]))
-
-        return bs
+                self.root.lambd, [_.lambd for _ in self.root.target_device]))
 
     def simulate(self, simulation_time):
         self.__traffic = self.root.simulate_timeline(simulation_time)
