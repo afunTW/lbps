@@ -61,7 +61,8 @@ class BottomUp(basic.BaseLBPS):
         logging.debug(' - schedule failed, all awaken')
         all_rn = [rn for rn in self.root.target_device]
         backhaul_timeline = all_rn + [self.root]
-        access_timeline = [ue for rn in self.root.target_device for ue in rn.access]
+        access_timeline = [
+            ue for rn in self.root.target_device for ue in rn.access.target_device]
         access_timeline += all_rn
         return (backhaul_timeline, access_timeline)
 

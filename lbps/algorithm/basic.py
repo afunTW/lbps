@@ -143,8 +143,8 @@ class Merge(BaseLBPS):
         return result
 
     def non_degraded_merge(self, groups):
-        assert isinstance(sleep_cycle, list)
-        assert all(map(lambda x: isinstance(x, dict), sleep_cycle))
+        assert isinstance(groups, list)
+        assert all(map(lambda x: isinstance(x, dict), groups))
 
         if len(groups) == 1:
             logging.debug(' - non degraded merge, nothing changed')
