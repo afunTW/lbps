@@ -9,7 +9,23 @@ from lbps.algorithm import basic
 
 
 def main(simulation_time):
-    # hot_spot_network = network_setup(15, 15, 96, 96, 12, 12, 12, 12)
+    '''
+    ======================================================================
+        Simulate the lbps netwowrk with proposed scheduling algorithm
+
+        # network
+        equal load network apply RUEs distribution in 40,40,40,40,40,40
+        hot spot network apply RUEs distribution in 96,96,12,12,12,12
+
+        # lbps proposed algorithm
+        (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN)
+        (lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN)
+        (lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
+        (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
+        (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
+        (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+    ======================================================================
+    '''
     equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
     equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
     equal_load_network.set_division_mode('TDD')
