@@ -33,12 +33,11 @@ class BaseLBPS(object):
 
     @property
     def packet_size(self):
-        total_pkt_size = sum([b.flow.packet_size for b in self.root.bearer])
-        return total_pkt_size/len(self.root.bearer)
+        return self.root.packet_size
 
     @property
     def load(self):
-        return self.root.lambd*self.packet_size/self.root.lbps_capacity
+        return self.root.load
 
     @property
     def data_threshold(self):

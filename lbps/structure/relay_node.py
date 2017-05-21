@@ -29,6 +29,7 @@ class RelayNode(device.TwoHopDevice):
 
         if isinstance(dest, base_station.BaseStation):
             self.backhaul.append_bearer(bearer.Bearer(self, dest, CQI, flow))
+            self.access.ref_backhaul = dest
             logging.debug('Build backhaul bearer (%s, %s)' % (self.name, dest.name))
         elif isinstance(dest, user_equipment.UserEquipment):
             self.access.append_bearer(bearer.Bearer(self, dest, CQI, flow))

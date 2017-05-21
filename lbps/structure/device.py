@@ -20,8 +20,6 @@ class OneHopDevice(object):
         self.__tdd_config = []
         self.__division_mode = 'TDD'
 
-        if ref_backhaul
-
     @property
     def bearer(self):
         return self.__bearer
@@ -62,14 +60,24 @@ class OneHopDevice(object):
         each_cqi = [bearer.CQI for bearer in self.__bearer]
         each_eff = [cqi.cqi_info[i]['eff'] for i in each_cqi]
         aggr_cap = sum([capacity.RE_TTI*eff for eff in each_eff])
-        return (aggr_cap/len(self.__bearer))
+        return int(aggr_cap/len(self.__bearer))
 
     @property
     def virtual_capacity(self):
         assert self.__tdd_config, self.name + ' tdd config is empty'
-        avaliable_frame_cap = \
-        self.__tdd_config.count('D') * self.wideband_capacity
-        return int(avaliable_frame_cap/10)
+        if self.ref_backhaul:
+            backhaul_utilization = self.ref_backhaul.load
+            backhaul_avaliable_subframe = self.ref_backhaul.tdd_config.count('D')
+            access_avaliable_subframe = (
+                self.__tdd_config.count('D') -
+                backhaul_avaliable_subframe*backhaul_utilization
+            )
+            avaliable_frame_cap = access_avaliable_subframe*self.wideband_capacity
+            return int(avaliable_frame_cap/10)
+        else:
+            avaliable_frame_cap = \
+            self.__tdd_config.count('D') * self.wideband_capacity
+            return int(avaliable_frame_cap/10)
 
     @property
     def lbps_capacity(self):
@@ -87,6 +95,15 @@ class OneHopDevice(object):
         assert isinstance(mode, str), 'given mode is not string'
         assert mode in ['FDD', 'TDD'], 'given mode is not FDD either TDD'
         self.__division_mode = mode
+
+    @property
+    def packet_size(self):
+        total_pkt_size = sum([b.flow.packet_size for b in self.bearer])
+        return total_pkt_size/len(self.bearer)
+
+    @property
+    def load(self):
+        return self.lambd*self.packet_size/self.lbps_capacity
 
     @classmethod
     def is_tdd_config(cls, conf):
@@ -112,10 +129,6 @@ class TwoHopDevice(object):
         self.access = OneHopDevice(name=name)
         self.__tdd_config = None
         self.__sleep = False
-
-        # two-directional binding
-        self.backhaul.ref_access = self.access
-        self.access.ref_backhaul = self.backhaul
 
     @property
     def sleep(self):
