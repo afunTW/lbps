@@ -10,13 +10,17 @@ from src import capacity
 
 class OneHopDevice(object):
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, ref_backhaul=None, ref_access=None):
         self.name = name or self.__class__.__name__
         self.buffer = []
         self.sleep = False
+        self.ref_backhaul = ref_backhaul
+        self.ref_access = ref_access
         self.__bearer = []
         self.__tdd_config = []
         self.__division_mode = 'TDD'
+
+        if ref_backhaul
 
     @property
     def bearer(self):
@@ -108,6 +112,10 @@ class TwoHopDevice(object):
         self.access = OneHopDevice(name=name)
         self.__tdd_config = None
         self.__sleep = False
+
+        # two-directional binding
+        self.backhaul.ref_access = self.access
+        self.access.ref_backhaul = self.backhaul
 
     @property
     def sleep(self):
