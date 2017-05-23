@@ -63,6 +63,7 @@ class Aggr(BaseLBPS):
         timeline = [[] for i in range(sleep_cycle)]
         timeline[0] = [i for i in self.root.target_device]
         timeline[0].append(self.root)
+        logging.info(' - sleep cycle {}'.format(sleep_cycle))
         return timeline
 
 
@@ -121,6 +122,7 @@ class Split(BaseLBPS):
             groups[i]['device'] and groups[i]['device'].append(self.root)
             timeline[i] += groups[i]['device']
 
+        logging.info(' - sleep cycle {}'.format(sleep_cycle))
         return timeline
 
 
@@ -206,4 +208,5 @@ class Merge(BaseLBPS):
             for TTI in range(base, max_K, g['K']):
                 timeline[TTI] = g['device'] + [self.root]
 
+        logging.info(' - sleep cycle {}'.format(max_K))
         return timeline

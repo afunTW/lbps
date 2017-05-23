@@ -72,6 +72,7 @@ class TopDown(basic.BaseLBPS):
             access_failed = [access_failed] * backhaul_K
             self.__backhaul_timeline = backhaul_failed
             self.__access_timeline = access_failed
+            logging.warning(' - top down algorithm failed, all awake')
         else:
             access_timeline = [[] for i in range(backhaul_K)]
             for rn in self.root.target_device:

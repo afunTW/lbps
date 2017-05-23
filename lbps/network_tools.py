@@ -100,8 +100,8 @@ class LBPSNetwork(object):
             self.__hop = lbps.MODE_TWO_HOP
             self.__tdd_config = config
             logging.info('Set two-hop tdd configuration %d' % (config_index))
-            logging.debug('backhaul configuration\t%s' % (str(config['backhaul'])))
-            logging.debug('access configuration\t\t%s' % (str(config['access'])))
+            logging.debug('backhaul configuration {}'.format(str(config['backhaul'])))
+            logging.debug('access configuration {}'.format(str(config['access'])))
 
         else:
             logging.warning('No %s config method' % (n_hop))
@@ -128,8 +128,11 @@ class LBPSNetwork(object):
         if not mapping and not self.__division:
             self.set_division_mode('TDD')
 
+        logging.info('Running algorithm {}'.format(method))
+
         # one hop lbps algorithm
         if isinstance(method, int):
+            logging.info(' - apply as one hop algorithm')
             if method == lbps.ALGORITHM_LBPS_AGGR:
                 aggr = lbps_basic.Aggr(self.root)
                 self.demo = aggr.run()
@@ -147,6 +150,7 @@ class LBPSNetwork(object):
 
         # two hops lbps algorithm
         elif isinstance(method, tuple) and len(method) == 2:
+            logging.info(' - apply as two hop algorithm')
             backhaul_method, access_method = method
             if access_method == lbps.ALGORITHM_LBPS_TOPDOWN:
                 td = lbps_topdown.TopDown(self.__root)

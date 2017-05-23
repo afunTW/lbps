@@ -30,11 +30,9 @@ class BaseStation(device.OneHopDevice):
 
         if isinstance(dest, device.OneHopDevice):
             dest.append_bearer(bearer.Bearer(dest, self, CQI, flow))
-            logging.debug('Build direct bearer (%s, %s)' % (self.name, dest.name))
         elif isinstance(dest, device.TwoHopDevice):
             dest.backhaul.append_bearer(bearer.Bearer(dest, self, CQI, flow))
             dest.access.ref_backhaul = self
-            logging.debug('Build backhaul bearer (%s, %s)' % (self.name, dest.name))
 
     def simulate_timeline(self, simulation_time):
         users = [ue for rn in self.target_device for ue in rn.access.target_device]
