@@ -19,6 +19,11 @@ class BaseStation(device.OneHopDevice):
                 [self.__class__.__name__, str(next(self.count))]
             )
         )
+        self.__simulation_time = None
+
+    @property
+    def simulation_time(self):
+        return self.__simulation_time
 
     def connect_to(self, dest, CQI, flow):
         assert (
@@ -35,6 +40,7 @@ class BaseStation(device.OneHopDevice):
             dest.access.ref_backhaul = self
 
     def simulate_timeline(self, simulation_time):
+        self.__simulation_time = simulation_time
         users = [ue for rn in self.target_device for ue in rn.access.target_device]
         timeline = { i: [] for i in range(simulation_time)}
 
