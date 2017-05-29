@@ -12,7 +12,11 @@ class BaseMapping(object):
     def __init__(self, tdd_config, rsc=10):
 
         if isinstance(tdd_config, list):
-            assert tdd_config in list(config.one_hop_config.values())
+            one_hop = config.one_hop_config.values()
+            two_hop = [
+                v['backhaul'] for v in config.two_hop_config.values()
+            ]
+            assert tdd_config in one_hop or tdd_config in two_hop
         else:
             raise Exception('{} not the proper TDD config'.format(tdd_config))
 
@@ -81,6 +85,7 @@ class one2all(BaseMapping):
                     rv['rsc'] -= allocate_rsc
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
+        return self.__pattern
 
 
 class continuous(BaseMapping):
@@ -110,6 +115,7 @@ class continuous(BaseMapping):
                     rv['rsc'] = 0
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
+        return self.__pattern
 
 
 class one2one_first(BaseMapping):
@@ -143,3 +149,4 @@ class one2one_first(BaseMapping):
                     rv['rsc'] = 0
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
+        return self.__pattern
