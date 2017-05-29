@@ -103,7 +103,7 @@ class OneHopDevice(object):
 
     @property
     def load(self):
-        return self.lambd*self.packet_size/self.lbps_capacity
+        return self.lambd*self.packet_size/self.wideband_capacity
 
     @classmethod
     def is_tdd_config(cls, conf):
