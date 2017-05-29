@@ -6,6 +6,7 @@ from datetime import datetime
 from pprint import pprint
 from lbps import network_tools as nt
 from lbps.algorithm import basic
+from src.traffic import VoIP
 
 
 def main(simulation_time):
@@ -26,18 +27,26 @@ def main(simulation_time):
         (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
     ======================================================================
     '''
+    proposed_lbps = [
+        (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN),
+        (lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN),
+        (lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
+        # (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR),
+        # (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT),
+        # (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+    ]
+
     equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
     equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
     equal_load_network.set_division_mode('TDD')
-    equal_load_network.simulate(simulation_time)
-    equal_load_network.run((lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE))
 
-    for i in range(9):
-        equal_load_network.build_connection(15, 15, 40, 40, 40, 40, 40, 40)
-        equal_load_network.set_division_mode('TDD')
+    for i in range(12):
+        target_lambda = VoIP().lambd*(i+1)
+        equal_load_network.set_bearer_lambd(target_lambda)
         equal_load_network.simulate(simulation_time)
-        equal_load_network.run((
-            lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE))
+
+        for algorithm in proposed_lbps:
+            equal_load_network.run(algorithm)
 
 if __name__ == '__main__':
     now = datetime.now()
@@ -50,7 +59,7 @@ if __name__ == '__main__':
         logging.info('Creating directory %s' % logdir)
 
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s %(filename)s:L%(lineno)s [%(levelname)8s] %(message)s',
         datefmt='%b %d %H:%M:%S',
         filename=logname
@@ -61,7 +70,7 @@ if __name__ == '__main__':
         '%(asctime)s %(filename)s:L%(lineno)s [%(levelname)8s] %(message)s',
         '%b %d %H:%M:%S')
     stdout.setFormatter(stdout_format)
-    stdout.setLevel(logging.DEBUG)
+    stdout.setLevel(logging.INFO)
     logging.getLogger().addHandler(stdout)
 
     try:

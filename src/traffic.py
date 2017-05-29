@@ -21,6 +21,10 @@ class Traffic(object):
     def delay_budget(self): return self.__delay_budget
     @property
     def lambd(self): return self.__lambd
+    @lambd.setter
+    def lambd(self, l):
+        assert isinstance(l, (int, float))
+        self.__lambd = l
 
 class VoIP(Traffic):
     def __init__(self,

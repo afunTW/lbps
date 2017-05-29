@@ -59,12 +59,17 @@ class LBPSNetwork(object):
     def build_connection(self, backhaul_CQI, access_CQI, *relay_users):
         assert len(relay_users) == len(self.__rns)
 
+        # build connection
         for rn_index, rue in enumerate(relay_users):
             assert isinstance(rue, int)
             rn = self.__rns[rn_index]
             for i in range(rue):
                 rn.connect_to(UserEquipment(), CQI=access_CQI, flow=VoIP())
-                self.root.connect_to(rn, CQI=backhaul_CQI, flow=VoIP())
+            self.root.connect_to(rn, CQI=backhaul_CQI, flow=VoIP())
+
+        # update backhaul lambda
+        for bearer in self.root.bearer:
+            bearer.flow.lambd = bearer.destination.access.lambd
 
         logging.debug(
             '{} builded {} backhaul bearer with {} relays'.format(
@@ -77,6 +82,21 @@ class LBPSNetwork(object):
         self.__traffic = self.root.simulate_timeline(simulation_time)
         logging.info('Generate {} packet for simulation time {} ms'.format(
             sum([len(v) for v in self.traffic.values()]), simulation_time))
+
+    def set_bearer_lambd(self, lambd):
+
+        # update access lambda
+        for rn in self.__rns:
+            for bearer in rn.access.bearer:
+                bearer.flow.lambd = lambd
+
+        # update backhaul lambda
+        for bearer in self.root.bearer:
+            bearer.flow.lambd = bearer.destination.access.lambd
+
+        logging.info(
+            'Builded network with backhaul lambd {} and access lambd {}'.format(
+                self.root.lambd, [_.lambd for _ in self.root.target_device]))
 
     def set_tdd_configuration(self, n_hop, config_index):
         if n_hop == lbps.MODE_ONE_HOP:
