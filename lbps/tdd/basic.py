@@ -82,6 +82,7 @@ class one2all(BaseMapping):
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
 
+
 class continuous(BaseMapping):
     '''
     M2 mapping: continuous mapping
@@ -109,6 +110,7 @@ class continuous(BaseMapping):
                     rv['rsc'] = 0
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
+
 
 class one2one_first(BaseMapping):
     '''

@@ -6,10 +6,14 @@ sys.path.append('..')
 from lbps.structure.base_station import BaseStation
 from lbps.structure.relay_node import RelayNode
 from lbps.structure.user_equipment import UserEquipment
+
 from lbps.algorithm import basic as lbps_basic
 from lbps.algorithm import topdown as lbps_topdown
 from lbps.algorithm import bottomup as lbps_bottomup
+
 from lbps.tdd import basic as mapping_basic
+from lbps.tdd import two_hop as mapping_2hop
+
 from src import tdd
 from src.traffic import VoIP
 from src.bearer import Bearer
@@ -202,3 +206,8 @@ class LBPSNetwork(object):
                     self.__map_pattern = M3.pattern
                 else:
                     logging.warning('{} mapping not found')
+            elif self.__hop == lbps.MODE_TWO_HOP:
+                if mapping == lbps.MAPPING_INTEGRATED:
+                    b_timeline, a_timeline = self.demo
+                    result = mapping_2hop.IntegratedTwoHop(
+                        self.__root, b_timeline, a_timeline)

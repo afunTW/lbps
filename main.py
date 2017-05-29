@@ -46,7 +46,7 @@ def main(simulation_time):
         equal_load_network.simulate(simulation_time)
 
         for algorithm in proposed_lbps:
-            equal_load_network.run(algorithm)
+            equal_load_network.run(algorithm, mapping=lbps.MAPPING_INTEGRATED)
 
 if __name__ == '__main__':
     now = datetime.now()
