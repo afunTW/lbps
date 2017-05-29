@@ -173,12 +173,11 @@ class Merge(BaseLBPS):
     def run(self):
         logging.info('{} running merge'.format(self.root.name))
         logging.info(' - load {}'.format(self.load))
-        sleep_cycle = self.sleep_cycle()
 
         groups = [{
             'device': [i],
             'lambda': i.lambd,
-            'K': 2**floor(log(sleep_cycle, 2))
+            'K': 2**floor(log(self.sleep_cycle(i.lambd), 2))
         } for i in self.root.target_device]
 
         while True:
