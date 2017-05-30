@@ -27,7 +27,6 @@ class LBPSNetwork(object):
         self.__root = None
         self.__rns = []
         self.__traffic = None
-        self.__map_pattern = None
         self.demo = None
 
         # flag
@@ -50,6 +49,15 @@ class LBPSNetwork(object):
     @property
     def traffic(self):
         return self.__traffic
+
+    def __basic_mapper(self, mapping_config, tdd_config):
+        basic_mapping = {
+            lbps.MAPPING_M1: mapping_basic.one2all(tdd_config),
+            lbps.MAPPING_M2: mapping_basic.continuous(tdd_config),
+            lbps.MAPPING_M3: mapping_basic.one2one_first(tdd_config)
+        }
+        assert mapping_config in basic_mapping.keys()
+        return basic_mapping[mapping_config]
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         self.__root = BaseStation()
@@ -193,27 +201,46 @@ class LBPSNetwork(object):
                     self.demo = bu.run()
 
         # mapping
-        if self.demo and self.__method and self.__division == 'TDD':
+        basic_mapping = [lbps.MAPPING_M1, lbps.MAPPING_M2, lbps.MAPPING_M3]
+        if self.demo and mapping and self.__tdd_config and self.__division == 'TDD':
+
             if self.__hop == lbps.MODE_ONE_HOP:
-                if mapping == lbps.MAPPING_M1:
-                    M1 = mapping_basic.one2all(self.__tdd_config)
-                    self.__map_pattern = M1.pattern
-                elif mapping == lbps.MAPPING_M2:
-                    M2 = mapping_basic.continuous(self.__tdd_config)
-                    self.__map_pattern = M2.pattern
-                elif mapping == lbps.MAPPING_M3:
-                    M3 = mapping_basic.one2one_first(self.__tdd_config)
-                    self.__map_pattern = M3.pattern
+                if mapping in basic_mapping and isinstance(mapping, int):
+                    mapper = self.__basic_mapper(mapping, self.__tdd_config)
+                    self.demo = mapper.map_by_pattern(
+                        self.demo, self.root.simulation_time)
                 else:
-                    logging.warning('{} mapping not found')
+                    logging.warning('{} mapping not found'.format(mapping))
+
             elif self.__hop == lbps.MODE_TWO_HOP:
-                if mapping == lbps.MAPPING_INTEGRATED_M2:
+                if isinstance(mapping, tuple) and len(mapping) == 2:
                     b_timeline, a_timeline = self.demo
-                    mapper = mapping_2hop.IntegratedTwoHop(
-                        self.__root, b_timeline, a_timeline, lbps.MAPPING_M2)
-                    self.demo = mapper.mapping()
-                elif mapping == lbps.MAPPING_INTEGRATED_M3:
-                    b_timeline, a_timeline = self.demo
-                    mapper = mapping_2hop.IntegratedTwoHop(
-                        self.__root, b_timeline, a_timeline, lbps.MAPPING_M3)
-                    self.demo = mapper.mapping()
+                    backhaul_mapping, access_mapping = mapping
+
+                    if (
+                        backhaul_mapping == lbps.MAPPING_INTEGRATED and
+                        access_mapping in [lbps.MAPPING_M2, lbps.MAPPING_M3]
+                    ):
+                        mapper = mapping_2hop.IntegratedTwoHop(
+                            self.__root, b_timeline, a_timeline, access_mapping)
+                        self.demo = mapper.mapping()
+
+                    elif (
+                        backhaul_mapping in basic_mapping and
+                        access_mapping in basic_mapping
+                    ):
+                        backhaul_mapper = self.__basic_mapper(
+                            backhaul_mapping, self.__tdd_config['backhaul'].copy())
+                        access_mapper = self.__basic_mapper(
+                            access_mapping, self.__tdd_config['access'].copy())
+
+                        b_timeline = backhaul_mapper.map_by_pattern(
+                            b_timeline, self.root.simulation_time)
+                        a_timeline = access_mapper.map_by_pattern(
+                            a_timeline, self.root.simulation_time)
+                        self.demo = (b_timeline, a_timeline)
+
+                    else:
+                        logging.warning('{} mapping not found'.format(mapping))
+
+        return self.demo

@@ -3,6 +3,7 @@ import logging
 
 sys.path.append('../..')
 from src import tdd as config
+from math import ceil
 
 
 class BaseMapping(object):
@@ -62,6 +63,22 @@ class BaseMapping(object):
     def virtual_timeline(self):
         return self.__virtual_timeline
 
+    def map_by_pattern(self, pattern, v_timeline, simulation_time):
+        extend = lambda x: x*ceil(simulation_time/len(x))
+        alignment = lambda x: extend(x)[:simulation_time]
+        v_timeline = alignment(v_timeline)
+        pattern = alignment(pattern)
+        actual_timeline = [[] for _ in range(simulation_time)]
+
+        # map
+        for slot in range(0, simulation_time, 10):
+            for TTI in range(slot, slot+10):
+                assert TTI < len(v_timeline) and TTI < len(pattern)
+                if v_timeline[TTI]:
+                    for target_TTI in pattern[TTI]:
+                        actual_timeline[slot+target_TTI] += v_timeline[TTI]
+
+        return actual_timeline
 
 class one2all(BaseMapping):
     '''
@@ -70,13 +87,13 @@ class one2all(BaseMapping):
     def __init__(self, tdd_config):
         super().__init__(tdd_config)
         self.__pattern = None
-        self.run()
+        self.__run()
 
     @property
     def pattern(self):
         return self.__pattern
 
-    def run(self):
+    def __run(self):
         for rk, rv in enumerate(self.real_timeline):
             allocate_rsc = rv['rsc']/10
             for vk, vv in enumerate(self.virtual_timeline):
@@ -87,6 +104,9 @@ class one2all(BaseMapping):
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
         return self.__pattern
 
+    def map_by_pattern(self, v_timeline, simulation_time):
+        return super().map_by_pattern(self.__pattern, v_timeline, simulation_time)
+
 
 class continuous(BaseMapping):
     '''
@@ -95,13 +115,13 @@ class continuous(BaseMapping):
     def __init__(self, tdd_config):
         super().__init__(tdd_config)
         self.__pattern = None
-        self.run()
+        self.__run()
 
     @property
     def pattern(self):
         return self.__pattern
 
-    def run(self):
+    def __run(self):
         for rk, rv in enumerate(self.real_timeline):
             for vk, vv in enumerate(self.virtual_timeline):
                 if not rv['rsc']: break
@@ -117,6 +137,9 @@ class continuous(BaseMapping):
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
         return self.__pattern
 
+    def map_by_pattern(self, v_timeline, simulation_time):
+        return super().map_by_pattern(self.__pattern, v_timeline, simulation_time)
+
 
 class one2one_first(BaseMapping):
     '''
@@ -125,13 +148,13 @@ class one2one_first(BaseMapping):
     def __init__(self, tdd_config):
         super().__init__(tdd_config)
         self.__pattern = None
-        self.run()
+        self.__run()
 
     @property
     def pattern(self):
         return self.__pattern
 
-    def run(self):
+    def __run(self):
         for vk, vv in enumerate(self.virtual_timeline):
             whole_allocated_rsc = any([
                 r['rsc'] > vv['vsc'] for r in self.real_timeline])
@@ -150,3 +173,6 @@ class one2one_first(BaseMapping):
                     vv['r_TTI'].append(rv['r_TTI'])
         self.__pattern = [v['r_TTI'] for v in self.virtual_timeline]
         return self.__pattern
+
+    def map_by_pattern(self, v_timeline, simulation_time):
+        return super().map_by_pattern(self.__pattern, v_timeline, simulation_time)
