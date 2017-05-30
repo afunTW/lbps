@@ -207,7 +207,13 @@ class LBPSNetwork(object):
                 else:
                     logging.warning('{} mapping not found')
             elif self.__hop == lbps.MODE_TWO_HOP:
-                if mapping == lbps.MAPPING_INTEGRATED:
+                if mapping == lbps.MAPPING_INTEGRATED_M2:
                     b_timeline, a_timeline = self.demo
-                    result = mapping_2hop.IntegratedTwoHop(
-                        self.__root, b_timeline, a_timeline)
+                    mapper = mapping_2hop.IntegratedTwoHop(
+                        self.__root, b_timeline, a_timeline, lbps.MAPPING_M2)
+                    self.demo = mapper.mapping()
+                elif mapping == lbps.MAPPING_INTEGRATED_M3:
+                    b_timeline, a_timeline = self.demo
+                    mapper = mapping_2hop.IntegratedTwoHop(
+                        self.__root, b_timeline, a_timeline, lbps.MAPPING_M3)
+                    self.demo = mapper.mapping()
