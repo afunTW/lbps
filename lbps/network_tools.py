@@ -152,7 +152,7 @@ class LBPSNetwork(object):
         self.__division = mode
         logging.info('Set network division mode in %s' % (mode))
 
-    def run(self, method, mapping=None):
+    def run_lbps(self, method, mapping=None):
         '''
         wrapper of lbps/DRX algorithm implementation
         '''

@@ -25,15 +25,19 @@ def main(simulation_time):
         (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
         (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
         (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+
+        # lbps proposed mapping algorithm
+        (lbps.MAPPING_INTEGRATED, lbps.MAPPING_M2),
+        (lbps.MAPPING_INTEGRATED, lbps.MAPPING_M3)
     ======================================================================
     '''
     proposed_lbps = [
         (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN),
         (lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN),
-        (lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
-        # (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR),
-        # (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT),
-        # (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+        (lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN),
+        (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR),
+        (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT),
+        (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
     ]
 
     equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
@@ -46,7 +50,8 @@ def main(simulation_time):
         equal_load_network.simulate(simulation_time)
 
         for algorithm in proposed_lbps:
-            equal_load_network.run(algorithm, mapping=lbps.MAPPING_INTEGRATED)
+            equal_load_network.run_lbps(
+                algorithm, mapping=(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M2))
 
 if __name__ == '__main__':
     now = datetime.now()
