@@ -32,5 +32,6 @@ class RelayNode(device.TwoHopDevice):
             self.access.ref_backhaul = dest
         elif isinstance(dest, user_equipment.UserEquipment):
             self.access.append_bearer(bearer.Bearer(self, dest, CQI, flow))
+            dest.ref_access = self
 
         dest.append_bearer(bearer.Bearer(dest, self, CQI, flow))
