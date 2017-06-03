@@ -50,6 +50,21 @@ class LBPSNetwork(object):
     def traffic(self):
         return self.__traffic
 
+    def __all_devices(self, *device_type):
+        flatten = lambda x: [j for i in x for j in i]
+        devices = {
+            rn: rn.access.target_device
+            for rn in self.root.target_device
+        }
+        devices = list(devices.keys()) + flatten(list(devices.values()))
+        devices.append(self.root)
+
+        if not device_type: return devices
+        new_devices = []
+        for device in devices:
+            if isinstance(device, device_type): new_devices.append(device)
+        return new_devices
+
     def __basic_mapper(self, mapping_config, tdd_config):
         basic_mapping = {
             lbps.MAPPING_M1: mapping_basic.one2all(tdd_config),
@@ -152,7 +167,7 @@ class LBPSNetwork(object):
         self.__division = mode
         logging.info('Set network division mode in %s' % (mode))
 
-    def run_lbps(self, method, mapping=None):
+    def apply(self, method, mapping=None):
         '''
         wrapper of lbps/DRX algorithm implementation
         '''
