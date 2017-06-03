@@ -50,8 +50,9 @@ def main(simulation_time):
         equal_load_network.simulate(simulation_time)
 
         for algorithm in proposed_lbps:
-            equal_load_network.run_lbps(
+            equal_load_network.apply(
                 algorithm, mapping=(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M2))
+            equal_load_network.run(equal_load_network.demo_timeline)
 
 if __name__ == '__main__':
     now = datetime.now()
@@ -72,7 +73,7 @@ if __name__ == '__main__':
 
     stdout = logging.StreamHandler()
     stdout_format = logging.Formatter(
-        '%(asctime)s %(filename)s:L%(lineno)s [%(levelname)8s] %(message)s',
+        '%(asctime)s %(filename)-16s:L%(lineno)3s [%(levelname)8s] %(message)s',
         '%b %d %H:%M:%S')
     stdout.setFormatter(stdout_format)
     stdout.setLevel(logging.INFO)

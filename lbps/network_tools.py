@@ -27,7 +27,8 @@ class LBPSNetwork(object):
         self.__root = None
         self.__rns = []
         self.__traffic = None
-        self.demo = None
+        self.demo_timeline = None
+        self.demo_meta = None
 
         # flag
         self.__hop = None
@@ -73,6 +74,118 @@ class LBPSNetwork(object):
         }
         assert mapping_config in basic_mapping.keys()
         return basic_mapping[mapping_config]
+
+    def __clear_env(self):
+        devices = self.__all_devices(BaseStation, RelayNode, UserEquipment)
+        for d in devices:
+            if isinstance(d, RelayNode):
+                d.backhaul.buffer = []
+                d.access.buffer = []
+            else:
+                d.buffer = []
+
+    def __transmit_packet(self, TTI, timeline, metadata=None, flush=False):
+        '''
+        check the condition of packet transmitting
+        * TDD configuration
+        * capacity
+        * user-defined parameter, "flush"
+        * LBPS prediction
+        * force-awake
+        * inband
+        '''
+        def __transmit(pkt, src, dest, cap):
+            dest.buffer.append(pkt)
+            src.buffer.remove(pkt)
+            return cap-pkt['size']
+
+        def __stuck(metadata, src):
+            metadata[src]['stuck'] = True
+            metadata[src]['force-awake'] += 1
+
+        def __sleep_or_awake(metadata, src, time_slot):
+            if metadata[src]['stuck'] or src in time_slot:
+                metadata[src]['awake'] += 1
+            else:
+                metadata[src]['sleep'] += 1
+
+        if not metadata:
+            metadata = {
+                d: {
+                    'sleep': 0,
+                    'awake': 0,
+                    'delay': 0,
+                    'stuck': False,
+                    'force-awake': 0
+                } for d in self.__all_devices(RelayNode, UserEquipment)
+            }
+
+        # backhaul
+        backhaul_activate_rn = []
+        if self.__tdd_config['backhaul'][TTI%10] == 'D':
+
+            # transmission
+            available_cap = self.root.wideband_capacity
+            for pkt in self.root.buffer:
+                rn = pkt['device'].ref_access
+                if available_cap < pkt['size']: break
+                if flush or rn in timeline[TTI] or metadata[rn]['stuck']:
+                    backhaul_activate_rn.append(rn)
+                    available_cap = __transmit(
+                        pkt, self.root, rn.backhaul, available_cap)
+
+            # metadata
+            if not flush:
+                stuck_rn = [pkt['device'].ref_access for pkt in self.root.buffer]
+                for rn in self.root.target_device:
+                    if rn in stuck_rn: __stuck(metadata, rn)
+                    if rn in backhaul_activate_rn:
+                        metadata[rn]['awake'] += 1
+
+                        # inband
+                        _ = [
+                            __sleep_or_awake(metadata, ue, timeline[TTI])
+                            for ue in rn.access.target_device
+                        ]
+
+        # access
+        if self.__tdd_config['access'][TTI%10] == 'D':
+            for rn in self.root.target_device:
+                if flush or rn in timeline[TTI] or metadata[rn]['stuck']:
+                    available_cap = rn.access.wideband_capacity
+                    activate_ue = []
+
+                    # transmission
+                    for pkt in rn.backhaul.buffer:
+                        ue = pkt['device']
+                        if available_cap < pkt['size']: break
+                        if flush or ue in timeline[TTI] or metadata[ue]['stuck']:
+                            activate_ue.append(ue)
+                            available_cap = __transmit(
+                                pkt, rn.backhaul, ue, available_cap)
+                            metadata[ue]['delay'] += TTI - pkt['arrival_time']
+
+                    # metadata
+                    if not flush:
+                        metadata[rn]['awake'] += 1
+                        if not rn.backhaul.buffer: __stuck(metadata, rn)
+                        else: metadata[rn]['stuck'] = False
+
+                        stuck_ue = [pkt['device'] for pkt in rn.backhaul.buffer]
+                        for ue in rn.access.target_device:
+                            _ = 'awake' if ue in activate_ue else 'sleep'
+                            metadata[ue][_] += 1
+                            if ue in stuck_ue: __stuck(metadata, ue)
+                            else: metadata[ue]['stuck'] = False
+
+                elif not flush:
+                    metadata[rn]['sleep'] += 1
+                    _ = [
+                        __sleep_or_awake(metadata, ue, timeline[TTI])
+                        for ue in rn.access.target_device
+                    ]
+
+        return metadata
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         self.__root = BaseStation()
@@ -182,15 +295,15 @@ class LBPSNetwork(object):
             logging.info(' - apply as one hop algorithm')
             if method == lbps.ALGORITHM_LBPS_AGGR:
                 aggr = lbps_basic.Aggr(self.root)
-                self.demo = aggr.run()
+                self.demo_timeline = aggr.run()
                 self.__method = method
             elif method == lbps.ALGORITHM_LBPS_SPLIT:
                 split = lbps_basic.Split(self.root)
-                self.demo = split.run()
+                self.demo_timeline = split.run()
                 self.__method = method
             elif method == lbps.ALGORITHM_LBPS_MERGE:
                 merge = lbps_basic.Merge(self.root)
-                self.demo = merge.run()
+                self.demo_timeline = merge.run()
                 self.__method = method
             else:
                 logging.warning('{} lbps algorithm not found'.format(method))
@@ -201,35 +314,35 @@ class LBPSNetwork(object):
             backhaul_method, access_method = method
             if access_method == lbps.ALGORITHM_LBPS_TOPDOWN:
                 td = lbps_topdown.TopDown(self.__root)
-                self.demo = td.run(backhaul_method)
+                self.demo_timeline = td.run(backhaul_method)
                 self.__method = method
             elif backhaul_method == lbps.ALGORITHM_LBPS_MINCYCLE:
                 if access_method == lbps.ALGORITHM_LBPS_AGGR:
                     bu = lbps_bottomup.MinCycleAggr(self.__root)
-                    self.demo = bu.run()
+                    self.demo_timeline = bu.run()
                 elif access_method == lbps.ALGORITHM_LBPS_SPLIT:
                     bu = lbps_bottomup.MinCycleSplit(self.__root)
-                    self.demo = bu.run()
+                    self.demo_timeline = bu.run()
             elif backhaul_method == lbps.ALGORITHM_LBPS_MERGECYCLE:
                 if access_method == lbps.ALGORITHM_LBPS_MERGE:
                     bu = lbps_bottomup.MergeCycleMerge(self.__root)
-                    self.demo = bu.run()
+                    self.demo_timeline = bu.run()
 
         # mapping
         basic_mapping = [lbps.MAPPING_M1, lbps.MAPPING_M2, lbps.MAPPING_M3]
-        if self.demo and mapping and self.__tdd_config and self.__division == 'TDD':
+        if self.demo_timeline and mapping and self.__tdd_config and self.__division == 'TDD':
 
             if self.__hop == lbps.MODE_ONE_HOP:
                 if mapping in basic_mapping and isinstance(mapping, int):
                     mapper = self.__basic_mapper(mapping, self.__tdd_config)
-                    self.demo = mapper.map_by_pattern(
-                        self.demo, self.root.simulation_time)
+                    self.demo_timeline = mapper.map_by_pattern(
+                        self.demo_timeline, self.root.simulation_time)
                 else:
                     logging.warning('{} mapping not found'.format(mapping))
 
             elif self.__hop == lbps.MODE_TWO_HOP:
                 if isinstance(mapping, tuple) and len(mapping) == 2:
-                    b_timeline, a_timeline = self.demo
+                    b_timeline, a_timeline = self.demo_timeline
                     backhaul_mapping, access_mapping = mapping
 
                     if (
@@ -238,7 +351,7 @@ class LBPSNetwork(object):
                     ):
                         mapper = mapping_2hop.IntegratedTwoHop(
                             self.__root, b_timeline, a_timeline, access_mapping)
-                        self.demo = mapper.mapping()
+                        self.demo_timeline = mapper.mapping()
 
                     elif (
                         backhaul_mapping in basic_mapping and
@@ -253,9 +366,57 @@ class LBPSNetwork(object):
                             b_timeline, self.root.simulation_time)
                         a_timeline = access_mapper.map_by_pattern(
                             a_timeline, self.root.simulation_time)
-                        self.demo = (b_timeline, a_timeline)
+                        self.demo_timeline = (b_timeline, a_timeline)
 
                     else:
                         logging.warning('{} mapping not found'.format(mapping))
 
-        return self.demo
+        return self.demo_timeline
+
+    def run(self, timeline):
+        assert isinstance(timeline, tuple) and len(timeline) == 2
+        assert len(timeline[0]) == len(timeline[1])
+        assert self.__traffic and self.demo_timeline
+        _time = self.root.simulation_time
+        _all_src = self.__all_devices(RelayNode, UserEquipment)
+        _all_rn = self.__all_devices(RelayNode)
+        _all_ue = self.__all_devices(UserEquipment)
+        timeline = [timeline[0][i]+timeline[1][i] for i in range(len(timeline[0]))]
+        metadata = {
+            d: {
+                'sleep': 0,
+                'awake': 0,
+                'delay': 0,
+                'stuck': False,
+                'force-awake': 0
+            } for d in _all_src
+        }
+
+        logging.info('* Simulation begin with lambda {} Mbps'.format(self.root.lambd))
+        is_downlink = lambda x: b_tdd[TTI%10] == 'D' or a_tdd[TTI%10] == 'D'
+        self.__clear_env()
+
+        # simulate packet arriving, TTI = 0 ~ simulation_time
+        for TTI, pkt in self.__traffic.items():
+            b_tdd = self.__tdd_config['backhaul']
+            a_tdd = self.__tdd_config['access']
+            if pkt: self.root.buffer += pkt
+            if is_downlink(TTI):
+                metadata = self.__transmit_packet(TTI, timeline, metadata)
+            else:
+                for _ in _all_src: metadata[_]['sleep'] += 1
+
+        # out of simulation time
+        is_flush = lambda x, y: not x.buffer and all([not _.backhaul.buffer for _ in y])
+        TTI = len(self.__traffic)
+        while not is_flush(self.root, _all_rn):
+            if is_downlink(TTI):
+                metadata = self.__transmit_packet(
+                    TTI, timeline, metadata, flush=True)
+            TTI += 1
+
+        logging.info('* Simulation end with TTI {}'.format(TTI))
+        self.demo_meta = metadata
+
+        # FIXEME: get RN-collision, PSE, total Delay
+        return self.demo_meta
