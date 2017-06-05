@@ -208,6 +208,18 @@ class LBPSNetwork(object):
         summary['delay-fairness'] = round(fairness(_ue_delay), 2)
         return summary
 
+    def __rn_collision(self):
+        assert self.demo_timeline is not None
+        b_timeline, a_timeline = self.demo_timeline
+        assert len(b_timeline) == len(a_timeline)
+
+        _all_rn = self.__all_devices(RelayNode)
+        in_both = lambda x, TTI: x in b_timeline[TTI] and x in a_timeline[TTI]
+        collision = [
+            in_both(rn, TTI)
+            for TTI in range(len(b_timeline)) for rn in _all_rn]
+        return sum(collision)
+
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         self.__root = BaseStation()
 
@@ -401,6 +413,7 @@ class LBPSNetwork(object):
         _time = self.root.simulation_time
         _all_src = self.__all_devices(RelayNode, UserEquipment)
         _all_rn = self.__all_devices(RelayNode)
+        rn_collision = self.__rn_collision()
         timeline = [timeline[0][i]+timeline[1][i] for i in range(len(timeline[0]))]
         metadata = {
             d: {
@@ -412,7 +425,8 @@ class LBPSNetwork(object):
             } for d in _all_src
         }
 
-        logging.info('* Simulation begin with lambda {} Mbps'.format(self.root.lambd))
+        logging.info('* Simulation begin with lambda {} Mbps = load {}'.format(
+            self.root.lambd, self.root.load))
         is_downlink = lambda x: b_tdd[TTI%10] == 'D' or a_tdd[TTI%10] == 'D'
         self.__clear_env()
 
@@ -439,6 +453,7 @@ class LBPSNetwork(object):
         self.demo_meta = metadata
 
         summary = self.__summary(metadata)
+        summary['rn-collision'] = rn_collision
         logging.info('summary = {}'.format(summary))
 
         return summary
