@@ -151,6 +151,7 @@ class LBPSNetwork(object):
         # access
         if self.__tdd_config['access'][TTI%10] == 'D':
             for rn in self.root.target_device:
+                if rn in backhaul_activate_rn: continue
                 if flush or rn in timeline[TTI] or metadata[rn]['stuck']:
                     available_cap = rn.access.wideband_capacity
                     activate_ue = []
@@ -186,6 +187,26 @@ class LBPSNetwork(object):
                     ]
 
         return metadata
+
+    def __summary(self, metadata):
+        avg = lambda x: sum(x)/len(x)
+        fairness = lambda x: sum(x)**2/(len(x)*sum([i**2 for i in x]))
+
+        _all_src = self.__all_devices(RelayNode, UserEquipment)
+        _all_rn = self.__all_devices(RelayNode)
+        _all_ue = self.__all_devices(UserEquipment)
+        _rn_pse = [metadata[d]['sleep'] for d in _all_rn]
+        _ue_pse = [metadata[d]['sleep'] for d in _all_ue]
+        _ue_delay = [metadata[d]['delay'] for d in _all_ue]
+        _received_pkts = sum([len(ue.buffer) for ue in _all_ue])
+        summary = {}
+
+        summary['rn-pse'] = round(avg(_rn_pse), 2)
+        summary['ue-pse'] = round(avg(_ue_pse), 2)
+        summary['ue-delay'] = round(sum(_ue_delay)/_received_pkts, 2)
+        summary['pse-fairness'] = round(fairness(_ue_pse), 2)
+        summary['delay-fairness'] = round(fairness(_ue_delay), 2)
+        return summary
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         self.__root = BaseStation()
@@ -380,7 +401,6 @@ class LBPSNetwork(object):
         _time = self.root.simulation_time
         _all_src = self.__all_devices(RelayNode, UserEquipment)
         _all_rn = self.__all_devices(RelayNode)
-        _all_ue = self.__all_devices(UserEquipment)
         timeline = [timeline[0][i]+timeline[1][i] for i in range(len(timeline[0]))]
         metadata = {
             d: {
@@ -418,5 +438,7 @@ class LBPSNetwork(object):
         logging.info('* Simulation end with TTI {}'.format(TTI))
         self.demo_meta = metadata
 
-        # FIXEME: get RN-collision, PSE, total Delay
-        return self.demo_meta
+        summary = self.__summary(metadata)
+        logging.info('summary = {}'.format(summary))
+
+        return summary
