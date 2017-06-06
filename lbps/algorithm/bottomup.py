@@ -64,7 +64,7 @@ class BottomUp(basic.BaseLBPS):
         access_timeline = [
             ue for rn in self.root.target_device for ue in rn.access.target_device]
         access_timeline += all_rn
-        return (backhaul_timeline, access_timeline)
+        return ([backhaul_timeline], [access_timeline])
 
 
 class MinCycle(BottomUp):
