@@ -4,7 +4,6 @@ import json
 import logging
 
 from datetime import datetime
-from pprint import pprint
 from lbps import network_tools as nt
 from lbps.algorithm import basic
 from src.traffic import VoIP
