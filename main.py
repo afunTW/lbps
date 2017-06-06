@@ -1,5 +1,6 @@
 import os
 import lbps
+import json
 import logging
 
 from datetime import datetime
@@ -9,7 +10,7 @@ from lbps.algorithm import basic
 from src.traffic import VoIP
 
 
-def get_filename(lbps, mapping):
+def get_filename(algorithm, mapping):
     def __lbps_name(x):
         if x == lbps.ALGORITHM_LBPS_AGGR: return 'aggr'
         elif x == lbps.ALGORITHM_LBPS_SPLIT: return 'split'
@@ -27,8 +28,22 @@ def get_filename(lbps, mapping):
         else: return ''
 
     name = '_'.join([
-        __lbps_name(lbps[0]), __lbps_name(lbps[1]),
-        __mapping_name(mapping[0]), __mapping_name(mapping[1])])
+        __lbps_name(algorithm[0]), __lbps_name(algorithm[1]),
+        __mapping_name(mapping[0]), __mapping_name(mapping[1]), '.json'])
+
+    return name
+
+def exist(dir_path):
+    if not os.path.exists(dir_path):
+        dir_path = os.path.abspath(dir_path)
+        os.makedirs(dir_path)
+        logging.info('Creating directory %s' % dir_path)
+
+def exist_json(filepath):
+    if not os.path.exists(filepath):
+        with open(filepath, 'w') as f:
+            json.dump([], f)
+            logging.info('Creating file %s' % filepath)
 
 def main(simulation_time):
     '''
@@ -54,11 +69,11 @@ def main(simulation_time):
     '''
     proposed_lbps = [
         (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN)
-        ,(lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN)
-        ,(lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
-        ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
-        ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
-        ,(lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+        # ,(lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN)
+        # ,(lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
+        # ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
+        # ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
+        # ,(lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
     ]
 
     mapping = [
@@ -82,15 +97,27 @@ def main(simulation_time):
                 equal_load_network.apply(algorithm, mapping=method)
                 equal_load_network.run(equal_load_network.demo_timeline)
 
+                filename = get_filename(algorithm, method)
+                filename = os.path.join(outdir, filename)
+                exist_json(filename)
+
+                with open(filename, 'r') as f:
+                    metadata = json.load(f)
+
+                metadata.append(equal_load_network.demo_summary)
+
+                with open(filename, 'w+') as f:
+                    json.dump(metadata, f, indent=2)
+
 if __name__ == '__main__':
+
     now = datetime.now()
     logname = './log/%s.log' % now.strftime('%Y%m%d')
-    logdir = '/'.join(logname.split('/')[:-1])
+    outdir = 'metadata'
 
-    if not os.path.exists(logdir):
-        logdir = os.path.abspath(logdir)
-        os.makedirs(logdir)
-        logging.info('Creating directory %s' % logdir)
+    exist('/'.join(logname.split('/')[:-1]))
+    exist(outdir)
+    outdir = os.path.abspath(outdir)
 
     logging.basicConfig(
         level=logging.DEBUG,
