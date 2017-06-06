@@ -9,6 +9,27 @@ from lbps.algorithm import basic
 from src.traffic import VoIP
 
 
+def get_filename(lbps, mapping):
+    def __lbps_name(x):
+        if x == lbps.ALGORITHM_LBPS_AGGR: return 'aggr'
+        elif x == lbps.ALGORITHM_LBPS_SPLIT: return 'split'
+        elif x == lbps.ALGORITHM_LBPS_MERGE: return 'merge'
+        elif x == lbps.ALGORITHM_LBPS_MINCYCLE: return 'mincycle'
+        elif x == lbps.ALGORITHM_LBPS_MERGECYCLE: return 'mergecycle'
+        elif x == lbps.ALGORITHM_LBPS_TOPDOWN: return 'topdown'
+        else: return ''
+
+    def __mapping_name(x):
+        if x == lbps.MAPPING_M1: return 'M1'
+        elif x == lbps.MAPPING_M2: return 'M2'
+        elif x == lbps.MAPPING_M3: return 'M3'
+        elif x == lbps.MAPPING_INTEGRATED: return 'proposed'
+        else: return ''
+
+    name = '_'.join([
+        __lbps_name(lbps[0]), __lbps_name(lbps[1]),
+        __mapping_name(mapping[0]), __mapping_name(mapping[1])])
+
 def main(simulation_time):
     '''
     ======================================================================
@@ -32,12 +53,19 @@ def main(simulation_time):
     ======================================================================
     '''
     proposed_lbps = [
-        (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN),
-        (lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN),
-        (lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN),
-        (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR),
-        (lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT),
-        (lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+        (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN)
+        ,(lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN)
+        ,(lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
+        ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
+        ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
+        ,(lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+    ]
+
+    mapping = [
+        (lbps.MAPPING_M2, lbps.MAPPING_M2)
+        ,(lbps.MAPPING_M3, lbps.MAPPING_M3)
+        ,(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M2)
+        ,(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M3)
     ]
 
     equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
@@ -50,9 +78,9 @@ def main(simulation_time):
         equal_load_network.simulate(simulation_time)
 
         for algorithm in proposed_lbps:
-            equal_load_network.apply(
-                algorithm, mapping=(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M2))
-            equal_load_network.run(equal_load_network.demo_timeline)
+            for method in mapping:
+                equal_load_network.apply(algorithm, mapping=method)
+                equal_load_network.run(equal_load_network.demo_timeline)
 
 if __name__ == '__main__':
     now = datetime.now()
