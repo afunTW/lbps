@@ -29,6 +29,7 @@ class LBPSNetwork(object):
         self.__traffic = None
         self.demo_timeline = None
         self.demo_meta = None
+        self.demo_summary = None
 
         # flag
         self.__hop = None
@@ -454,6 +455,8 @@ class LBPSNetwork(object):
 
         summary = self.__summary(metadata)
         summary['rn-collision'] = rn_collision
+        summary['lambda'] = self.root.lambd
+        self.demo_summary = summary
         logging.info('summary = {}'.format(summary))
 
         return summary
