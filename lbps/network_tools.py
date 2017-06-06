@@ -218,7 +218,7 @@ class LBPSNetwork(object):
         collision = [
             in_both(rn, TTI)
             for TTI in range(len(b_timeline)) for rn in _all_rn]
-        return sum(collision)
+        return sum(collision)/len(_all_rn)
 
     def network_setup(self, backhaul_CQI, access_CQI, *relay_users):
         self.__root = BaseStation()
