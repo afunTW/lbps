@@ -28,15 +28,14 @@ def get_filename(algorithm, mapping):
 
     name = '_'.join([
         __lbps_name(algorithm[0]), __lbps_name(algorithm[1]),
-        __mapping_name(mapping[0]), __mapping_name(mapping[1]), '.json'])
+        __mapping_name(mapping[0]), __mapping_name(mapping[1])])
 
-    return name
+    return ''.join([name, '.json'])
 
 def exist(dir_path):
     if not os.path.exists(dir_path):
         dir_path = os.path.abspath(dir_path)
         os.makedirs(dir_path)
-        logging.info('Creating directory %s' % dir_path)
 
 def exist_json(filepath):
     if not os.path.exists(filepath):
@@ -112,8 +111,7 @@ if __name__ == '__main__':
 
     now = datetime.now()
     logname = './log/%s.log' % now.strftime('%Y%m%d')
-    outdir = 'metadata'
-
+    outdir = 'metadata' + '/' + now.strftime('%Y%m%d')
     exist('/'.join(logname.split('/')[:-1]))
     exist(outdir)
     outdir = os.path.abspath(outdir)
@@ -124,7 +122,6 @@ if __name__ == '__main__':
         datefmt='%b %d %H:%M:%S',
         filename=logname
         )
-
     stdout = logging.StreamHandler()
     stdout_format = logging.Formatter(
         '%(asctime)s %(filename)-16s:L%(lineno)3s [%(levelname)8s] %(message)s',
