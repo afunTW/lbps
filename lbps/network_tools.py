@@ -41,6 +41,17 @@ class LBPSWrapper(object):
         except Exception as e:
             logging.exception(e)
 
+    def clear_env(self, root):
+        devices = self.all_devices(
+            root,
+            BaseStation, RelayNode, UserEquipment)
+        for d in devices:
+            if isinstance(d, RelayNode):
+                d.backhaul.buffer = []
+                d.access.buffer = []
+            else:
+                d.buffer = []
+
 class LBPSNetwork(LBPSWrapper):
     '''
     *relay_users represent the number of relay ues for each relay
@@ -82,17 +93,6 @@ class LBPSNetwork(LBPSWrapper):
         }
         assert mapping_config in basic_mapping.keys()
         return basic_mapping[mapping_config]
-
-    def __clear_env(self):
-        devices = self.all_devices(
-            self.root,
-            BaseStation, RelayNode, UserEquipment)
-        for d in devices:
-            if isinstance(d, RelayNode):
-                d.backhaul.buffer = []
-                d.access.buffer = []
-            else:
-                d.buffer = []
 
     def __transmit_packet(self, TTI, timeline, metadata=None, flush=False):
         '''
@@ -438,7 +438,7 @@ class LBPSNetwork(LBPSWrapper):
         logging.info('* Simulation begin with lambda {} Mbps = load {}'.format(
             self.root.lambd, self.root.load))
         is_downlink = lambda x: b_tdd[TTI%10] == 'D' or a_tdd[TTI%10] == 'D'
-        self.__clear_env()
+        self.clear_env(self.root)
 
         # simulate packet arriving, TTI = 0 ~ simulation_time
         for TTI, pkt in self.__traffic.items():
