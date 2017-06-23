@@ -19,7 +19,29 @@ from src.traffic import VoIP
 from src.bearer import Bearer
 
 
-class LBPSNetwork(object):
+class LBPSWrapper(object):
+    @staticmethod
+    def all_devices(root, *device_type):
+        try:
+
+            flatten = lambda x: [j for i in x for j in i]
+            devices = {
+                rn: rn.access.target_device
+                for rn in root.target_device
+            }
+            devices = list(devices.keys()) + flatten(list(devices.values()))
+            devices.append(root)
+
+            if not device_type: return devices
+            new_devices = []
+            for device in devices:
+                if isinstance(device, device_type): new_devices.append(device)
+            return new_devices
+
+        except Exception as e:
+            logging.exception(e)
+
+class LBPSNetwork(LBPSWrapper):
     '''
     *relay_users represent the number of relay ues for each relay
     '''
@@ -52,21 +74,6 @@ class LBPSNetwork(object):
     def traffic(self):
         return self.__traffic
 
-    def __all_devices(self, *device_type):
-        flatten = lambda x: [j for i in x for j in i]
-        devices = {
-            rn: rn.access.target_device
-            for rn in self.root.target_device
-        }
-        devices = list(devices.keys()) + flatten(list(devices.values()))
-        devices.append(self.root)
-
-        if not device_type: return devices
-        new_devices = []
-        for device in devices:
-            if isinstance(device, device_type): new_devices.append(device)
-        return new_devices
-
     def __basic_mapper(self, mapping_config, tdd_config):
         basic_mapping = {
             lbps.MAPPING_M1: mapping_basic.one2all(tdd_config),
@@ -77,7 +84,9 @@ class LBPSNetwork(object):
         return basic_mapping[mapping_config]
 
     def __clear_env(self):
-        devices = self.__all_devices(BaseStation, RelayNode, UserEquipment)
+        devices = self.all_devices(
+            self.root,
+            BaseStation, RelayNode, UserEquipment)
         for d in devices:
             if isinstance(d, RelayNode):
                 d.backhaul.buffer = []
@@ -118,7 +127,7 @@ class LBPSNetwork(object):
                     'delay': 0,
                     'stuck': False,
                     'force-awake': 0
-                } for d in self.__all_devices(RelayNode, UserEquipment)
+                } for d in self.all_devices(self.root, RelayNode, UserEquipment)
             }
 
         # backhaul
@@ -193,9 +202,9 @@ class LBPSNetwork(object):
         avg = lambda x: sum(x)/len(x)
         fairness = lambda x: sum(x)**2/(len(x)*sum([i**2 for i in x]))
 
-        _all_src = self.__all_devices(RelayNode, UserEquipment)
-        _all_rn = self.__all_devices(RelayNode)
-        _all_ue = self.__all_devices(UserEquipment)
+        _all_src = self.all_devices(self.root, RelayNode, UserEquipment)
+        _all_rn = self.all_devices(self.root, RelayNode)
+        _all_ue = self.all_devices(self.root, UserEquipment)
         _rn_pse = [metadata[d]['sleep'] for d in _all_rn]
         _ue_pse = [metadata[d]['sleep'] for d in _all_ue]
         _ue_delay = [metadata[d]['delay'] for d in _all_ue]
@@ -214,7 +223,7 @@ class LBPSNetwork(object):
         b_timeline, a_timeline = self.demo_timeline
         assert len(b_timeline) == len(a_timeline)
 
-        _all_rn = self.__all_devices(RelayNode)
+        _all_rn = self.all_devices(self.root, RelayNode)
         in_both = lambda x, TTI: x in b_timeline[TTI] and x in a_timeline[TTI]
         collision = [
             in_both(rn, TTI)
@@ -412,8 +421,8 @@ class LBPSNetwork(object):
         assert len(timeline[0]) == len(timeline[1])
         assert self.__traffic and self.demo_timeline
         _time = self.root.simulation_time
-        _all_src = self.__all_devices(RelayNode, UserEquipment)
-        _all_rn = self.__all_devices(RelayNode)
+        _all_src = self.all_devices(self.root, RelayNode, UserEquipment)
+        _all_rn = self.all_devices(self.root, RelayNode)
         rn_collision = self.__rn_collision()
         timeline = [timeline[0][i]+timeline[1][i] for i in range(len(timeline[0]))]
         metadata = {
