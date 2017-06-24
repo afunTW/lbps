@@ -196,6 +196,7 @@ class DRX(LBPSWrapper):
         logging.info('* Simulation end with TTI {}'.format(TTI))
         self.demo_meta = metadata
         summary = self.summary_metadata(self.root, metadata)
+        summary['lambda'] = self.root.lambd
         self.demo_summary = summary
         logging.info('summary = {}'.format(summary))
         return summary
