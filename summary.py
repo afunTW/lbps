@@ -11,26 +11,28 @@ def main():
         summary = open(repo + '/outfile.csv', 'w+')
         csv_writer = csv.writer(summary)
         trace_file = glob.glob(repo + '/*.json')
+        trace_file = sorted(trace_file)
         metadata = {}
+        from pprint import pprint
+        pprint(trace_file)
 
         for filename in trace_file:
             with open(filename, 'r') as f:
-                metadata[filename] = json.load(f)
+                metadata = json.load(f)
+                algorithm = filename.split(os.sep)[-1]
+                metadata = sorted(metadata , key = lambda x: x['lambda'])
+                for count, meta in enumerate(metadata):
+                    header = [
+                        'lambda', 'rn-pse', 'ue-pse', 'ue-delay',
+                        'pse-fairness', 'delay-fairness', 'rn-collision'
+                    ]
+                    data = [meta[i] for i in header if i in meta.keys()]
+                    header = ['algorithm'] + header
+                    data = [algorithm] + data
 
-        for k, v in metadata.items():
-            algorithm = k.split(os.sep)[-1]
-            v = sorted(v , key = lambda x: x['lambda'])
-            for count, meta in enumerate(v):
-                header = [
-                    'lambda', 'rn-pse', 'ue-pse', 'ue-delay',
-                    'pse-fairness', 'delay-fairness', 'rn-collision'
-                ]
-                data = [meta[i] for i in header if i in meta.keys()]
-                header = ['algorithm'] + header
-                data = [algorithm] + data
+                    if count == 0: csv_writer.writerow(header)
+                    csv_writer.writerow(data)
 
-                if count == 0: csv_writer.writerow(header)
-                csv_writer.writerow(data)
         summary.close()
 
 if __name__ == '__main__':
