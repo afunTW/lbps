@@ -109,6 +109,7 @@ class MinCycle(BottomUp):
                     backhaul_timeline[i+count] += [self.root, rn]
                 break
             for i, slot in enumerate(info['access_timeline']):
+                if not slot: continue
                 access_timeline[i] += slot
 
         return (backhaul_timeline, access_timeline)
