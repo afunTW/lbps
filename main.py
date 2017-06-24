@@ -2,9 +2,11 @@ import os
 import lbps
 import json
 import logging
+import multiprocessing
 
 from datetime import datetime
 from lbps import network_tools as nt
+from lbps import drx
 from lbps.algorithm import basic
 from src.traffic import VoIP
 
@@ -43,6 +45,32 @@ def exist_json(filepath):
             json.dump([], f)
             logging.info('Creating file %s' % filepath)
 
+def save_json(summary, filename):
+    filename = os.path.join(outdir, filename)
+    exist_json(filename)
+
+    with open(filename, 'r') as f:
+        metadata = json.load(f)
+        metadata.append(summary)
+
+    with open(filename, 'w+') as f:
+            json.dump(metadata, f, indent=2)
+
+def run_drx(network, drx_instance):
+    logging.info('parent id {}'.format(os.getppid()))
+    logging.info('process id {}'.format(os.getpid()))
+    drx_instance.run(network.traffic)
+    filename = drx_instance.name + '.json'
+    save_json(drx_instance.demo_summary, filename)
+
+def run_lbps(network, algorithm, method):
+    logging.info('parent id {}'.format(os.getppid()))
+    logging.info('process id {}'.format(os.getpid()))
+    network.apply(algorithm, mapping=method)
+    network.run(network.demo_timeline)
+    filename = get_filename(algorithm, method)
+    save_json(network.demo_summary, filename)
+
 def main(simulation_time):
     '''
     ======================================================================
@@ -67,45 +95,56 @@ def main(simulation_time):
     '''
     proposed_lbps = [
         (lbps.ALGORITHM_LBPS_AGGR, lbps.ALGORITHM_LBPS_TOPDOWN)
-        # ,(lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN)
-        # ,(lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
-        # ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
-        # ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
-        # ,(lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
+        ,(lbps.ALGORITHM_LBPS_SPLIT, lbps.ALGORITHM_LBPS_TOPDOWN)
+        ,(lbps.ALGORITHM_LBPS_MERGE, lbps.ALGORITHM_LBPS_TOPDOWN)
+        ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_AGGR)
+        ,(lbps.ALGORITHM_LBPS_MINCYCLE, lbps.ALGORITHM_LBPS_SPLIT)
+        ,(lbps.ALGORITHM_LBPS_MERGECYCLE, lbps.ALGORITHM_LBPS_MERGE)
     ]
 
     mapping = [
         (lbps.MAPPING_M2, lbps.MAPPING_M2)
         ,(lbps.MAPPING_M3, lbps.MAPPING_M3)
-        ,(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M2)
-        ,(lbps.MAPPING_INTEGRATED, lbps.MAPPING_M3)
     ]
 
-    equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
-    equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
-    equal_load_network.set_division_mode('TDD')
+    with multiprocessing.Pool(cpus) as pool:
+        equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
+        equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
+        equal_load_network.set_division_mode('TDD')
 
-    for i in range(12):
-        target_lambda = VoIP().lambd*(i+1)
-        equal_load_network.set_bearer_lambd(target_lambda)
-        equal_load_network.simulate(simulation_time)
+        for i in range(12):
+            target_lambda = VoIP().lambd*(i+1)
+            equal_load_network.set_bearer_lambd(target_lambda)
+            equal_load_network.simulate(simulation_time)
+            Std_DRX_1 = drx.DRX(
+                equal_load_network.root,
+                inactivity_timer=40,
+                short_cycle_count=1,
+                short_cycle_time=80,
+                long_cycle_time=160,
+                name='Std_DRX_1'
+            )
+            Std_DRX_2 = drx.DRX(
+                equal_load_network.root,
+                inactivity_timer=40,
+                short_cycle_count=1,
+                short_cycle_time=160,
+                long_cycle_time=320,
+                name='Std_DRX_2'
+            )
 
-        for algorithm in proposed_lbps:
-            for method in mapping:
-                equal_load_network.apply(algorithm, mapping=method)
-                equal_load_network.run(equal_load_network.demo_timeline)
+            # drx subprocess
+            pool.starmap(
+                run_drx,
+                [(equal_load_network, i) for i in [Std_DRX_1, Std_DRX_2]]
+            )
 
-                filename = get_filename(algorithm, method)
-                filename = os.path.join(outdir, filename)
-                exist_json(filename)
+            # lbps subprocess
+            pool.starmap(
+                run_lbps,
+                [(equal_load_network, i, j) for i in proposed_lbps for j in mapping]
+            )
 
-                with open(filename, 'r') as f:
-                    metadata = json.load(f)
-
-                metadata.append(equal_load_network.demo_summary)
-
-                with open(filename, 'w+') as f:
-                    json.dump(metadata, f, indent=2)
 
 if __name__ == '__main__':
 
@@ -115,6 +154,7 @@ if __name__ == '__main__':
     exist('/'.join(logname.split('/')[:-1]))
     exist(outdir)
     outdir = os.path.abspath(outdir)
+    cpus = max(1, multiprocessing.cpu_count()-1)
 
     logging.basicConfig(
         level=logging.DEBUG,
