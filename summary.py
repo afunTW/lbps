@@ -25,7 +25,7 @@ def main():
                     'lambda', 'rn-pse', 'ue-pse', 'ue-delay',
                     'pse-fairness', 'delay-fairness', 'rn-collision'
                 ]
-                data = [meta[i] for i in header]
+                data = [meta[i] for i in header if i in meta.keys()]
                 header = ['algorithm'] + header
                 data = [algorithm] + data
 
