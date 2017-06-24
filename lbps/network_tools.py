@@ -41,6 +41,26 @@ class LBPSWrapper(object):
         except Exception as e:
             logging.exception(e)
 
+    def summary_metadata(self, root, metadata):
+        avg = lambda x: sum(x)/len(x)
+        fairness = lambda x: sum(x)**2/(len(x)*sum([i**2 for i in x]))
+
+        _all_src = self.all_devices(root, RelayNode, UserEquipment)
+        _all_rn = self.all_devices(root, RelayNode)
+        _all_ue = self.all_devices(root, UserEquipment)
+        _rn_pse = [metadata[d]['sleep'] for d in _all_rn]
+        _ue_pse = [metadata[d]['sleep'] for d in _all_ue]
+        _ue_delay = [metadata[d]['delay'] for d in _all_ue]
+        _received_pkts = sum([len(ue.buffer) for ue in _all_ue])
+        summary = {}
+
+        summary['rn-pse'] = round(avg(_rn_pse), 2)
+        summary['ue-pse'] = round(avg(_ue_pse), 2)
+        summary['ue-delay'] = round(sum(_ue_delay)/_received_pkts, 2)
+        summary['pse-fairness'] = round(fairness(_ue_pse), 2)
+        summary['delay-fairness'] = round(fairness(_ue_delay), 2)
+        return summary
+
     def clear_env(self, root):
         devices = self.all_devices(
             root,
@@ -437,13 +457,13 @@ class LBPSNetwork(LBPSWrapper):
 
         logging.info('* Simulation begin with lambda {} Mbps = load {}'.format(
             self.root.lambd, self.root.load))
-        is_downlink = lambda x: b_tdd[TTI%10] == 'D' or a_tdd[TTI%10] == 'D'
+        b_tdd = self.__tdd_config['backhaul']
+        a_tdd = self.__tdd_config['access']
+        is_downlink = lambda x: b_tdd[x%10] == 'D' or a_tdd[x%10] == 'D'
         self.clear_env(self.root)
 
         # simulate packet arriving, TTI = 0 ~ simulation_time
         for TTI, pkt in self.__traffic.items():
-            b_tdd = self.__tdd_config['backhaul']
-            a_tdd = self.__tdd_config['access']
             if pkt: self.root.buffer += pkt
             if is_downlink(TTI):
                 metadata = self.__transmit_packet(TTI, timeline, metadata)
@@ -455,14 +475,13 @@ class LBPSNetwork(LBPSWrapper):
         TTI = len(self.__traffic)
         while not is_flush(self.root, _all_rn):
             if is_downlink(TTI):
-                metadata = self.__transmit_packet(
-                    TTI, timeline, metadata, flush=True)
+                metadata = self.__transmit_packet(TTI, timeline, metadata, flush=True)
             TTI += 1
 
         logging.info('* Simulation end with TTI {}'.format(TTI))
         self.demo_meta = metadata
 
-        summary = self.__summary(metadata)
+        summary = self.summary_metadata(self.root, metadata)
         summary['rn-collision'] = rn_collision
         summary['lambda'] = self.root.lambd
         self.demo_summary = summary
