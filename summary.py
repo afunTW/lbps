@@ -13,8 +13,6 @@ def main():
         trace_file = glob.glob(repo + '/*.json')
         trace_file = sorted(trace_file)
         metadata = {}
-        from pprint import pprint
-        pprint(trace_file)
 
         for filename in trace_file:
             with open(filename, 'r') as f:
