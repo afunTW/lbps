@@ -8,7 +8,7 @@ def main():
     trace_dir = glob.glob('metadata/*')
 
     for repo in trace_dir:
-        summary = open(repo + '/outfile.csv', 'w+')
+        summary = open(repo + '/' + repo.split(os.sep)[-1] + '.csv', 'w+')
         csv_writer = csv.writer(summary)
         trace_file = glob.glob(repo + '/*.json')
         trace_file = sorted(trace_file)
