@@ -144,7 +144,6 @@ if __name__ == '__main__':
     exist('/'.join(logname.split('/')[:-1]))
     exist(outdir)
     outdir = os.path.abspath(outdir)
-    cpus = max(1, multiprocessing.cpu_count()-1)
 
     logging.basicConfig(
         level=logging.DEBUG,
