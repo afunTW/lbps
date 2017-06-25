@@ -202,7 +202,8 @@ class Merge(BaseLBPS):
 
         for i, g in enumerate(groups):
             base = next((TTI for TTI, _ in enumerate(timeline) if not _), None)
-            assert base is not None
+            # assert base is not None
+            if base is None: continue
 
             for TTI in range(base, max_K, g['K']):
                 timeline[TTI] = g['device'] + [self.root]
