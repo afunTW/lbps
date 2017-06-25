@@ -8,6 +8,7 @@ def main():
     trace_dir = glob.glob('metadata/*')
 
     for repo in trace_dir:
+        if repo.split(os.sep)[-1] not in ['equal_load', 'hot_spot']: continue
         summary = open(repo + '/' + repo.split(os.sep)[-1] + '.csv', 'w+')
         csv_writer = csv.writer(summary)
         trace_file = glob.glob(repo + '/*.json')
