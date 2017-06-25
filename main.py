@@ -2,7 +2,6 @@ import os
 import lbps
 import json
 import logging
-import multiprocessing
 
 from datetime import datetime
 from lbps import network_tools as nt
@@ -40,13 +39,15 @@ def exist(dir_path):
         os.makedirs(dir_path)
 
 def exist_json(filepath):
+    directory = os.sep.join(filepath.split(os.sep)[:-1])
+    exist(directory)
     if not os.path.exists(filepath):
         with open(filepath, 'w') as f:
             json.dump([], f)
             logging.info('Creating file %s' % filepath)
 
-def save_json(summary, filename):
-    filename = os.path.join(outdir, filename)
+def save_json(summary, filename, dirname):
+    filename = os.path.join(dirname, filename)
     exist_json(filename)
 
     with open(filename, 'r') as f:
@@ -56,20 +57,20 @@ def save_json(summary, filename):
     with open(filename, 'w+') as f:
             json.dump(metadata, f, indent=2)
 
-def run_drx(network, drx_instance):
+def run_drx(network, drx_instance, dirname):
     logging.info('parent id {}'.format(os.getppid()))
     logging.info('process id {}'.format(os.getpid()))
     drx_instance.run(network.traffic)
     filename = drx_instance.name + '.json'
-    save_json(drx_instance.demo_summary, filename)
+    save_json(drx_instance.demo_summary, filename, dirname)
 
-def run_lbps(network, algorithm, method):
+def run_lbps(network, algorithm, method, dirname):
     logging.info('parent id {}'.format(os.getppid()))
     logging.info('process id {}'.format(os.getpid()))
     network.apply(algorithm, mapping=method)
     network.run(network.demo_timeline)
     filename = get_filename(algorithm, method)
-    save_json(network.demo_summary, filename)
+    save_json(network.demo_summary, filename, dirname)
 
 def main(simulation_time):
     '''
@@ -107,50 +108,39 @@ def main(simulation_time):
         ,(lbps.MAPPING_M3, lbps.MAPPING_M3)
     ]
 
-    with multiprocessing.Pool(cpus) as pool:
-        equal_load_network = nt.LBPSNetwork(15, 15, 40, 40, 40, 40, 40, 40)
-        equal_load_network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
-        equal_load_network.set_division_mode('TDD')
+    networks = {
+        'equal_load': nt.LBPSNetwork(['H'], ['M'], 40, 40, 40, 40, 40, 40),
+        'hot_spot': nt.LBPSNetwork(['H'], ['M'], 96, 96, 12, 12, 12, 12)
+    }
+
+    for t, network in networks.items():
+        dirname = os.path.join(outdir, t)
+        network = nt.LBPSNetwork(['H'], ['M'], 40, 40, 40, 40, 40, 40)
+        network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
+        network.set_division_mode('TDD')
 
         for i in range(12):
             target_lambda = VoIP().lambd*(i+1)
-            equal_load_network.set_bearer_lambd(target_lambda)
-            equal_load_network.simulate(simulation_time)
-            Std_DRX_1 = drx.DRX(
-                equal_load_network.root,
-                inactivity_timer=40,
-                short_cycle_count=1,
-                short_cycle_time=80,
-                long_cycle_time=160,
-                name='Std_DRX_1'
-            )
-            Std_DRX_2 = drx.DRX(
-                equal_load_network.root,
-                inactivity_timer=40,
-                short_cycle_count=1,
-                short_cycle_time=160,
-                long_cycle_time=320,
-                name='Std_DRX_2'
-            )
+            network.set_bearer_lambd(target_lambda)
+            network.simulate(simulation_time)
+            Std_DRX_1 = drx.DRX(network.root, 40, 1, 80, 160, 'Std_DRX_1')
+            Std_DRX_2 = drx.DRX(network.root, 40, 1, 160, 320, 'Std_DRX_2')
 
             # drx subprocess
-            pool.starmap(
-                run_drx,
-                [(equal_load_network, i) for i in [Std_DRX_1, Std_DRX_2]]
-            )
+            for std_drx in [Std_DRX_1, Std_DRX_2]:
+                run_drx(network, std_drx, dirname)
 
             # lbps subprocess
-            pool.starmap(
-                run_lbps,
-                [(equal_load_network, i, j) for i in proposed_lbps for j in mapping]
-            )
+            for algorithm in proposed_lbps:
+                for method in mapping:
+                    run_lbps(network, algorithm, method, dirname)
 
 
 if __name__ == '__main__':
 
     now = datetime.now()
     logname = './log/%s.log' % now.strftime('%Y%m%d')
-    outdir = 'metadata' + '/' + now.strftime('%Y%m%d')
+    outdir = 'metadata'
     exist('/'.join(logname.split('/')[:-1]))
     exist(outdir)
     outdir = os.path.abspath(outdir)
