@@ -115,7 +115,6 @@ def main(simulation_time):
 
     for t, network in networks.items():
         dirname = os.path.join(outdir, t)
-        network = nt.LBPSNetwork(['H'], ['M'], 40, 40, 40, 40, 40, 40)
         network.set_tdd_configuration(lbps.MODE_TWO_HOP, 17)
         network.set_division_mode('TDD')
 
