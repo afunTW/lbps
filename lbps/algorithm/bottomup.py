@@ -105,8 +105,11 @@ class MinCycle(BottomUp):
         for rn, info in self.__rn_info.items():
             for i, slot in enumerate(backhaul_timeline):
                 if slot: continue
-                for count in range(info['backhaul_awake']):
-                    backhaul_timeline[i+count] += [self.root, rn]
+                for count in range(i, i+info['backhaul_awake']):
+                    if count >= len(backhaul_timeline):
+                        print(len(backhaul_timeline), i, info['backhaul_awake'], count)
+                        break
+                    backhaul_timeline[count] += [self.root, rn]
                 break
             for i, slot in enumerate(info['access_timeline']):
                 if not slot: continue
@@ -159,8 +162,9 @@ class MinCycleSplit(MinCycle):
 
                 # reversing split and update
                 groups = self.__rn_info[reverse_target]['access_awake']
+                split_process = basic.Split(rn.access)
                 self.__rn_info[reverse_target].update({
-                    'access_timeline': basic.Split(rn.access, boundary=groups-1)
+                    'access_timeline': split_process.run(boundary=groups-1)
                     })
                 self.update_rn_access_info()
                 backhaul_K = min([v['access_K'] for v in self.__rn_info.values()])
@@ -205,6 +209,7 @@ class MergeCycle(BottomUp):
 
             for rn in group['device']:
                 for i, slot in enumerate(access_timeline):
+                    if i >= len(self.__rn_info[rn]['access_timeline']): break
                     slot += self.__rn_info[rn]['access_timeline'][i]
 
         return (backhaul_timeline, access_timeline)
