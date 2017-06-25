@@ -94,7 +94,7 @@ class MinCycle(BottomUp):
         rn_info = self.__rn_info
         checked = lambda x: (x['access_awake']+x['backhaul_awake']) <= bound_K
         backhaul_schedulability = sum([v['backhaul_awake'] for v in rn_info.values()])
-        backhaul_schedulability = backhaul_schedulability <= bound_K
+        backhaul_schedulability = (backhaul_schedulability <= bound_K)
         access_schedulability = all([checked(v) for v in rn_info.values()])
         return (backhaul_schedulability, access_schedulability)
 
