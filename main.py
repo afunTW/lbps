@@ -58,15 +58,11 @@ def save_json(summary, filename, dirname):
             json.dump(metadata, f, indent=2)
 
 def run_drx(network, drx_instance, dirname):
-    logging.info('parent id {}'.format(os.getppid()))
-    logging.info('process id {}'.format(os.getpid()))
     drx_instance.run(network.traffic)
     filename = drx_instance.name + '.json'
     save_json(drx_instance.demo_summary, filename, dirname)
 
 def run_lbps(network, algorithm, method, dirname):
-    logging.debug('parent id {}'.format(os.getppid()))
-    logging.debug('process id {}'.format(os.getpid()))
     network.apply(algorithm, mapping=method)
     network.run(network.demo_timeline)
     filename = get_filename(algorithm, method)
