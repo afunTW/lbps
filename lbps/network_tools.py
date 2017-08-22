@@ -351,8 +351,6 @@ class LBPSNetwork(LBPSWrapper):
         if not mapping and not self.__division:
             self.set_division_mode('TDD')
 
-        logging.info('Running algorithm {}'.format(method))
-
         # one hop lbps algorithm
         if isinstance(method, int):
             logging.info(' - apply as one hop algorithm')
@@ -376,18 +374,27 @@ class LBPSNetwork(LBPSWrapper):
             logging.info(' - apply as two hop algorithm')
             backhaul_method, access_method = method
             if access_method == lbps.ALGORITHM_LBPS_TOPDOWN:
+                if backhaul_method == lbps.ALGORITHM_LBPS_AGGR:
+                    logging.info('Running algorithm TD-Aggr')
+                elif backhaul_method == lbps.ALGORITHM_LBPS_SPLIT:
+                    logging.info('Running algorithm TD-Split')
+                elif backhaul_method == lbps.ALGORITHM_LBPS_MERGE:
+                    logging.info('Running algorithm TD-Merge')
                 td = lbps_topdown.TopDown(self.__root)
                 self.demo_timeline = td.run(backhaul_method)
                 self.__method = method
             elif backhaul_method == lbps.ALGORITHM_LBPS_MINCYCLE:
                 if access_method == lbps.ALGORITHM_LBPS_AGGR:
+                    logging.info('Running algorithm BU-Aggr(MinCycle)')
                     bu = lbps_bottomup.MinCycleAggr(self.__root)
                     self.demo_timeline = bu.run()
                 elif access_method == lbps.ALGORITHM_LBPS_SPLIT:
+                    logging.info('Running algorithm BU-Split(MinCycle)')
                     bu = lbps_bottomup.MinCycleSplit(self.__root)
                     self.demo_timeline = bu.run()
             elif backhaul_method == lbps.ALGORITHM_LBPS_MERGECYCLE:
                 if access_method == lbps.ALGORITHM_LBPS_MERGE:
+                    logging.info('Running algorithm BU-Merge(MergeCycle)')
                     bu = lbps_bottomup.MergeCycleMerge(self.__root)
                     self.demo_timeline = bu.run()
 
