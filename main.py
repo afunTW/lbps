@@ -65,8 +65,8 @@ def run_drx(network, drx_instance, dirname):
     save_json(drx_instance.demo_summary, filename, dirname)
 
 def run_lbps(network, algorithm, method, dirname):
-    logging.info('parent id {}'.format(os.getppid()))
-    logging.info('process id {}'.format(os.getpid()))
+    logging.debug('parent id {}'.format(os.getppid()))
+    logging.debug('process id {}'.format(os.getpid()))
     network.apply(algorithm, mapping=method)
     network.run(network.demo_timeline)
     filename = get_filename(algorithm, method)
@@ -134,7 +134,6 @@ def main(simulation_time):
                 for method in mapping:
                     run_lbps(network, algorithm, method, dirname)
 
-
 if __name__ == '__main__':
 
     now = datetime.now()
@@ -145,7 +144,7 @@ if __name__ == '__main__':
     outdir = os.path.abspath(outdir)
 
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format='%(asctime)s %(filename)s:L%(lineno)s [%(levelname)8s] %(message)s',
         datefmt='%b %d %H:%M:%S',
         filename=logname
