@@ -58,7 +58,7 @@ class BottomUp(basic.BaseLBPS):
                 devices[i] = target
 
     def all_awake(self):
-        logging.debug(' - schedule failed, all awaken')
+        logging.info(' - schedule failed, all awaken')
         all_rn = [rn for rn in self.root.target_device]
         backhaul_timeline = all_rn + [self.root]
         access_timeline = [
@@ -189,6 +189,14 @@ class MergeCycle(BottomUp):
 
         can_access = all([access_check(g) for g in groups])
         can_backhaul = (sum([ratio(g) for g in groups]) <= 1)
+        logging.info('Check schedulability: ')
+        for g in groups:
+            logging.info('access_awake={}, backhaul_awake={}, access_K={}'.format(
+                access_awake(g), g['backhaul_awake'], g['access_K']
+            ))
+        logging.info('Check schedulability: access_check={}'.format(
+            [access_check(g) for g in groups]))
+        logging.info('Check schedulability: can_access={}, can_backhaul={}'.format(can_access, can_backhaul))
         return (can_backhaul, can_access)
 
     def scheduling(self, groups):
@@ -222,8 +230,10 @@ class MergeCycleMerge(MergeCycle):
         self.__is_non_degraded = False
 
     def non_degraded(self, groups):
+        logging.info('{} ready for non degraded'.format(self.non_degraded.__name__))
         self.__is_non_degraded = False
         groups.sort(key=lambda x: x['access_K'], reverse=True)
+        logging.info('Groups access_K = {}'.format([g['access_K'] for g in groups]))
 
         for i, source in enumerate(groups):
             for j, target in enumerate(groups[i+1:]):
@@ -247,6 +257,8 @@ class MergeCycleMerge(MergeCycle):
                 continue
             break
 
+        logging.info('Groups access_K = {}'.format([g['access_K'] for g in groups]))
+        logging.info('{} non degraded {}'.format(self.non_degraded.__name__, self.__is_non_degraded))
         return groups
 
     def run(self):
@@ -259,6 +271,7 @@ class MergeCycleMerge(MergeCycle):
         # backhaul merge process
         ratio = lambda g: ceil(g['backhaul_awake'] / g['access_K'])
         can_merge = lambda x: sum([ratio(g) for g in x]) > 1
+
         while can_merge(groups):
             groups = self.non_degraded(groups)
             if not self.__is_non_degraded: break
