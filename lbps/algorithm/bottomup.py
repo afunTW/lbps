@@ -211,6 +211,8 @@ class MergeCycle(BottomUp):
                     TTI += 1
                     continue
                 for count in range(ceil(group['backhaul_awake'])):
+                    if TTI+count >= len(backhaul_timeline):
+                        break
                     backhaul_timeline[TTI+count] += group['device']
                     backhaul_timeline[TTI+count] += [self.root]
                 TTI += group['access_K']
@@ -272,13 +274,17 @@ class MergeCycleMerge(MergeCycle):
         ratio = lambda g: ceil(g['backhaul_awake'] / g['access_K'])
         can_merge = lambda x: sum([ratio(g) for g in x]) > 1
 
-        while can_merge(groups):
-            groups = self.non_degraded(groups)
-            if not self.__is_non_degraded: break
-
         can_backhaul, can_access = self.schedulability(groups)
-
         if can_backhaul and can_access:
             return self.scheduling(groups)
         else:
-            return self.all_awake()
+            while can_merge(groups):
+                groups = self.non_degraded(groups)
+                if not self.__is_non_degraded:
+                    break
+
+            can_backhaul, can_access = self.schedulability(groups)
+            if can_backhaul and can_access:
+                return self.scheduling(groups)
+            else:
+                return self.all_awake()
